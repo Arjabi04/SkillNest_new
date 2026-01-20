@@ -1,0 +1,102 @@
+/* Full-page wrapper for the ChooseInterests page */
+.page-wrapper {
+  min-height: 100vh; /* full viewport height */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: 
+    linear-gradient(rgba(0, 0, 0, 0.69), rgba(0, 0, 0, 0.79)),
+    url('../assets/bg.jpg') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Container sitting on top */
+.interests-container {
+  max-width: 900px;
+  width: 90%;
+  text-align: center;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.1); /* semi-transparent */
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.39);
+}
+
+
+h2 {
+    font-size: 2.2rem; 
+    color: rgba(234, 237, 250, 0.916);
+    font-weight: 700;
+}
+.subtitle {
+    font-size: 1.rem;
+    margin-bottom: 2rem;      /* space between subtitle and hobbies */
+    color: rgba(243, 243, 243, 0.916);
+    margin-bottom: 3rem; 
+}
+
+.interests-grid {
+  display: flex;
+  flex-wrap: wrap;           /* allow cards to wrap to next line */
+  justify-content: center;   /* center the whole block horizontally */
+  gap: 2.5rem;               /* space between cards */
+  margin-bottom: 2rem;
+}
+
+.interest-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  min-height: 50px;
+  background-color: rgba(204, 204, 204, 0.713);
+}
+
+
+.interest-card:hover {
+  border-color: rgba(76, 94, 175, 0.504);
+  background-color: #e6f0ff;
+}
+
+.interest-card.selected {
+  background-color: rgba(18, 30, 82, 0.729);
+  color: white;
+  border-color: #4c5eafff;
+}
+
+.interest-card input {
+  display: none;
+}
+
+.submit-btn {
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  background-color: rgba(36, 54, 132, 0.9);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 60%;
+  max-width: 300px;
+  margin: 3.5rem auto 0;         
+  display: block;
+}
+
+.submit-btn:hover {
+  background-color: #3a4e9f;
+}
+
+.message {
+  margin-top: 1rem;
+  font-weight: bold;
+  color: #e0e29e;
+}

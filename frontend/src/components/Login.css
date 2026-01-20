@@ -1,0 +1,156 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  /* overflow: hidden; */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+/* Main container */
+.login-page {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+/* Left side: Image */
+.image-side {
+  flex: 1;              /* take remaining space */
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-side img {
+  width: 100%;
+  height: 100%;
+  /* object-fit: cover;    cover entire container */
+  display: block;
+}
+
+/* Right side: Form */
+.login-container {
+  width: 700px;          
+  height: 100vh;         
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+  border-radius: 0 0 0 12px;
+}
+
+
+
+.login-container {
+  width: 600px;          
+  height: 100vh;         
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* horizontally center all */
+  padding: 2rem; 
+  background-color: #f9f9f9;
+  box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+  border-radius: 0 0 0 12px;
+  justify-content: flex-start; /* start from top */
+}
+
+.skillnest-text {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #222;
+  text-align: center;
+  margin-bottom: 8rem; /* some space below it */
+}
+
+.login-heading {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #222;
+  text-align: left;   /* left-aligned */
+  width: 100%;        /* takes full width of form wrapper */
+}
+
+.login-subheading {
+  font-weight: 200;
+  color: #605f5f;
+  text-align: left;   /* left-aligned */
+  width: 100%;        /* takes full width of form wrapper */
+  margin-bottom: 2rem;
+
+}
+
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;  
+  align-items: flex-start;   /* left-align all children */
+  width: 100%;
+  max-width: 400px;          /* optional for nice layout */
+}
+
+/* Form container */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  gap: 2rem;
+}
+
+/* Form inputs and buttons remain the same */
+.login-form input {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  transition: border-color 0.3s;
+}
+
+.login-form input:focus {
+  border-color: #4c5eafff;
+  outline: none;
+}
+
+.login-form button {
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #4c5eafff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-form button:hover {
+  background-color: #3b4cdd;
+}
+
+.forgot-password,
+.helper-text {
+  text-align: center;  /* centers text */
+  width: 100%;         /* make sure it spans the form width */
+  margin: 0.5rem 0;    /* optional spacing above/below */
+}
+
+.forgot-password a,
+.helper-text a {
+  color: #4c5eafff;
+  text-decoration: none;
+}
+
+.forgot-password a:hover,
+.helper-text a:hover {
+  text-decoration: underline;
+}
+
+
+
+ 
+ 
