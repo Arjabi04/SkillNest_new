@@ -1,966 +1,750 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { verifyAdmin } from "../api/auth";
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
-function CommunitiesPage() {
+// SVG Icon Components
+const Users = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
+const Plus = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);
+const Check = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+);
+const X = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+const Shield = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+const Crown = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l7 7 7-7M5 21h14M5 21l2-6m12 6l-2-6" />
+  </svg>
+);
+const Settings = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+const Ban = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+  </svg>
+);
+const UserMinus = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+  </svg>
+);
+const AlertCircle = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const CommunitiesPage = () => {
   const [communities, setCommunities] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState({ pendingCreations: [], pendingDeletions: [] });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState(null);
+  const [showCommunityAdminPanel, setShowCommunityAdminPanel] = useState(false);
+  const [communityMembers, setCommunityMembers] = useState({ members: [], admins: [], moderators: [], bannedUsers: [] });
   const [communityPosts, setCommunityPosts] = useState([]);
-  const [newPostText, setNewPostText] = useState("");
+  const [newPostText, setNewPostText] = useState('');
   const [newPostImage, setNewPostImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState({ pendingCreations: [], pendingDeletions: [] });
-  const [showPendingModal, setShowPendingModal] = useState(false);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [joinRequests, setJoinRequests] = useState([]);
-  const [communityMembers, setCommunityMembers] = useState({ members: [], admins: [], moderators: [], bannedUsers: [] });
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [adminTab, setAdminTab] = useState("requests"); // 'requests', 'members', 'roles'
-  const navigate = useNavigate();
+  const [showBanModal, setShowBanModal] = useState(false);
+  const [selectedMemberForAction, setSelectedMemberForAction] = useState(null);
+  const [banType, setBanType] = useState('permanent');
+  const [banReason, setBanReason] = useState('');
+  const [banExpiresAt, setBanExpiresAt] = useState('');
 
-  // Get userId from localStorage or URL
-  const getUserId = () => {
-    const token = localStorage.getItem("token");
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("userId") || localStorage.getItem("userId");
-  };
+  const location = useLocation();
+  const API_BASE = 'http://localhost:4000/api';
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get('userId') || localStorage.getItem('userId');
+  const adminToken = localStorage.getItem('adminToken');
 
-  const userId = getUserId();
+  const isHome = location.pathname === '/';
+  const isProfile = location.pathname.startsWith('/profile');
+  const isCommunities = location.pathname.startsWith('/communities');
+  const isMarketplace = location.pathname.startsWith('/marketplace');
+  const isEvents = location.pathname.startsWith('/events');
+  const isNotifications = location.pathname.startsWith('/notifications');
+  const isSettings = location.pathname.startsWith('/settings');
 
-  // Check admin status on mount
   useEffect(() => {
-    const checkAdmin = async () => {
-      const adminStatus = await verifyAdmin();
-      setIsAdmin(adminStatus.isAdmin || false);
-    };
-    checkAdmin();
+    checkAdminStatus();
+    loadCommunities();
   }, []);
 
   useEffect(() => {
-    fetchCommunities();
     if (isAdmin) {
-      fetchPendingRequests();
+      loadPendingRequests();
     }
   }, [isAdmin]);
 
-  const fetchCommunities = async () => {
+  const checkAdminStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-admin`, {
+        headers: { 'x-admin-token': adminToken || '' }
+      });
+      const data = await res.json();
+      setIsAdmin(data.isAdmin || false);
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  };
+
+  const loadCommunities = async () => {
     try {
       const adminParam = isAdmin ? '&admin=true' : '';
-      const url = userId 
-        ? `http://localhost:4000/api/communities?userId=${userId}${adminParam}`
-        : `http://localhost:4000/api/communities${adminParam ? '?admin=true' : ''}`;
+      const url = `${API_BASE}/communities?userId=${userId}${adminParam}`;
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok) setCommunities(data);
     } catch (err) {
-      console.error(err);
+      console.error('Error:', err);
     }
   };
 
-  const fetchPendingRequests = async () => {
+  const loadPendingRequests = async () => {
     try {
-      const adminToken = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:4000/api/communities/pending/all", {
-        headers: {
-          "x-admin-token": adminToken || "",
-        },
+      const res = await fetch(`${API_BASE}/communities/pending/all`, {
+        headers: { 'x-admin-token': adminToken || '' }
       });
       const data = await res.json();
       if (res.ok) setPendingRequests(data);
     } catch (err) {
-      console.error(err);
+      console.error('Error:', err);
     }
   };
 
-  const fetchCommunityPosts = async (communityId) => {
+  const loadCommunityDetails = async (communityId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/posts`);
+      const res = await fetch(`${API_BASE}/communities/${communityId}/members?userId=${userId}`);
+      const data = await res.json();
+      if (res.ok) setCommunityMembers(data);
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  };
+
+  const loadCommunityPosts = async (communityId) => {
+    try {
+      const res = await fetch(`${API_BASE}/communities/${communityId}/posts`);
       const data = await res.json();
       if (res.ok) setCommunityPosts(data);
     } catch (err) {
-      console.error(err);
+      console.error('Error:', err);
     }
   };
 
   const handleCreateCommunity = async (e) => {
     e.preventDefault();
-    
-    if (!userId) {
-      alert("Please login first");
-      navigate("/login");
-      return;
-    }
-
     setLoading(true);
-
     const formData = new FormData(e.target);
-    formData.append("creatorId", userId);
-
+    formData.append('creatorId', userId);
     try {
-      const res = await fetch("http://localhost:4000/api/communities", {
-        method: "POST",
+      const res = await fetch(`${API_BASE}/communities`, {
+        method: 'POST',
         body: formData,
       });
-
-      const data = await res.json();
       if (res.ok) {
         setShowCreateModal(false);
-        fetchCommunities();
         e.target.reset();
-        alert("Community creation request submitted! Waiting for admin approval.");
+        alert('Community request submitted!');
+        if (isAdmin) loadPendingRequests();
       } else {
-        alert(data.msg || "Failed to create community");
+        const data = await res.json();
+        alert(data.msg || 'Failed');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error creating community");
+      alert('Error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRequestDeletion = async (communityId) => {
-    if (!userId) {
-      alert("Please login first");
-      navigate("/login");
-      return;
-    }
-
-    if (!window.confirm("Are you sure you want to request deletion of this community? This will be reviewed by an admin.")) {
-      return;
-    }
-
+  const handleApproveCommunity = async (id) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/request-deletion`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+      const res = await fetch(`${API_BASE}/communities/${id}/approve`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken || '' }
       });
-
-      const data = await res.json();
       if (res.ok) {
-        alert("Deletion request submitted! Waiting for admin approval.");
-        fetchCommunities();
-        if (isAdmin) {
-          fetchPendingRequests();
-        }
-      } else {
-        alert(data.msg || "Failed to request deletion");
+        alert('Approved!');
+        loadPendingRequests();
+        loadCommunities();
       }
     } catch (err) {
-      console.error(err);
-      alert("Error requesting deletion");
+      alert('Error');
+    }
+  };
+
+  const handleRejectCommunity = async (id) => {
+    if (!window.confirm('Reject?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/communities/${id}/reject`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken || '' }
+      });
+      if (res.ok) {
+        alert('Rejected');
+        loadPendingRequests();
+      }
+    } catch (err) {
+      alert('Error');
+    }
+  };
+
+  const handleApproveDeletion = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/communities/${id}/approve-deletion`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken || '' }
+      });
+      if (res.ok) {
+        alert('Approved deletion!');
+        loadPendingRequests();
+        loadCommunities();
+      }
+    } catch (err) {
+      alert('Error');
+    }
+  };
+
+  const handleRejectDeletion = async (id) => {
+    if (!window.confirm('Reject deletion?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/communities/${id}/reject-deletion`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken || '' }
+      });
+      if (res.ok) {
+        alert('Rejected deletion');
+        loadPendingRequests();
+      }
+    } catch (err) {
+      alert('Error');
     }
   };
 
   const handleJoinCommunity = async (communityId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+      const res = await fetch(`${API_BASE}/communities/${communityId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
       });
-
       const data = await res.json();
       if (res.ok) {
-        fetchCommunities();
-        if (selectedCommunity?._id === communityId) {
-          await fetchCommunityDetails(communityId);
-        }
-        alert("Join request submitted! Waiting for admin approval.");
+        alert(data.msg || 'Joined!');
+        loadCommunities();
       } else {
-        alert(data.msg || "Failed to join");
+        alert(data.msg || 'Failed to join');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error joining community");
+      alert('Error');
     }
   };
 
   const handleLeaveCommunity = async (communityId) => {
+    if (!window.confirm('Are you sure you want to leave this community?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/leave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+      const res = await fetch(`${API_BASE}/communities/${communityId}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
       });
-
-      const data = await res.json();
       if (res.ok) {
-        fetchCommunities();
-        if (selectedCommunity?._id === communityId) {
-          setSelectedCommunity({ 
-            ...selectedCommunity, 
-            members: selectedCommunity.members?.filter(m => {
-              const memberId = typeof m === 'string' ? m : m._id;
-              return memberId !== userId;
-            }) || []
-          });
-        }
-        alert("Left community");
+        alert('Left community');
+        setSelectedCommunity(null);
+        loadCommunities();
       } else {
-        alert(data.msg || "Failed to leave");
+        const data = await res.json();
+        alert(data.msg || 'Failed to leave');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error leaving community");
+      alert('Error');
     }
   };
 
   const handleViewCommunity = async (community) => {
     setSelectedCommunity(community);
-    await fetchCommunityPosts(community._id);
-    // Fetch full community details with admins/moderators
-    await fetchCommunityDetails(community._id);
-  };
-
-  const fetchCommunityDetails = async (communityId) => {
-    try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}`);
-      const data = await res.json();
-      if (res.ok) {
-        setSelectedCommunity(data);
-        // Fetch join requests and members if user is admin/moderator
-        if (isCommunityAdminOrModerator(data)) {
-          await fetchJoinRequests(communityId);
-          await fetchCommunityMembers(communityId);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchJoinRequests = async (communityId) => {
-    try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/join-requests?userId=${userId}`);
-      const data = await res.json();
-      if (res.ok) {
-        setJoinRequests(data.joinRequests || []);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchCommunityMembers = async (communityId) => {
-    try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/members?userId=${userId}`);
-      const data = await res.json();
-      if (res.ok) {
-        setCommunityMembers(data);
-      }
-    } catch (err) {
-      console.error(err);
+    await loadCommunityPosts(community._id);
+    if (isCommunityAdmin(community) || isCommunityModerator(community)) {
+      await loadCommunityDetails(community._id);
     }
   };
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostText.trim()) return;
-
     const formData = new FormData();
-    formData.append("userId", userId);
-    formData.append("text", newPostText);
+    formData.append('userId', userId);
+    formData.append('text', newPostText);
     if (newPostImage) {
-      formData.append("image", newPostImage);
+      formData.append('image', newPostImage);
     }
-
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/posts`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/posts`, {
+        method: 'POST',
+        body: formData,
+      });
       if (res.ok) {
-        setNewPostText("");
+        setNewPostText('');
         setNewPostImage(null);
-        fetchCommunityPosts(selectedCommunity._id);
+        loadCommunityPosts(selectedCommunity._id);
       } else {
-        alert(data.msg || "Failed to create post");
+        const data = await res.json();
+        alert(data.msg || 'Failed to create post');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error creating post");
+      alert('Error creating post');
     }
   };
 
-  const isMember = (community) => {
-    return community.members?.some(m => {
-      const memberId = typeof m === 'string' ? m : (m._id || m);
-      return memberId === userId;
-    });
-  };
-
-  const isCreator = (community) => {
-    if (!community.creator || !userId) return false;
-    const creatorId = typeof community.creator === 'string' 
-      ? community.creator 
-      : (community.creator._id || community.creator);
-    return creatorId === userId;
-  };
-
-  const isCommunityAdmin = (community) => {
-    if (!community.admins || !userId) return false;
-    return community.admins.some(adminId => {
-      const id = typeof adminId === 'string' ? adminId : (adminId._id || adminId);
-      return id === userId;
-    });
-  };
-
-  const isCommunityModerator = (community) => {
-    if (!community.moderators || !userId) return false;
-    return community.moderators.some(modId => {
-      const id = typeof modId === 'string' ? modId : (modId._id || modId);
-      return id === userId;
-    });
-  };
-
-  const isCommunityAdminOrModerator = (community) => {
-    return isCommunityAdmin(community) || isCommunityModerator(community);
-  };
-
-  const hasPendingJoinRequest = (community) => {
-    if (!community.joinRequests || !userId) return false;
-    return community.joinRequests.some(req => {
-      const reqUserId = typeof req.user === 'string' ? req.user : (req.user?._id || req.user);
-      return reqUserId === userId && req.status === 'pending';
-    });
-  };
-
-  // Admin Action Handlers
-  const handleApproveJoinRequest = async (requestId) => {
-    try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/join-requests/${requestId}/approve`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        await fetchJoinRequests(selectedCommunity._id);
-        await fetchCommunityDetails(selectedCommunity._id);
-        alert("Join request approved");
-      } else {
-        alert(data.msg || "Failed to approve");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error approving request");
+  const handleAddMember = async (userIdToAdd) => {
+    if (!userIdToAdd) {
+      alert('Please enter a user ID');
+      return;
     }
-  };
-
-  const handleRejectJoinRequest = async (requestId) => {
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/join-requests/${requestId}/reject`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
-        }
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/add-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: userIdToAdd })
+      });
       if (res.ok) {
-        await fetchJoinRequests(selectedCommunity._id);
-        alert("Join request rejected");
+        alert('Member added');
+        loadCommunityDetails(selectedCommunity._id);
       } else {
-        alert(data.msg || "Failed to reject");
+        const data = await res.json();
+        alert(data.msg || 'Failed to add member');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error rejecting request");
+      alert('Error');
     }
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (!window.confirm("Are you sure you want to remove this member?")) return;
+    if (!window.confirm('Remove member?')) return;
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/remove-member`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, memberId }),
-        }
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/remove-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: memberId })
+      });
       if (res.ok) {
-        await fetchCommunityMembers(selectedCommunity._id);
-        await fetchCommunityDetails(selectedCommunity._id);
-        alert("Member removed");
-      } else {
-        alert(data.msg || "Failed to remove member");
+        alert('Removed');
+        loadCommunityDetails(selectedCommunity._id);
       }
     } catch (err) {
-      console.error(err);
-      alert("Error removing member");
+      alert('Error');
     }
   };
 
-  const handleBanUser = async (targetUserId, banType, reason, expiresAt) => {
-    if (!window.confirm(`Are you sure you want to ${banType === 'permanent' ? 'permanently ban' : 'temporarily ban'} this user?`)) return;
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Delete this post?')) return;
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/ban-user`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, userId: targetUserId, banType, reason, expiresAt }),
-        }
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
       if (res.ok) {
-        await fetchCommunityMembers(selectedCommunity._id);
-        await fetchCommunityDetails(selectedCommunity._id);
-        alert("User banned");
+        alert('Post deleted');
+        loadCommunityPosts(selectedCommunity._id);
       } else {
-        alert(data.msg || "Failed to ban user");
+        const data = await res.json();
+        alert(data.msg || 'Failed to delete post');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error banning user");
+      alert('Error deleting post');
     }
   };
 
-  const handleUnbanUser = async (targetUserId) => {
+  const handleBanUser = async () => {
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/unban-user`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, userId: targetUserId }),
-        }
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/ban-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          targetUserId: selectedMemberForAction._id, 
+          banType, 
+          reason: banReason, 
+          expiresAt: banExpiresAt 
+        })
+      });
       if (res.ok) {
-        await fetchCommunityMembers(selectedCommunity._id);
-        alert("User unbanned");
-      } else {
-        alert(data.msg || "Failed to unban user");
+        alert('Banned');
+        setShowBanModal(false);
+        setSelectedMemberForAction(null);
+        loadCommunityDetails(selectedCommunity._id);
       }
     } catch (err) {
-      console.error(err);
-      alert("Error unbanning user");
+      alert('Error');
     }
   };
 
   const handlePromoteModerator = async (memberId) => {
-    if (!isCommunityAdmin(selectedCommunity)) {
-      alert("Only admins can promote moderators");
-      return;
-    }
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/promote-moderator`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, userId: memberId }),
-        }
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: memberId })
+      });
       if (res.ok) {
-        await fetchCommunityMembers(selectedCommunity._id);
-        await fetchCommunityDetails(selectedCommunity._id);
-        alert("User promoted to moderator");
-      } else {
-        alert(data.msg || "Failed to promote");
+        alert('Promoted!');
+        loadCommunityDetails(selectedCommunity._id);
       }
     } catch (err) {
-      console.error(err);
-      alert("Error promoting user");
+      alert('Error');
     }
   };
 
-  const handleDemoteModerator = async (moderatorId) => {
-    if (!isCommunityAdmin(selectedCommunity)) {
-      alert("Only admins can demote moderators");
-      return;
-    }
+  const handleRequestDeletion = async (communityId) => {
+    if (!window.confirm('Request deletion of this community? A site admin will review your request.')) return;
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/demote-moderator`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, userId: moderatorId }),
-        }
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/communities/${communityId}/request-deletion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
       if (res.ok) {
-        await fetchCommunityMembers(selectedCommunity._id);
-        await fetchCommunityDetails(selectedCommunity._id);
-        alert("Moderator demoted");
+        alert('Deletion request submitted. Waiting for admin approval.');
       } else {
-        alert(data.msg || "Failed to demote");
+        const data = await res.json();
+        alert(data.msg || 'Failed to request deletion');
       }
     } catch (err) {
-      console.error(err);
-      alert("Error demoting moderator");
+      alert('Error requesting deletion');
     }
   };
 
-  const handleEditCommunity = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const formData = new FormData(e.target);
-    formData.append("userId", userId);
-
-    try {
-      const res = await fetch(
-        `http://localhost:4000/api/communities/${selectedCommunity._id}/edit`,
-        {
-          method: "PUT",
-          body: formData,
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        setShowEditModal(false);
-        await fetchCommunityDetails(selectedCommunity._id);
-        alert("Community updated successfully");
-      } else {
-        alert(data.msg || "Failed to update community");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error updating community");
-    } finally {
-      setLoading(false);
-    }
+  const isCommunityAdmin = (community) => {
+    if (!community?.admins || !userId) return false;
+    return community.admins.some(admin => {
+      const adminId = typeof admin === 'string' ? admin : admin._id;
+      return adminId === userId;
+    });
   };
 
+  const isCommunityModerator = (community) => {
+    if (!community?.moderators || !userId) return false;
+    return community.moderators.some(mod => {
+      const modId = typeof mod === 'string' ? mod : mod._id;
+      return modId === userId;
+    });
+  };
+
+  const isMember = (community) => {
+    if (!community?.members || !userId) return false;
+    return community.members.some(member => {
+      const memberId = typeof member === 'string' ? member : member._id;
+      return memberId === userId;
+    });
+  };
+
+  const getRoleLabel = (community) => {
+    if (isCommunityAdmin(community)) return 'Admin';
+    if (isCommunityModerator(community)) return 'Moderator';
+    if (isMember(community)) return 'Member';
+    return null;
+  };
+
+  // COMMUNITY DETAIL VIEW (RENDERED IF A COMMUNITY IS SELECTED)
   if (selectedCommunity) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Back Button */}
-          <button 
-            onClick={() => setSelectedCommunity(null)} 
-            className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Communities
-          </button>
-
-          {/* Community Header */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-            {selectedCommunity.coverImage && (
-              <div className="w-full h-64 overflow-hidden">
-                <img 
-                  src={selectedCommunity.coverImage} 
-                  alt="Cover" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <div className="p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{selectedCommunity.name}</h1>
-              <p className="text-gray-600 mb-4">{selectedCommunity.description}</p>
-              
-              <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <span className="font-medium">{selectedCommunity.members?.length || 0} members</span>
-                </div>
-                
-                {selectedCommunity.interests && selectedCommunity.interests.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCommunity.interests.map((interest, i) => (
-                      <span 
-                        key={i} 
-                        className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium"
-                      >
-                        {interest}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-3 flex-wrap">
-                {!isMember(selectedCommunity) ? (
-                  hasPendingJoinRequest(selectedCommunity) ? (
-                    <span className="px-6 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Join Request Pending
-                    </span>
-                  ) : (
-                    <button 
-                      onClick={() => handleJoinCommunity(selectedCommunity._id)}
-                      className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                    >
-                      Request to Join
-                    </button>
-                  )
-                ) : (
-                  <button 
-                    onClick={() => handleLeaveCommunity(selectedCommunity._id)}
-                    className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
-                  >
-                    Leave Community
-                  </button>
-                )}
-                
-                {isCommunityAdminOrModerator(selectedCommunity) && (
-                  <button
-                    onClick={() => setShowAdminPanel(!showAdminPanel)}
-                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {isCommunityAdmin(selectedCommunity) ? "Admin Panel" : "Moderator Panel"}
-                  </button>
-                )}
-                
-                {isCreator(selectedCommunity) && (
-                  selectedCommunity.deletionRequested ? (
-                    <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Deletion Requested - Pending Admin Approval
-                    </span>
-                  ) : (
-                    <button 
-                      onClick={() => handleRequestDeletion(selectedCommunity._id)}
-                      className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Request Deletion
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
+      <div className="min-h-screen bg-gray-50 font-sans flex">
+        {/* Sidebar */}
+        <aside className="hidden md:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+          <div className="px-1">
+            <h2 className="text-2xl font-extrabold text-black tracking-tight">SkillNest</h2>
           </div>
+          <nav className="flex flex-col gap-1 text-sm font-medium">
+            <Link to="/" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">Home</Link>
+            <Link to="/communities" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600">Communities</Link>
+            <Link to="/marketplace" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">Marketplace</Link>
+          </nav>
+        </aside>
 
-          {/* Create Post Form */}
-          {isMember(selectedCommunity) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Create Post</h2>
-              <form onSubmit={handleCreatePost} className="space-y-4">
-                <textarea
-                  value={newPostText}
-                  onChange={(e) => setNewPostText(e.target.value)}
-                  placeholder="What's on your mind?"
-                  rows="4"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
-                />
-                <div className="flex items-center justify-between">
-                  <label className="cursor-pointer px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setNewPostImage(e.target.files[0])}
-                      className="hidden"
-                    />
-                    {newPostImage ? "Change Image" : "Add Image"}
-                  </label>
-                  <button 
-                    type="submit"
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                  >
-                    Post
-                  </button>
-                </div>
-                {newPostImage && (
-                  <div className="mt-2">
-                    <img 
-                      src={URL.createObjectURL(newPostImage)} 
-                      alt="Preview" 
-                      className="max-w-md h-48 object-cover rounded-lg"
-                    />
-                  </div>
-                )}
-              </form>
-            </div>
-          )}
+        {/* Detail Content */}
+        <div className="flex-1 md:ml-72 flex justify-center px-4 py-8">
+          <div className="w-full max-w-4xl space-y-6">
+            <button 
+              onClick={() => setSelectedCommunity(null)}
+              className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-2"
+            >
+              <X className="w-4 h-4" /> Back to List
+            </button>
 
-          {/* Community Posts */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Posts</h2>
-            {communityPosts.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-gray-500">No posts yet. Be the first to post!</p>
-              </div>
-            ) : (
-              communityPosts.map((post) => (
-                <div key={post._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <img
-                      src={post.user?.profileImage || "/default-avatar.png"}
-                      alt="Avatar"
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{post.user?.username}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(post.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
+            <div className="rounded-3xl bg-white border border-gray-200 overflow-hidden shadow-sm">
+              {selectedCommunity.coverImage && (
+                <img src={selectedCommunity.coverImage} className="w-full h-48 object-cover" alt="" />
+              )}
+              <div className="p-8">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-black text-gray-900">{selectedCommunity.name}</h1>
+                    <p className="text-gray-500 mt-2">{selectedCommunity.description}</p>
+                    {isMember(selectedCommunity) && (
+                      <button 
+                        onClick={() => handleLeaveCommunity(selectedCommunity._id)} 
+                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
+                      >
+                        Leave Community
+                      </button>
+                    )}
                   </div>
-                  <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.text}</p>
-                  {post.image && (
-                    <img 
-                      src={post.image} 
-                      alt="Post" 
-                      className="w-full max-w-2xl rounded-lg object-cover"
-                    />
+                  {(isCommunityAdmin(selectedCommunity) || isCommunityModerator(selectedCommunity)) && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadCommunityDetails(selectedCommunity._id);
+                        setShowCommunityAdminPanel(true);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                    >
+                      <Settings className="w-4 h-4" /> Manage
+                    </button>
                   )}
                 </div>
-              ))
-            )}
+              </div>
+            </div>
+
+            {/* Post Feed */}
+            <div className="space-y-4">
+               {isMember(selectedCommunity) && (
+                 <div className="bg-white p-6 rounded-3xl border border-gray-200">
+                    <form onSubmit={handleCreatePost} className="space-y-4">
+                      <textarea 
+                        value={newPostText}
+                        onChange={(e) => setNewPostText(e.target.value)}
+                        className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
+                        placeholder="Share something with the community..." 
+                      />
+                      <div className="flex justify-between">
+                         <input type="file" onChange={(e) => setNewPostImage(e.target.files[0])} className="text-xs" />
+                         <button type="submit" className="px-6 py-2 bg-gray-900 text-white rounded-xl font-bold">Post</button>
+                      </div>
+                    </form>
+                 </div>
+               )}
+               
+               <div className="space-y-4">
+                 {communityPosts.map(post => (
+                    <div key={post._id} className="bg-white p-6 rounded-3xl border border-gray-200 relative">
+                       <p className="text-gray-800">{post.text}</p>
+                       {post.image && <img src={post.image} className="mt-4 rounded-2xl w-full" alt="" />}
+                       {(isCommunityAdmin(selectedCommunity) || isCommunityModerator(selectedCommunity)) && (
+                         <button 
+                           onClick={() => handleDeletePost(post._id)} 
+                           className="absolute top-4 right-4 text-red-600 hover:text-red-800"
+                         >
+                           Delete
+                         </button>
+                       )}
+                    </div>
+                 ))}
+               </div>
+            </div>
           </div>
         </div>
+
+        {/* RIGHT DRAWER ADMIN PANEL */}
+        {showCommunityAdminPanel && (
+          <div className="fixed inset-0 z-[100] flex justify-end">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCommunityAdminPanel(false)} />
+            <div className="relative w-full max-w-md bg-white h-full shadow-2xl animate-in slide-in-from-right duration-300">
+              <div className="p-6 border-b flex justify-between items-center bg-gray-900 text-white">
+                <h2 className="font-black flex items-center gap-2"><Shield className="w-5 h-5" /> Community Admin</h2>
+                <button onClick={() => setShowCommunityAdminPanel(false)}><X className="w-6 h-6" /></button>
+              </div>
+              <div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Members</h3>
+                {isCommunityAdmin(selectedCommunity) && (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-2xl">
+                    <h4 className="text-sm font-bold text-gray-700 mb-3">Add Member</h4>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter User ID"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        id="addMemberInput"
+                      />
+                      <button
+                        onClick={() => {
+                          const userIdToAdd = document.getElementById('addMemberInput').value.trim();
+                          handleAddMember(userIdToAdd);
+                          document.getElementById('addMemberInput').value = '';
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-4">
+                  {communityMembers.members?.map(member => (
+                    <div key={member._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                      <div className="flex items-center gap-3">
+                        <img src={member.profileImage || '/default-avatar.png'} className="w-10 h-10 rounded-full border" alt="" />
+                        <span className="font-bold text-sm text-gray-900">{member.username}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {isCommunityAdmin(selectedCommunity) && (
+                          <button onClick={() => handlePromoteModerator(member._id)} className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg"><Crown className="w-4 h-4" /></button>
+                        )}
+                        <button onClick={() => { setSelectedMemberForAction(member); setShowBanModal(true); }} className="p-2 hover:bg-red-100 text-red-600 rounded-lg"><Ban className="w-4 h-4" /></button>
+                        <button onClick={() => handleRemoveMember(member._id)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg"><UserMinus className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {isCommunityAdmin(selectedCommunity) && (
+                  <button 
+                    onClick={() => handleRequestDeletion(selectedCommunity._id)} 
+                    className="mt-6 w-full px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
+                  >
+                    Request Community Deletion
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  const pendingCount = pendingRequests.pendingCreations.length + pendingRequests.pendingDeletions.length;
-
+  // MAIN LIST VIEW (The Grid UI)
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Communities</h1>
-            <p className="text-gray-600 mt-1">Discover and join communities that match your interests</p>
+    <div className="min-h-screen bg-slate-50 font-sans flex">
+      {/* Sidebar navigation - Professional Sleek Sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 border-r border-slate-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0 shadow-sm">
+        <div className="px-2">
+          <div className="flex items-center gap-2 mb-1">
+            {/* <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xl">S</div> */}
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">SkillNest</h2>
           </div>
-          <div className="flex gap-3 items-center">
-            {isAdmin && (
-              <>
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  Admin Mode
-                </span>
-                <button 
-                  onClick={() => navigate("/admin/dashboard")}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors relative"
-                >
-                  Admin Dashboard
-                  {pendingCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-              </>
-            )}
-            <button 
-              onClick={() => setShowCreateModal(true)} 
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Community
-            </button>
-          </div>
+          {/* <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Ecosystem</p> */}
         </div>
+        <nav className="flex flex-col gap-1 text-sm font-semibold">
+          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all">
+            Home
+          </Link>
+          <Link to="/communities" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 shadow-sm shadow-blue-100">
+            Communities
+          </Link>
+          <Link to="/marketplace" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all">
+            Marketplace
+          </Link>
+        </nav>
+      </aside>
 
-        {/* Create Community Modal */}
-        {showCreateModal && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowCreateModal(false)}
-          >
-            <div 
-              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-900">Create Community</h2>
-                <p className="text-sm text-gray-600 mt-1">Your request will be reviewed by an admin</p>
-              </div>
-              <form onSubmit={handleCreateCommunity} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Community Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Enter community name"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <textarea
-                    name="description"
-                    placeholder="Describe your community"
-                    rows="4"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Interests (comma-separated)</label>
-                  <input
-                    type="text"
-                    name="interests"
-                    placeholder="e.g., Technology, Programming, Web Development"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
-                  <input 
-                    type="file" 
-                    name="coverImage" 
-                    accept="image/*" 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    disabled={loading}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
-                  >
-                    {loading ? "Submitting..." : "Submit for Approval"}
-                  </button>
-                </div>
-              </form>
+      {/* Main Content Area */}
+      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        <div className="max-w-[1400px] mx-auto w-full px-6 py-10">
+          
+          {/* Header Section */}
+          <header className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div className="space-y-1">
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Explore Communities</h1>
+              <p className="text-slate-500 font-medium text-lg">Join collaborative spaces tailored to your learning path.</p>
             </div>
-          </div>
-        )}
-
-        {/* Communities Grid */}
-        {communities.filter(c => c.status === 'approved' && !c.deletionRequested).length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No communities yet</h3>
-            <p className="text-gray-500 mb-4">Be the first to create a community!</p>
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Create Community
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {communities.filter(c => c.status === 'approved' && !c.deletionRequested).map((community) => (
-              <div 
-                key={community._id} 
-                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleViewCommunity(community)}
+            
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {isAdmin && (
+                <button 
+                  onClick={() => setShowAdminDashboard(true)}
+                  className="flex-1 md:flex-none px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4 text-blue-500" /> 
+                  Admin <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px]">{pendingRequests.pendingCreations.length}</span>
+                </button>
+              )}
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-2"
               >
-                {community.coverImage && (
-                  <div className="w-full h-48 overflow-hidden">
-                    <img 
-                      src={community.coverImage} 
-                      alt="Cover" 
-                      className="w-full h-full object-cover"
-                    />
+                <Plus className="w-5 h-5" /> Create
+              </button>
+            </div>
+          </header>
+
+          {/* THE GRID LAYOUT */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+            {communities.map((community) => (
+              <div 
+                key={community._id}
+                onClick={() => handleViewCommunity(community)}
+                className="group relative bg-white rounded-[32px] border border-slate-100 p-4 hover:shadow-2xl hover:shadow-blue-900/10 hover:border-blue-200 transition-all duration-300 cursor-pointer flex flex-col h-full"
+              >
+                {/* Image Container */}
+                <div className="relative w-full h-48 rounded-[24px] overflow-hidden bg-slate-100 mb-5">
+                  <img 
+                    src={community.coverImage || 'https://images.unsplash.com/photo-1522071823991-b99c223c7483?auto=format&fit=crop&q=80&w=400'} 
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                    alt={community.name} 
+                  />
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    {getRoleLabel(community) && (
+                      <span className="px-3 py-1 rounded-full bg-black/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest border border-white/20">
+                        {getRoleLabel(community)}
+                      </span>
+                    )}
                   </div>
-                )}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{community.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{community.description}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+
+                {/* Content */}
+                <div className="px-2 flex-1 flex flex-col">
+                  <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors mb-2">
+                    {community.name}
+                  </h3>
+                  <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6">
+                    {community.description}
+                  </p>
                   
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="text-sm font-medium">{community.members?.length || 0} members</span>
+                  {/* Stats & Action */}
+                  <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <div className="flex -space-x-2">
+                         {[1,2,3].map(i => (
+                           <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200" />
+                         ))}
+                      </div>
+                      <span className="text-xs font-bold text-slate-500">{community.members?.length || 0}</span>
                     </div>
-                  </div>
 
-                  {community.interests && community.interests.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {community.interests.slice(0, 3).map((interest, i) => (
-                        <span 
-                          key={i} 
-                          className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium"
-                        >
-                          {interest}
-                        </span>
-                      ))}
-                      {community.interests.length > 3 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                          +{community.interests.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
                     {isMember(community) ? (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewCommunity(community);
-                        }}
-                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-                      >
-                        View Community
+                      <button className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-blue-600 transition-colors">
+                        Open
                       </button>
                     ) : (
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleJoinCommunity(community._id);
-                        }}
-                        className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+                        onClick={(e) => { e.stopPropagation(); handleJoinCommunity(community._id); }}
+                        className="px-5 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl font-bold text-xs hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all"
                       >
                         Join
-                      </button>
-                    )}
-                    
-                    {isCreator(community) && !community.deletionRequested && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRequestDeletion(community._id);
-                        }}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-                        title="Request Deletion"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
                       </button>
                     )}
                   </div>
@@ -968,10 +752,121 @@ function CommunitiesPage() {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      </main>
+
+      {/* Ban Modal */}
+      {showBanModal && (
+        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowBanModal(false)} />
+          <div className="relative bg-white p-6 rounded-2xl w-full max-w-md">
+            <h3 className="font-bold text-lg mb-4">Ban User</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Ban Type</label>
+                <select value={banType} onChange={(e) => setBanType(e.target.value)} className="w-full p-2 border rounded">
+                  <option value="temporary">Temporary</option>
+                  <option value="permanent">Permanent</option>
+                </select>
+              </div>
+              {banType === 'temporary' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Expires At</label>
+                  <input type="datetime-local" value={banExpiresAt} onChange={(e) => setBanExpiresAt(e.target.value)} className="w-full p-2 border rounded" />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">Reason</label>
+                <textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} className="w-full p-2 border rounded" placeholder="Reason for ban" />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowBanModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button onClick={handleBanUser} className="px-4 py-2 bg-red-600 text-white rounded">Ban</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Community Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+          <div className="relative bg-white p-6 rounded-2xl w-full max-w-md">
+            <h3 className="font-bold text-lg mb-4">Create Community</h3>
+            <form onSubmit={handleCreateCommunity} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input name="name" required className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea name="description" required className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Interests (comma separated)</label>
+                <input name="interests" className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Cover Image</label>
+                <input name="coverImage" type="file" className="w-full p-2 border rounded" />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Dashboard Modal */}
+      {showAdminDashboard && (
+        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAdminDashboard(false)} />
+          <div className="relative bg-white p-6 rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+            <h3 className="font-bold text-lg mb-4">Admin Dashboard</h3>
+            <div className="space-y-6">
+              <div>
+                <h4 className="font-bold mb-2">Pending Community Creations</h4>
+                <div className="space-y-2">
+                  {pendingRequests.pendingCreations.map(community => (
+                    <div key={community._id} className="flex justify-between items-center p-4 bg-gray-50 rounded">
+                      <div>
+                        <p className="font-bold">{community.name}</p>
+                        <p className="text-sm text-gray-600">{community.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleApproveCommunity(community._id)} className="px-4 py-2 bg-green-600 text-white rounded">Approve</button>
+                        <button onClick={() => handleRejectCommunity(community._id)} className="px-4 py-2 bg-red-600 text-white rounded">Reject</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold mb-2">Pending Deletions</h4>
+                <div className="space-y-2">
+                  {pendingRequests.pendingDeletions.map(community => (
+                    <div key={community._id} className="flex justify-between items-center p-4 bg-gray-50 rounded">
+                      <div>
+                        <p className="font-bold">{community.name}</p>
+                        <p className="text-sm text-gray-600">Requested by: {community.deletionRequestedBy?.username}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleApproveDeletion(community._id)} className="px-4 py-2 bg-green-600 text-white rounded">Approve</button>
+                        <button onClick={() => handleRejectDeletion(community._id)} className="px-4 py-2 bg-red-600 text-white rounded">Reject</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default CommunitiesPage;

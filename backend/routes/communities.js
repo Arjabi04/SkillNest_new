@@ -185,22 +185,25 @@ router.get("/pending/all", verifyAdmin, async (req, res) => {
   }
 });
 
-// SITE ADMIN APPROVE COMMUNITY
+// APPROVE COMMUNITY (Site Admin only)
 router.post("/:communityId/approve", verifyAdmin, async (req, res) => {
   try {
-    const community = await Community.findByIdAndUpdate(
-      req.params.communityId, 
-      { status: 'approved' }, 
-      { new: true }
-    ).populate("creator", "username profileImage");
+    const community = await Community.findById(req.params.communityId);
+    if (!community) return res.status(404).json({ msg: "Community not found" });
 
-    if (!community) {
-      return res.status(404).json({ msg: "Community not found" });
+    community.status = 'approved';
+    
+    // CRITICAL: Add the creator to admins and members list
+    if (!community.admins.includes(community.creator)) {
+      community.admins.push(community.creator);
+    }
+    if (!community.members.includes(community.creator)) {
+      community.members.push(community.creator);
     }
 
-    res.json({ msg: "Community approved and is now live", community });
+    await community.save();
+    res.json({ msg: "Community approved and creator promoted to Admin", community });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -406,34 +409,29 @@ router.get("/:communityId/members", async (req, res) => {
 // PILLAR 3: ROLE HIERARCHY (Admin > Moderator > Member)
 // ============================================================
 
-// PROMOTE TO MODERATOR (Community Admin Only)
+// PROMOTE TO MODERATOR (Community Admin only)
 router.post("/:communityId/promote", isCommunityAdmin, async (req, res) => {
   try {
     const { targetUserId } = req.body;
-    const community = req.community;
+    const community = await Community.findById(req.params.communityId);
 
     if (!targetUserId) {
       return res.status(400).json({ msg: "targetUserId is required" });
     }
 
-    // Target must be a member
+    // Check if user is already a moderator
+    if (community.moderators.some(m => m.toString() === targetUserId)) {
+      return res.status(400).json({ msg: "User is already a moderator" });
+    }
+
+    // Check if user is a member
     if (!community.members.some(m => m.toString() === targetUserId)) {
-      return res.status(400).json({ msg: "User must be a member first" });
+      return res.status(400).json({ msg: "User must be a member to be promoted" });
     }
 
-    // Cannot promote an admin (they're already higher)
-    if (community.admins.some(a => a.toString() === targetUserId)) {
-      return res.status(400).json({ msg: "User is already an admin" });
-    }
-
-    // Add to moderators if not already one
-    if (!community.moderators.some(m => m.toString() === targetUserId)) {
-      community.moderators.push(targetUserId);
-      await community.save();
-      res.json({ msg: "User promoted to moderator successfully" });
-    } else {
-      res.json({ msg: "User is already a moderator" });
-    }
+    community.moderators.push(targetUserId);
+    await community.save();
+    res.json({ msg: "User promoted to Moderator" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -611,6 +609,50 @@ router.post("/:communityId/unban-user", isCommunityAdminOrModerator, async (req,
     await community.save();
 
     res.json({ msg: "User unbanned successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// ADD MEMBER (Community Admin or Moderator) - Add a user directly to the community
+router.post("/:communityId/add-member", isCommunityAdminOrModerator, async (req, res) => {
+  try {
+    const { targetUserId } = req.body;
+    const community = req.community;
+
+    if (!targetUserId) {
+      return res.status(400).json({ msg: "targetUserId is required" });
+    }
+
+    // Check if user exists
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Check if already a member
+    if (community.members.some(m => m.toString() === targetUserId)) {
+      return res.status(400).json({ msg: "User is already a member" });
+    }
+
+    // Check if banned
+    const isBanned = community.bannedUsers.some(b => {
+      if (b.user.toString() !== targetUserId) return false;
+      if (b.banType === 'permanent') return true;
+      if (b.banType === 'temporary' && b.expiresAt && new Date(b.expiresAt) > new Date()) return true;
+      return false;
+    });
+
+    if (isBanned) {
+      return res.status(400).json({ msg: "User is banned from this community" });
+    }
+
+    // Add to members
+    community.members.push(targetUserId);
+    await community.save();
+
+    res.json({ msg: "Member added successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });

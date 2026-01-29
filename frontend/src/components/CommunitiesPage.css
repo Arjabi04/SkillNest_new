@@ -264,3 +264,32 @@
     object-fit: cover;
     border-radius: 8px;
   }
+
+  /* Specialized transitions not covered by Tailwind */
+.communities-grid-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.communities-grid-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Ensure line clamping works for descriptions */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+/* Custom Modal scrollbar */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 10px;
+}
