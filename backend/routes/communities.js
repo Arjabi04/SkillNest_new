@@ -709,6 +709,7 @@ router.get("/:communityId/posts", async (req, res) => {
 
     const posts = await Post.find({ community: req.params.communityId })
       .populate("user", "username profileImage")
+      .populate("comments.user", "username profileImage")
       .sort({ createdAt: -1 });
 
     res.json(posts);
@@ -825,6 +826,103 @@ router.delete("/:communityId/posts/:postId", isCommunityAdminOrModerator, async 
 
     await Post.findByIdAndDelete(postId);
     res.json({ msg: "Post deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// LIKE POST (Any member of community)
+router.post("/:communityId/posts/:postId/like", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    const userIdStr = userId.toString();
+    const alreadyLiked = post.likes.some(id => id.toString() === userIdStr);
+
+    if (alreadyLiked) {
+      post.likes = post.likes.filter(id => id.toString() !== userIdStr);
+    } else {
+      post.likes.push(userId);
+    }
+
+    await post.save();
+    await post.populate("likes", "username");
+    res.json({ msg: alreadyLiked ? "Like removed" : "Post liked", likes: post.likes.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// ADD COMMENT TO POST (Any member of community)
+router.post("/:communityId/posts/:postId/comment", async (req, res) => {
+  try {
+    const { userId, text } = req.body;
+    const { postId } = req.params;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ msg: "Comment text is required" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    post.comments.push({
+      user: userId,
+      text: text.trim()
+    });
+
+    await post.save();
+    await post.populate("comments.user", "username profileImage");
+    res.json({ msg: "Comment added", comments: post.comments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// DELETE COMMENT FROM POST
+router.delete("/:communityId/posts/:postId/comments/:commentIdx", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { postId, commentIdx } = req.params;
+    const community = req.community || await Community.findById(req.params.communityId);
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    const commentIndex = parseInt(commentIdx);
+    if (isNaN(commentIndex) || commentIndex < 0 || commentIndex >= post.comments.length) {
+      return res.status(400).json({ msg: "Invalid comment index" });
+    }
+
+    const comment = post.comments[commentIndex];
+    const commentUserId = typeof comment.user === 'string' ? comment.user : comment.user._id;
+    const isCommentOwner = commentUserId.toString() === userId.toString();
+    const isAdmin = community?.admins?.some(admin => {
+      const adminId = typeof admin === 'string' ? admin : admin._id;
+      return adminId.toString() === userId.toString();
+    });
+
+    if (!isCommentOwner && !isAdmin) {
+      return res.status(403).json({ msg: "You can only delete your own comments" });
+    }
+
+    post.comments.splice(commentIndex, 1);
+    await post.save();
+    await post.populate("comments.user", "username profileImage");
+    res.json({ msg: "Comment deleted", comments: post.comments });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });

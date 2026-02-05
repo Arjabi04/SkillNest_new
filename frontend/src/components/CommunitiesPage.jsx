@@ -57,6 +57,16 @@ const AlertCircle = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
+const Heart = ({ className, filled = false }) => (
+  <svg className={className} fill={filled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+  </svg>
+);
+const MessageCircle = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
 
 const CommunitiesPage = () => {
   const [communities, setCommunities] = useState([]);
@@ -69,6 +79,8 @@ const CommunitiesPage = () => {
   const [communityPosts, setCommunityPosts] = useState([]);
   const [newPostText, setNewPostText] = useState('');
   const [newPostImage, setNewPostImage] = useState(null);
+  const [newPostTags, setNewPostTags] = useState([]);
+  const [newPostPreview, setNewPostPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showBanModal, setShowBanModal] = useState(false);
@@ -77,6 +89,8 @@ const CommunitiesPage = () => {
   const [banReason, setBanReason] = useState('');
   const [banExpiresAt, setBanExpiresAt] = useState('');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [expandedComments, setExpandedComments] = useState({});
+  const [newComment, setNewComment] = useState({});
 
   // const location = useLocation();
   const navigate = useNavigate();
@@ -129,6 +143,25 @@ const CommunitiesPage = () => {
       loadPendingRequests();
     }
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!newPostImage) return setNewPostPreview(null);
+    const objectUrl = URL.createObjectURL(newPostImage);
+    setNewPostPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [newPostImage]);
+
+  const addTagsFromText = () => {
+    const hashtagRegex = /#(\w+)/g;
+    const matches = newPostText.match(hashtagRegex) || [];
+    const pieces = matches.map(tag => tag.slice(1));
+    const merged = Array.from(new Set([...newPostTags, ...pieces]));
+    setNewPostTags(merged);
+  };
+
+  const removeTag = (tag) => {
+    setNewPostTags((prev) => prev.filter((t) => t !== tag));
+  };
 
   const checkAdminStatus = async () => {
     try {
@@ -299,17 +332,17 @@ const CommunitiesPage = () => {
 
   const handleJoinCommunity = async (communityId) => {
     try {
-      const res = await fetch(`${API_BASE}/communities/${communityId}/add-member`, {
+      const res = await fetch(`${API_BASE}/communities/${communityId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, targetUserId: userId })
+        body: JSON.stringify({ userId })
       });
+      const data = await res.json();
       if (res.ok) {
         alert('Joined community!');
         loadCommunityDetails(communityId);
         loadCommunities();
       } else {
-        const data = await res.json();
         alert(data.msg || 'Failed to join');
       }
     } catch (err) {
@@ -330,12 +363,15 @@ const CommunitiesPage = () => {
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!newPostText.trim()) return;
+    if (!newPostText.trim() && !newPostImage) return;
     const formData = new FormData();
     formData.append('userId', userId);
     formData.append('text', newPostText);
     if (newPostImage) {
       formData.append('image', newPostImage);
+    }
+    if (newPostTags.length) {
+      formData.append('tags', JSON.stringify(newPostTags));
     }
     try {
       const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/posts`, {
@@ -345,6 +381,8 @@ const CommunitiesPage = () => {
       if (res.ok) {
         setNewPostText('');
         setNewPostImage(null);
+        setNewPostPreview(null);
+        setNewPostTags([]);
         loadCommunityPosts(selectedCommunity._id);
       } else {
         const data = await res.json();
@@ -352,6 +390,63 @@ const CommunitiesPage = () => {
       }
     } catch (err) {
       alert('Error creating post');
+    }
+  };
+
+  const handleLikePost = async (postId) => {
+    try {
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      if (res.ok) {
+        loadCommunityPosts(selectedCommunity._id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    const text = newComment[postId]?.trim();
+    if (!text) return;
+    try {
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/posts/${postId}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, text })
+      });
+      if (res.ok) {
+        setNewComment({ ...newComment, [postId]: '' });
+        loadCommunityPosts(selectedCommunity._id);
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Failed to add comment');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error adding comment');
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentIdx) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/posts/${postId}/comments/${commentIdx}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      if (res.ok) {
+        loadCommunityPosts(selectedCommunity._id);
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Failed to delete comment');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting comment');
     }
   };
 
@@ -628,10 +723,38 @@ const CommunitiesPage = () => {
                         value={newPostText}
                         onChange={(e) => setNewPostText(e.target.value)}
                         className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-                        placeholder="Share something with the community..." 
+                        placeholder="Share something with the community... (use #hashtags for tags)"
                       />
-                      <div className="flex justify-between">
-                         <input type="file" onChange={(e) => setNewPostImage(e.target.files[0])} className="text-xs" />
+                      {newPostPreview && (
+                        <div className="rounded-lg overflow-hidden border border-gray-200">
+                          <img src={newPostPreview} alt="Preview" className="w-full h-auto object-contain" />
+                        </div>
+                      )}
+                      {newPostTags.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {newPostTags.map((tag) => (
+                            <span key={tag} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2">
+                              #{tag}
+                              <button type="button" onClick={() => removeTag(tag)} className="hover:text-blue-900">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center gap-2">
+                         <div className="flex gap-2">
+                           <input 
+                             type="file" 
+                             onChange={(e) => setNewPostImage(e.target.files[0])} 
+                             className="text-xs" 
+                           />
+                           <button 
+                             type="button" 
+                             onClick={addTagsFromText} 
+                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                           >
+                             Extract Tags
+                           </button>
+                         </div>
                          <button type="submit" className="px-6 py-2 bg-gray-900 text-white rounded-xl font-bold">Post</button>
                       </div>
                     </form>
@@ -643,18 +766,116 @@ const CommunitiesPage = () => {
                     <div key={post._id} className="bg-white p-6 rounded-3xl border border-gray-200 relative">
                        <div className="flex items-center gap-3 mb-4">
                          <img src={post.user?.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
-                         <span className="font-bold text-sm text-gray-900">{post.user?.username || 'Unknown User'}</span>
+                         <div className="flex-1">
+                           <span className="font-bold text-sm text-gray-900 block">{post.user?.username || 'Unknown User'}</span>
+                           <span className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</span>
+                         </div>
                        </div>
-                       <p className="text-gray-800">{post.text}</p>
-                       {post.image && <img src={post.image} className="mt-4 rounded-2xl w-full" alt="" />}
-                       {(isCommunityAdmin(selectedCommunity) || isCommunityModerator(selectedCommunity)) && (
-                         <button 
-                           onClick={() => handleDeletePost(post._id)} 
-                           className="absolute top-4 right-4 text-red-600 hover:text-red-800"
-                         >
-                           Delete
-                         </button>
+                       {post.text && <p className="text-gray-800 mb-3">{post.text}</p>}
+                       {post.image && (
+                         <div className="rounded-xl overflow-hidden mb-3 border border-gray-200 bg-gray-50 flex items-center justify-center max-h-96">
+                           <img src={post.image} className="w-full h-auto object-contain" alt="" />
+                         </div>
                        )}
+                       {Array.isArray(post.tags) && post.tags.length > 0 && (
+                         <div className="flex flex-wrap gap-2 mb-3">
+                           {post.tags.map((tag) => (
+                             <span key={tag} className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">
+                               #{tag}
+                             </span>
+                           ))}
+                         </div>
+                       )}
+                       <div className="flex gap-4 mt-4 pt-4 border-t border-gray-100">
+                         {(() => {
+                           const isLiked = post.likes?.some(likeUserId => {
+                             const id = typeof likeUserId === 'string' ? likeUserId : likeUserId._id;
+                             return id === userId;
+                           });
+                           return (
+                             <button 
+                               onClick={() => handleLikePost(post._id)}
+                               className={`flex items-center gap-2 text-sm transition-colors ${
+                                 isLiked 
+                                   ? 'text-red-600' 
+                                   : 'text-gray-600 hover:text-red-600'
+                               }`}
+                             >
+                               <Heart className="w-5 h-5" filled={isLiked} />
+                               {post.likes?.length || 0}
+                             </button>
+                           );
+                         })()}
+                         <button 
+                           onClick={() => setExpandedComments({ ...expandedComments, [post._id]: !expandedComments[post._id] })}
+                           className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                         >
+                           <MessageCircle className="w-5 h-5" />
+                           {post.comments?.length || 0}
+                         </button>
+                       </div>
+                       {expandedComments[post._id] && (
+                         <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                           <div className="space-y-2 max-h-48 overflow-y-auto">
+                             {post.comments?.map((comment, idx) => {
+                               const commentUserId = typeof comment.user === 'string' ? comment.user : comment.user._id;
+                               const isCommentOwner = commentUserId === userId;
+                               const isAdmin = isCommunityAdmin(selectedCommunity);
+                               const canDelete = isCommentOwner || isAdmin;
+                               return (
+                                 <div key={idx} className="bg-gray-50 p-3 rounded-lg relative">
+                                   <div className="flex flex-col items-start gap-2 mb-3">
+                                     <img src={comment.user?.profileImage || defaultAvatar} className="w-8 h-8 rounded-full" alt="" />
+                                     <div className="flex items-center gap-2 w-full">
+                                       <span className="font-semibold text-sm">{comment.user?.username}</span>
+                                       {canDelete && (
+                                         <button 
+                                           onClick={() => handleDeleteComment(post._id, idx)}
+                                           className="ml-auto text-gray-400 hover:text-red-600 text-xs font-medium"
+                                         >
+                                           Delete
+                                         </button>
+                                       )}
+                                     </div>
+                                   </div>
+                                   <p className="text-sm text-gray-700">{comment.text}</p>
+                                 </div>
+                               );
+                             })}
+                           </div>
+                           <div className="flex gap-2">
+                             <input 
+                               type="text"
+                               value={newComment[post._id] || ''}
+                               onChange={(e) => setNewComment({ ...newComment, [post._id]: e.target.value })}
+                               placeholder="Add a comment..."
+                               className="flex-1 px-3 py-2 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500"
+                             />
+                             <button 
+                               onClick={() => handleAddComment(post._id)}
+                               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                             >
+                               Post
+                             </button>
+                           </div>
+                         </div>
+                       )}
+                       {(() => {
+                         const postUserId = typeof post.user === 'string' ? post.user : post.user._id;
+                         const isPostOwner = postUserId === userId;
+                         const isAdmin = isCommunityAdmin(selectedCommunity);
+                         const isMod = isCommunityModerator(selectedCommunity);
+                         const canDelete = isPostOwner || isAdmin || isMod;
+                         
+                         return canDelete ? (
+                           <button 
+                             onClick={() => handleDeletePost(post._id)} 
+                             className="absolute top-4 right-4 text-red-600 hover:text-red-800 text-sm font-medium"
+                           >
+                             Delete
+                           </button>
+                         ) : null;
+                       })()}
                     </div>
                  ))}
                </div>
