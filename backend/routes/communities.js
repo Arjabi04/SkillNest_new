@@ -618,27 +618,31 @@ router.post("/:communityId/unban-user", isCommunityAdminOrModerator, async (req,
 // ADD MEMBER (Community Admin or Moderator) - Add a user directly to the community
 router.post("/:communityId/add-member", isCommunityAdminOrModerator, async (req, res) => {
   try {
-    const { targetUserId } = req.body;
+    const { targetUsername, targetUserId } = req.body;
     const community = req.community;
 
-    if (!targetUserId) {
-      return res.status(400).json({ msg: "targetUserId is required" });
+    // Accept either username or userId
+    let userToAdd;
+    if (targetUsername) {
+      userToAdd = await User.findOne({ username: targetUsername });
+    } else if (targetUserId) {
+      userToAdd = await User.findById(targetUserId);
+    } else {
+      return res.status(400).json({ msg: "targetUsername or targetUserId is required" });
     }
 
-    // Check if user exists
-    const user = await User.findById(targetUserId);
-    if (!user) {
+    if (!userToAdd) {
       return res.status(404).json({ msg: "User not found" });
     }
 
     // Check if already a member
-    if (community.members.some(m => m.toString() === targetUserId)) {
+    if (community.members.some(m => m.toString() === userToAdd._id.toString())) {
       return res.status(400).json({ msg: "User is already a member" });
     }
 
     // Check if banned
     const isBanned = community.bannedUsers.some(b => {
-      if (b.user.toString() !== targetUserId) return false;
+      if (b.user.toString() !== userToAdd._id.toString()) return false;
       if (b.banType === 'permanent') return true;
       if (b.banType === 'temporary' && b.expiresAt && new Date(b.expiresAt) > new Date()) return true;
       return false;
@@ -649,7 +653,7 @@ router.post("/:communityId/add-member", isCommunityAdminOrModerator, async (req,
     }
 
     // Add to members
-    community.members.push(targetUserId);
+    community.members.push(userToAdd._id);
     await community.save();
 
     res.json({ msg: "Member added successfully" });

@@ -276,25 +276,6 @@ const CommunitiesPage = () => {
     }
   };
 
-  const handleJoinCommunity = async (communityId) => {
-    try {
-      const res = await fetch(`${API_BASE}/communities/${communityId}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.msg || 'Joined!');
-        loadCommunities();
-      } else {
-        alert(data.msg || 'Failed to join');
-      }
-    } catch (err) {
-      alert('Error');
-    }
-  };
-
   const handleLeaveCommunity = async (communityId) => {
     if (!window.confirm('Are you sure you want to leave this community?')) return;
     try {
@@ -313,6 +294,27 @@ const CommunitiesPage = () => {
       }
     } catch (err) {
       alert('Error');
+    }
+  };
+
+  const handleJoinCommunity = async (communityId) => {
+    try {
+      const res = await fetch(`${API_BASE}/communities/${communityId}/add-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: userId })
+      });
+      if (res.ok) {
+        alert('Joined community!');
+        loadCommunityDetails(communityId);
+        loadCommunities();
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Failed to join');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error joining community');
     }
   };
 
@@ -353,16 +355,16 @@ const CommunitiesPage = () => {
     }
   };
 
-  const handleAddMember = async (userIdToAdd) => {
-    if (!userIdToAdd) {
-      alert('Please enter a user ID');
+  const handleAddMember = async (usernameToAdd) => {
+    if (!usernameToAdd) {
+      alert('Please enter a username');
       return;
     }
     try {
       const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/add-member`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, targetUserId: userIdToAdd })
+        body: JSON.stringify({ userId, targetUsername: usernameToAdd })
       });
       if (res.ok) {
         alert('Member added');
@@ -414,6 +416,10 @@ const CommunitiesPage = () => {
   };
 
   const handleBanUser = async () => {
+    if (!selectedMemberForAction) {
+      alert('No user selected');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/ban-user`, {
         method: 'POST',
@@ -426,14 +432,20 @@ const CommunitiesPage = () => {
           expiresAt: banExpiresAt 
         })
       });
+      const data = await res.json();
       if (res.ok) {
-        alert('Banned');
+        alert('User banned successfully');
         setShowBanModal(false);
         setSelectedMemberForAction(null);
+        setBanReason('');
+        setBanExpiresAt('');
         loadCommunityDetails(selectedCommunity._id);
+      } else {
+        alert(data.msg || 'Failed to ban user');
       }
     } catch (err) {
-      alert('Error');
+      console.error(err);
+      alert('Error banning user');
     }
   };
 
@@ -450,6 +462,25 @@ const CommunitiesPage = () => {
       }
     } catch (err) {
       alert('Error');
+    }
+  };
+
+  const handleDemoteModerator = async (memberId) => {
+    try {
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/demote-moderator`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: memberId })
+      });
+      if (res.ok) {
+        alert('Demoted!');
+        loadCommunityDetails(selectedCommunity._id);
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Error demoting user');
+      }
+    } catch (err) {
+      alert('Error demoting user');
     }
   };
 
@@ -508,9 +539,9 @@ const CommunitiesPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 font-sans flex">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+        <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
           <div className="px-1">
-            <img src={logo} alt="SkillNest Logo" className="h-12 mb-2" />
+            <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
             <p className="mt-1 text-xs text-gray-500">Your learning space</p>
           </div>
           <nav className="flex flex-col gap-1 text-sm">
@@ -554,14 +585,23 @@ const CommunitiesPage = () => {
                   <div>
                     <h1 className="text-3xl font-black text-gray-900">{selectedCommunity.name}</h1>
                     <p className="text-gray-500 mt-2">{selectedCommunity.description}</p>
-                    {isMember(selectedCommunity) && (
-                      <button 
-                        onClick={() => handleLeaveCommunity(selectedCommunity._id)} 
-                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
-                      >
-                        Leave Community
-                      </button>
-                    )}
+                    <div className="mt-4 flex gap-3">
+                      {isMember(selectedCommunity) ? (
+                        <button 
+                          onClick={() => handleLeaveCommunity(selectedCommunity._id)} 
+                          className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
+                        >
+                          Leave Community
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleJoinCommunity(selectedCommunity._id)} 
+                          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
+                        >
+                          Join Community
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {(isCommunityAdmin(selectedCommunity) || isCommunityModerator(selectedCommunity)) && (
                     <button 
@@ -601,6 +641,10 @@ const CommunitiesPage = () => {
                <div className="space-y-4">
                  {communityPosts.map(post => (
                     <div key={post._id} className="bg-white p-6 rounded-3xl border border-gray-200 relative">
+                       <div className="flex items-center gap-3 mb-4">
+                         <img src={post.user?.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
+                         <span className="font-bold text-sm text-gray-900">{post.user?.username || 'Unknown User'}</span>
+                       </div>
                        <p className="text-gray-800">{post.text}</p>
                        {post.image && <img src={post.image} className="mt-4 rounded-2xl w-full" alt="" />}
                        {(isCommunityAdmin(selectedCommunity) || isCommunityModerator(selectedCommunity)) && (
@@ -635,14 +679,14 @@ const CommunitiesPage = () => {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Enter User ID"
+                        placeholder="Enter Username"
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         id="addMemberInput"
                       />
                       <button
                         onClick={() => {
-                          const userIdToAdd = document.getElementById('addMemberInput').value.trim();
-                          handleAddMember(userIdToAdd);
+                          const usernameToAdd = document.getElementById('addMemberInput').value.trim();
+                          handleAddMember(usernameToAdd);
                           document.getElementById('addMemberInput').value = '';
                         }}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
@@ -661,7 +705,33 @@ const CommunitiesPage = () => {
                       </div>
                       <div className="flex gap-2">
                         {isCommunityAdmin(selectedCommunity) && (
-                          <button onClick={() => handlePromoteModerator(member._id)} className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg"><Crown className="w-4 h-4" /></button>
+                          <button 
+                            onClick={() => {
+                              const isMod = communityMembers.moderators?.some(mod => {
+                                const modId = typeof mod === 'string' ? mod : mod._id;
+                                return modId === member._id;
+                              });
+                              if (isMod) {
+                                handleDemoteModerator(member._id);
+                              } else {
+                                handlePromoteModerator(member._id);
+                              }
+                            }} 
+                            className={`p-2 rounded-lg ${ 
+                              communityMembers.moderators?.some(mod => {
+                                const modId = typeof mod === 'string' ? mod : mod._id;
+                                return modId === member._id;
+                              }) 
+                                ? 'hover:bg-yellow-100 text-yellow-600' 
+                                : 'hover:bg-blue-100 text-blue-600'
+                            }`}
+                            title={communityMembers.moderators?.some(mod => {
+                              const modId = typeof mod === 'string' ? mod : mod._id;
+                              return modId === member._id;
+                            }) ? 'Demote from Moderator' : 'Promote to Moderator'}
+                          >
+                            <Crown className="w-4 h-4" />
+                          </button>
                         )}
                         <button onClick={() => { setSelectedMemberForAction(member); setShowBanModal(true); }} className="p-2 hover:bg-red-100 text-red-600 rounded-lg"><Ban className="w-4 h-4" /></button>
                         <button onClick={() => handleRemoveMember(member._id)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg"><UserMinus className="w-4 h-4" /></button>
@@ -689,9 +759,9 @@ const CommunitiesPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
       {/* Sidebar navigation */}
-      <aside className="hidden lg:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+      <aside className="hidden lg:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
         <div className="px-1">
-          <img src={logo} alt="SkillNest Logo" className="h-12 mb-2" />
+          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
           <p className="mt-1 text-xs text-gray-500">Your learning space</p>
         </div>
         <nav className="flex flex-col gap-1 text-sm">

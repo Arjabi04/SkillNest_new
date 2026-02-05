@@ -192,11 +192,11 @@ function ExplorePage() {
                   )}
 
                   {post.image && (
-                    <div className="rounded-xl overflow-hidden border border-gray-100 mb-2">
+                    <div className="rounded-xl overflow-hidden border border-gray-100 mb-2 bg-gray-50 flex items-center justify-center">
                       <img
                         src={post.image}
                         alt="Post"
-                        className="w-full max-h-[460px] object-cover"
+                        className="w-full max-h-[460px] object-contain"
                       />
                     </div>
                   )}
