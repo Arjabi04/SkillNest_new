@@ -83,11 +83,8 @@ const CommunitiesPage = () => {
   const [newPostPreview, setNewPostPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showBanModal, setShowBanModal] = useState(false);
-  const [selectedMemberForAction, setSelectedMemberForAction] = useState(null);
-  const [banType, setBanType] = useState('permanent');
-  const [banReason, setBanReason] = useState('');
-  const [banExpiresAt, setBanExpiresAt] = useState('');
+  const [showBanForm, setShowBanForm] = useState({});
+  const [banData, setBanData] = useState({});
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
@@ -510,36 +507,46 @@ const CommunitiesPage = () => {
     }
   };
 
-  const handleBanUser = async () => {
-    if (!selectedMemberForAction) {
-      alert('No user selected');
+  const handleBanUser = async (memberId) => {
+    const memberBanData = banData[memberId];
+    if (!memberBanData) {
+      alert('Please fill in ban details');
       return;
     }
+    
+    if (!selectedCommunity) {
+      alert('No community selected');
+      return;
+    }
+    
     try {
+      const requestBody = {
+        userId,
+        targetUserId: memberId,
+        banType: memberBanData.banType || 'permanent',
+        reason: memberBanData.reason || '',
+        expiresAt: memberBanData.expiresAt || ''
+      };
+      
       const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/ban-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId, 
-          targetUserId: selectedMemberForAction._id, 
-          banType, 
-          reason: banReason, 
-          expiresAt: banExpiresAt 
-        })
+        body: JSON.stringify(requestBody)
       });
+      
       const data = await res.json();
+      
       if (res.ok) {
         alert('User banned successfully');
-        setShowBanModal(false);
-        setSelectedMemberForAction(null);
-        setBanReason('');
-        setBanExpiresAt('');
+        // Clear the ban form for this member
+        setShowBanForm({ ...showBanForm, [memberId]: false });
+        setBanData({ ...banData, [memberId]: null });
         loadCommunityDetails(selectedCommunity._id);
       } else {
         alert(data.msg || 'Failed to ban user');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error banning user:', err);
       alert('Error banning user');
     }
   };
@@ -717,47 +724,89 @@ const CommunitiesPage = () => {
             {/* Post Feed */}
             <div className="space-y-4">
                {isMember(selectedCommunity) && (
-                 <div className="bg-white p-6 rounded-3xl border border-gray-200">
-                    <form onSubmit={handleCreatePost} className="space-y-4">
-                      <textarea 
-                        value={newPostText}
-                        onChange={(e) => setNewPostText(e.target.value)}
-                        className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-                        placeholder="Share something with the community... (use #hashtags for tags)"
-                      />
-                      {newPostPreview && (
-                        <div className="rounded-lg overflow-hidden border border-gray-200">
-                          <img src={newPostPreview} alt="Preview" className="w-full h-auto object-contain" />
-                        </div>
-                      )}
-                      {newPostTags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {newPostTags.map((tag) => (
-                            <span key={tag} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2">
-                              #{tag}
-                              <button type="button" onClick={() => removeTag(tag)} className="hover:text-blue-900">×</button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center gap-2">
-                         <div className="flex gap-2">
+                 <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                   <div className="p-4">
+                     <div className="flex gap-3 mb-4">
+                       <img
+                         src={selectedCommunity.currentUserImage || defaultAvatar}
+                         alt="Avatar"
+                         className="w-10 h-10 rounded-full object-cover shrink-0"
+                       />
+                       <div className="flex-1">
+                         <textarea
+                           value={newPostText}
+                           onChange={(e) => setNewPostText(e.target.value)}
+                           placeholder="What's on your mind?"
+                           className="w-full px-4 py-3 rounded-lg border-none resize-none text-base font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
+                           rows="4"
+                         />
+                       </div>
+                     </div>
+
+                     {newPostPreview && (
+                       <div className="relative mb-4 rounded-lg overflow-hidden border border-gray-200">
+                         <img
+                           src={newPostPreview}
+                           alt="Post Preview"
+                           className="w-full max-h-96 object-cover"
+                         />
+                         <button
+                           onClick={() => {
+                             setNewPostImage(null);
+                             setNewPostPreview(null);
+                           }}
+                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                           title="Remove image"
+                         >
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                           </svg>
+                         </button>
+                       </div>
+                     )}
+
+                     <div className="mt-2 mb-3 flex flex-wrap items-center gap-2 px-1">
+                       {newPostTags.map((tag) => (
+                         <span
+                           key={tag}
+                           className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
+                         >
+                           <span>#{tag}</span>
+                           <button
+                             type="button"
+                             onClick={() => removeTag(tag)}
+                             className="text-blue-500 hover:text-blue-700"
+                           >
+                             ×
+                           </button>
+                         </span>
+                       ))}
+                     </div>
+
+                     <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                       <div className="flex items-center gap-4">
+                         <label className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer transition-colors">
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                           </svg>
+                           <span className="text-sm font-medium">Photo</span>
                            <input 
                              type="file" 
+                             accept="image/*"
                              onChange={(e) => setNewPostImage(e.target.files[0])} 
-                             className="text-xs" 
+                             className="hidden" 
                            />
-                           <button 
-                             type="button" 
-                             onClick={addTagsFromText} 
-                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
-                           >
-                             Extract Tags
-                           </button>
-                         </div>
-                         <button type="submit" className="px-6 py-2 bg-gray-900 text-white rounded-xl font-bold">Post</button>
-                      </div>
-                    </form>
+                         </label>
+                       </div>
+                       <button 
+                         onClick={handleCreatePost}
+                         disabled={!newPostText.trim() && !newPostImage}
+                         className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                       >
+                         Post
+                       </button>
+                     </div>
+                   </div>
                  </div>
                )}
                
@@ -919,44 +968,130 @@ const CommunitiesPage = () => {
                 )}
                 <div className="space-y-4">
                   {communityMembers.members?.map(member => (
-                    <div key={member._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <img src={member.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
-                        <span className="font-bold text-sm text-gray-900">{member.username}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        {isCommunityAdmin(selectedCommunity) && (
+                    <div key={member._id} className="bg-gray-50 rounded-2xl overflow-hidden">
+                      <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                          <img src={member.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
+                          <span className="font-bold text-sm text-gray-900">{member.username}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          {isCommunityAdmin(selectedCommunity) && (
+                            <button 
+                              onClick={() => {
+                                const isMod = communityMembers.moderators?.some(mod => {
+                                  const modId = typeof mod === 'string' ? mod : mod._id;
+                                  return modId === member._id;
+                                });
+                                if (isMod) {
+                                  handleDemoteModerator(member._id);
+                                } else {
+                                  handlePromoteModerator(member._id);
+                                }
+                              }} 
+                              className={`p-2 rounded-lg ${ 
+                                communityMembers.moderators?.some(mod => {
+                                  const modId = typeof mod === 'string' ? mod : mod._id;
+                                  return modId === member._id;
+                                }) 
+                                  ? 'hover:bg-yellow-100 text-yellow-600' 
+                                  : 'hover:bg-blue-100 text-blue-600'
+                              }`}
+                              title={communityMembers.moderators?.some(mod => {
+                                const modId = typeof mod === 'string' ? mod : mod._id;
+                                return modId === member._id;
+                              }) ? 'Demote from Moderator' : 'Promote to Moderator'}
+                            >
+                              <Crown className="w-4 h-4" />
+                            </button>
+                          )}
                           <button 
                             onClick={() => {
-                              const isMod = communityMembers.moderators?.some(mod => {
-                                const modId = typeof mod === 'string' ? mod : mod._id;
-                                return modId === member._id;
+                              setShowBanForm({ 
+                                ...showBanForm, 
+                                [member._id]: !showBanForm[member._id] 
                               });
-                              if (isMod) {
-                                handleDemoteModerator(member._id);
-                              } else {
-                                handlePromoteModerator(member._id);
+                              if (!banData[member._id]) {
+                                setBanData({ 
+                                  ...banData, 
+                                  [member._id]: { banType: 'permanent', reason: '', expiresAt: '' }
+                                });
                               }
                             }} 
-                            className={`p-2 rounded-lg ${ 
-                              communityMembers.moderators?.some(mod => {
-                                const modId = typeof mod === 'string' ? mod : mod._id;
-                                return modId === member._id;
-                              }) 
-                                ? 'hover:bg-yellow-100 text-yellow-600' 
-                                : 'hover:bg-blue-100 text-blue-600'
-                            }`}
-                            title={communityMembers.moderators?.some(mod => {
-                              const modId = typeof mod === 'string' ? mod : mod._id;
-                              return modId === member._id;
-                            }) ? 'Demote from Moderator' : 'Promote to Moderator'}
+                            className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
                           >
-                            <Crown className="w-4 h-4" />
+                            <Ban className="w-4 h-4" />
                           </button>
-                        )}
-                        <button onClick={() => { setSelectedMemberForAction(member); setShowBanModal(true); }} className="p-2 hover:bg-red-100 text-red-600 rounded-lg"><Ban className="w-4 h-4" /></button>
-                        <button onClick={() => handleRemoveMember(member._id)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg"><UserMinus className="w-4 h-4" /></button>
+                          <button onClick={() => handleRemoveMember(member._id)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg"><UserMinus className="w-4 h-4" /></button>
+                        </div>
                       </div>
+                      
+                      {/* Inline Ban Form */}
+                      {showBanForm[member._id] && (
+                        <div className="px-4 pb-4 border-t border-gray-200 bg-red-50">
+                          <div className="pt-3 space-y-3">
+                            <h4 className="font-bold text-sm text-red-700">Ban {member.username}</h4>
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Ban Type</label>
+                              <select 
+                                value={banData[member._id]?.banType || 'permanent'} 
+                                onChange={(e) => setBanData({
+                                  ...banData,
+                                  [member._id]: { ...banData[member._id], banType: e.target.value }
+                                })}
+                                className="w-full p-2 text-sm border border-gray-300 rounded"
+                              >
+                                <option value="temporary">Temporary</option>
+                                <option value="permanent">Permanent</option>
+                              </select>
+                            </div>
+                            
+                            {banData[member._id]?.banType === 'temporary' && (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Expires At</label>
+                                <input 
+                                  type="datetime-local" 
+                                  value={banData[member._id]?.expiresAt || ''} 
+                                  onChange={(e) => setBanData({
+                                    ...banData,
+                                    [member._id]: { ...banData[member._id], expiresAt: e.target.value }
+                                  })}
+                                  className="w-full p-2 text-sm border border-gray-300 rounded" 
+                                />
+                              </div>
+                            )}
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+                              <textarea 
+                                value={banData[member._id]?.reason || ''} 
+                                onChange={(e) => setBanData({
+                                  ...banData,
+                                  [member._id]: { ...banData[member._id], reason: e.target.value }
+                                })}
+                                className="w-full p-2 text-sm border border-gray-300 rounded" 
+                                placeholder="Reason for ban..."
+                                rows="2"
+                              />
+                            </div>
+                            
+                            <div className="flex gap-2 pt-2">
+                              <button 
+                                onClick={() => setShowBanForm({ ...showBanForm, [member._id]: false })} 
+                                className="flex-1 px-3 py-2 bg-gray-400 text-white rounded text-sm font-medium hover:bg-gray-500"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={() => handleBanUser(member._id)} 
+                                className="flex-1 px-3 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700"
+                              >
+                                Ban User
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1131,39 +1266,6 @@ const CommunitiesPage = () => {
           </div>
         </div>
       </main>
-
-      {/* Ban Modal */}
-      {showBanModal && (
-        <div className="fixed inset-0 z-[101] flex justify-center items-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowBanModal(false)} />
-          <div className="relative bg-white p-6 rounded-2xl w-full max-w-md">
-            <h3 className="font-bold text-lg mb-4">Ban User</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Ban Type</label>
-                <select value={banType} onChange={(e) => setBanType(e.target.value)} className="w-full p-2 border rounded">
-                  <option value="temporary">Temporary</option>
-                  <option value="permanent">Permanent</option>
-                </select>
-              </div>
-              {banType === 'temporary' && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Expires At</label>
-                  <input type="datetime-local" value={banExpiresAt} onChange={(e) => setBanExpiresAt(e.target.value)} className="w-full p-2 border rounded" />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium mb-1">Reason</label>
-                <textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} className="w-full p-2 border rounded" placeholder="Reason for ban" />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowBanModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                <button onClick={handleBanUser} className="px-4 py-2 bg-red-600 text-white rounded">Ban</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Create Community Modal */}
       {showCreateModal && (

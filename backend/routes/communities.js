@@ -543,13 +543,20 @@ router.post("/:communityId/edit", isCommunityAdmin, upload.single("coverImage"),
 // BAN USER (Community Admin or Moderator)
 router.post("/:communityId/ban-user", isCommunityAdminOrModerator, async (req, res) => {
   try {
+    console.log('Ban user endpoint called with body:', req.body);
+    console.log('Community from middleware:', req.community?.name);
+    console.log('Admin ID from middleware:', req.userId);
+    
     const { targetUserId, banType, reason, expiresAt } = req.body;
     const community = req.community;
     const adminId = req.userId;
 
     if (!targetUserId) {
+      console.log('Missing targetUserId');
       return res.status(400).json({ msg: "targetUserId is required" });
     }
+
+    console.log('Attempting to ban user:', targetUserId, 'by admin:', adminId);
 
     // Cannot ban yourself
     if (targetUserId === adminId) {
@@ -580,17 +587,20 @@ router.post("/:communityId/ban-user", isCommunityAdminOrModerator, async (req, r
       banData.expiresAt = new Date(expiresAt);
     }
 
+    console.log('Adding ban data:', banData);
     community.bannedUsers.push(banData);
 
     // Remove from members and moderators (but not admins - admins must be demoted first)
     community.members = community.members.filter(m => m.toString() !== targetUserId);
     community.moderators = community.moderators.filter(m => m.toString() !== targetUserId);
 
+    console.log('Saving community...');
     await community.save();
-    res.json({ msg: "User banned successfully" });
+    console.log('Ban successful, bannedUsers count:', community.bannedUsers.length);
+    res.json({ msg: "User banned successfully", bannedUsers: community.bannedUsers });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    console.error('Ban user error:', err);
+    res.status(500).json({ msg: "Server error", error: err.message });
   }
 });
 
