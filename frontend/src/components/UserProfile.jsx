@@ -29,6 +29,7 @@ function UserProfile() {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // --- Posts ---
   const [posts, setPosts] = useState([]);
@@ -304,7 +305,7 @@ function UserProfile() {
             <span>Settings</span>
           </Link>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
           >
             <span>Logout</span>
@@ -594,6 +595,21 @@ function UserProfile() {
         )}
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+          <div className="relative bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h3 className="font-bold text-lg mb-2">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to logout? Your session will expire.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">Cancel</button>
+              <button onClick={handleLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700">Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

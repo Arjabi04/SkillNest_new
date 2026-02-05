@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/Logo.png';
 import defaultHeader from '../assets/default-header.jpeg';
+import defaultAvatar from '../assets/default-avatar.jpg';
 import { clearAuth } from '../utils/tokenUtils';
 
 // SVG Icon Components
@@ -75,6 +76,7 @@ const CommunitiesPage = () => {
   const [banType, setBanType] = useState('permanent');
   const [banReason, setBanReason] = useState('');
   const [banExpiresAt, setBanExpiresAt] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // const location = useLocation();
   const navigate = useNavigate();
@@ -101,6 +103,25 @@ const CommunitiesPage = () => {
   useEffect(() => {
     checkAdminStatus();
     loadCommunities();
+    
+    // Check if a community ID is in URL params
+    const communityIdParam = new URLSearchParams(window.location.search).get('communityId');
+    if (communityIdParam) {
+      // Find and load that community
+      const loadCommunityFromParam = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/communities/${communityIdParam}?userId=${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSelectedCommunity(data);
+            await loadCommunityPosts(communityIdParam);
+          }
+        } catch (err) {
+          console.error('Error loading community:', err);
+        }
+      };
+      loadCommunityFromParam();
+    }
   }, []);
 
   useEffect(() => {
@@ -297,6 +318,8 @@ const CommunitiesPage = () => {
 
   const handleViewCommunity = async (community) => {
     setSelectedCommunity(community);
+    // Add community ID to URL params
+    window.history.pushState({}, '', `?communityId=${community._id}&userId=${userId}`);
     await loadCommunityPosts(community._id);
     if (isCommunityAdmin(community) || isCommunityModerator(community)) {
       await loadCommunityDetails(community._id);
@@ -485,16 +508,21 @@ const CommunitiesPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 font-sans flex">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+        <aside className="hidden md:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
           <div className="px-1">
-            <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
+            <img src={logo} alt="SkillNest Logo" className="h-12 mb-2" />
+            <p className="mt-1 text-xs text-gray-500">Your learning space</p>
           </div>
-          <nav className="flex flex-col gap-1 text-sm font-medium">
-            <Link to="/" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">Home</Link>
-            <Link to="/communities" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600">Communities</Link>
-            <Link to="/marketplace" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">Marketplace</Link>
+          <nav className="flex flex-col gap-1 text-sm">
+            <Link to="/" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Home</span></Link>
+            <Link to={`/profile?userId=${userId}`} className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Profile</span></Link>
+            <Link to="/communities" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600"><span>Communities</span></Link>
+            <Link to="/marketplace" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Marketplace</span></Link>
+            <Link to="/events" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Events</span></Link>
+            <Link to="/notifications" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Notifications</span></Link>
+            <Link to="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Settings</span></Link>
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
             >
               <span>Logout</span>
@@ -506,7 +534,10 @@ const CommunitiesPage = () => {
         <div className="flex-1 md:ml-72 flex justify-center px-4 py-8">
           <div className="w-full max-w-4xl space-y-6">
             <button 
-              onClick={() => setSelectedCommunity(null)}
+              onClick={() => {
+                setSelectedCommunity(null);
+                window.history.pushState({}, '', `?userId=${userId}`);
+              }}
               className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Back to List
@@ -625,7 +656,7 @@ const CommunitiesPage = () => {
                   {communityMembers.members?.map(member => (
                     <div key={member._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                       <div className="flex items-center gap-3">
-                        <img src={member.profileImage || '/default-avatar.png'} className="w-10 h-10 rounded-full border" alt="" />
+                        <img src={member.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
                         <span className="font-bold text-sm text-gray-900">{member.username}</span>
                       </div>
                       <div className="flex gap-2">
@@ -657,32 +688,66 @@ const CommunitiesPage = () => {
   // MAIN LIST VIEW (The Grid UI)
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
-      {/* Sidebar navigation - Professional Sleek Sidebar */}
-      <aside className="hidden lg:flex flex-col w-50 border-r border-slate-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0 shadow-sm">
-        <div className="px-2">
-          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
+      {/* Sidebar navigation */}
+      <aside className="hidden lg:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+        <div className="px-1">
+          <img src={logo} alt="SkillNest Logo" className="h-12 mb-2" />
+          <p className="mt-1 text-xs text-gray-500">Your learning space</p>
         </div>
-        <nav className="flex flex-col gap-1 text-sm font-semibold">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all">
-            Home
+        <nav className="flex flex-col gap-1 text-sm">
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          >
+            <span>Home</span>
           </Link>
-          <Link to="/communities" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 shadow-sm shadow-blue-100">
-            Communities
+          <Link
+            to={`/profile?userId=${userId}`}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          >
+            <span>Profile</span>
           </Link>
-          <Link to="/marketplace" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all">
-            Marketplace
+          <Link
+            to="/communities"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600"
+          >
+            <span>Communities</span>
+          </Link>
+          <Link
+            to="/marketplace"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          >
+            <span>Marketplace</span>
+          </Link>
+          <Link
+            to="/events"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          >
+            <span>Events</span>
+          </Link>
+          <Link
+            to="/notifications"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          >
+            <span>Notifications</span>
+          </Link>
+          <Link
+            to="/settings"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          >
+            <span>Settings</span>
           </Link>
           <button
-            onClick={handleLogout}
-            className="mt-4 flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all border-none bg-transparent cursor-pointer font-semibold"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
           >
-            Logout
+            <span>Logout</span>
           </button>
         </nav>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <main className="flex-1 lg:ml-72 flex flex-col min-h-screen">
         <div className="max-w-[1400px] mx-auto w-full px-6 py-10">
           
           {/* Header Section */}
@@ -882,6 +947,20 @@ const CommunitiesPage = () => {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+          <div className="relative bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h3 className="font-bold text-lg mb-2">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to logout? Your session will expire.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">Cancel</button>
+              <button onClick={handleLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700">Logout</button>
             </div>
           </div>
         </div>
