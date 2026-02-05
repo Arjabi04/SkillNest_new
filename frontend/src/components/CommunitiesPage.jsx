@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import logo from '../assets/Logo.png';
+import defaultHeader from '../assets/default-header.jpeg';
+import { clearAuth } from '../utils/tokenUtils';
 
 // SVG Icon Components
 const Users = ({ className }) => (
@@ -72,6 +75,14 @@ const CommunitiesPage = () => {
   const [banType, setBanType] = useState('permanent');
   const [banReason, setBanReason] = useState('');
   const [banExpiresAt, setBanExpiresAt] = useState('');
+
+  // const location = useLocation();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login");
+  };
 
   const location = useLocation();
   const API_BASE = 'http://localhost:4000/api';
@@ -474,14 +485,20 @@ const CommunitiesPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 font-sans flex">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+        <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
           <div className="px-1">
-            <h2 className="text-2xl font-extrabold text-black tracking-tight">SkillNest</h2>
+            <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
           </div>
           <nav className="flex flex-col gap-1 text-sm font-medium">
             <Link to="/" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">Home</Link>
             <Link to="/communities" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600">Communities</Link>
             <Link to="/marketplace" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">Marketplace</Link>
+            <button
+              onClick={handleLogout}
+              className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
+            >
+              <span>Logout</span>
+            </button>
           </nav>
         </aside>
 
@@ -496,8 +513,10 @@ const CommunitiesPage = () => {
             </button>
 
             <div className="rounded-3xl bg-white border border-gray-200 overflow-hidden shadow-sm">
-              {selectedCommunity.coverImage && (
+              {selectedCommunity.coverImage ? (
                 <img src={selectedCommunity.coverImage} className="w-full h-48 object-cover" alt="" />
+              ) : (
+                <img src={defaultHeader} className="w-full h-48 object-cover" alt="Default header" />
               )}
               <div className="p-8">
                 <div className="flex justify-between items-start">
@@ -639,13 +658,9 @@ const CommunitiesPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
       {/* Sidebar navigation - Professional Sleek Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 border-r border-slate-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0 shadow-sm">
+      <aside className="hidden lg:flex flex-col w-50 border-r border-slate-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0 shadow-sm">
         <div className="px-2">
-          <div className="flex items-center gap-2 mb-1">
-            {/* <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xl">S</div> */}
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">SkillNest</h2>
-          </div>
-          {/* <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Ecosystem</p> */}
+          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
         </div>
         <nav className="flex flex-col gap-1 text-sm font-semibold">
           <Link to="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all">
@@ -657,6 +672,12 @@ const CommunitiesPage = () => {
           <Link to="/marketplace" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all">
             Marketplace
           </Link>
+          <button
+            onClick={handleLogout}
+            className="mt-4 flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all border-none bg-transparent cursor-pointer font-semibold"
+          >
+            Logout
+          </button>
         </nav>
       </aside>
 
@@ -701,7 +722,7 @@ const CommunitiesPage = () => {
                 {/* Image Container */}
                 <div className="relative w-full h-48 rounded-[24px] overflow-hidden bg-slate-100 mb-5">
                   <img 
-                    src={community.coverImage || 'https://images.unsplash.com/photo-1522071823991-b99c223c7483?auto=format&fit=crop&q=80&w=400'} 
+                    src={community.coverImage || defaultHeader} 
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
                     alt={community.name} 
                   />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { signup } from "../api/auth";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "../assets/Logo.png";
 
 export default function SignupForm() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -44,8 +45,8 @@ export default function SignupForm() {
 
       {/* Right side: Form container */}
       <div className="w-full lg:w-125 h-screen flex flex-col items-center justify-center p-12 bg-gray-50 shadow-lg rounded-bl-lg">
-        <h1 className="text-4xl font-bold text-gray-900 text-center mb-8">SkillNest</h1>
-        <h2 className="text-2xl font-medium text-gray-900 text-center mb-4">Sign Up</h2>
+        <img src={logo} alt="SkillNest Logo" className="h-40 mb-20" />
+        <h3 className="text-2xl font-medium text-center mb-4">Sign Up</h3>
         <h3 className="font-light text-gray-600 text-center mb-8">Create your account</h3>
 
         <form onSubmit={handleSubmit} className="flex flex-col w-full gap-6 items-center">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth";
 import { Link } from "react-router-dom";
 import loginImage from "../assets/login-image.jpg";
+import logo from "../assets/Logo.png";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -45,7 +46,7 @@ export default function LoginPage() {
 
       {/* Right side form */}
       <div className="w-full lg:w-150 h-screen flex flex-col items-center p-8 bg-gray-50 shadow-lg">
-        <h1 className="text-4xl font-bold text-gray-800 text-center mb-32">SkillNest</h1>
+        <img src={logo} alt="SkillNest Logo" className="h-30 mb-24" />
 
         {/* Form wrapper */}
         <div className="flex flex-col justify-center items-start w-full max-w-md">

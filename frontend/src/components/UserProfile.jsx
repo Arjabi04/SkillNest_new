@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
+import logo from "../assets/Logo.png";
+import { clearAuth } from "../utils/tokenUtils";
 
 function UserProfile() {
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId");
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login");
+  };
 
   // --- Profile states ---
   const [profileImage, setProfileImage] = useState("");
@@ -233,9 +241,9 @@ function UserProfile() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex">
       {/* Sidebar navigation */}
-      <aside className="hidden md:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+      <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
         <div className="px-1">
-          <h2 className="text-2xl font-extrabold text-black tracking-tight">SkillNest</h2>
+          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
           <p className="mt-1 text-xs text-gray-500">Your learning space</p>
         </div>
         <nav className="flex flex-col gap-1 text-sm">
@@ -295,6 +303,12 @@ function UserProfile() {
           >
             <span>Settings</span>
           </Link>
+          <button
+            onClick={handleLogout}
+            className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
+          >
+            <span>Logout</span>
+          </button>
         </nav>
       </aside>
 
@@ -306,6 +320,27 @@ function UserProfile() {
             src={headerPreview || headerImage || defaultHeader}
             alt="Header"
             className="w-full h-full object-cover"
+          />
+          <label 
+            htmlFor="headerInput" 
+            className="absolute bottom-4 right-4 bg-blue-500 text-white rounded-full p-3 cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
+            title="Change header"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </label>
+          <input
+            id="headerInput"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              setHeaderFile(file);
+              handleFileSelect(file, "header");
+            }}
           />
         </div>
 
@@ -421,11 +456,11 @@ function UserProfile() {
           {/* Image Preview */}
           {newPostPreview && (
             <div className="relative mb-4 rounded-lg overflow-hidden border border-gray-200">
-<img
-  src={profileImage || defaultAvatar}
-  alt="Avatar"
-  className="w-12 h-12 rounded-full object-cover border-2 border-blue-100"
-/>
+              <img
+                src={newPostPreview}
+                alt="Post Preview"
+                className="w-full max-h-96 object-cover"
+              />
               <button
                 onClick={handleRemovePostImage}
                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
@@ -537,7 +572,7 @@ function UserProfile() {
                   <img 
                     src={post.image} 
                     alt="Post" 
-                    className="w-full max-h-96 object-cover" 
+                    className="w-full h-auto object-contain"
                   />
                 </div>
               )}

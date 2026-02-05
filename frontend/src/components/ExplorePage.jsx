@@ -1,14 +1,22 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import defaultAvatar from "../assets/default-avatar.jpg";
+import logo from "../assets/Logo.png";
+import { clearAuth } from "../utils/tokenUtils";
 
 function ExplorePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const location = useLocation();
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId") || localStorage.getItem("userId") || "";
+
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login");
+  };
 
   const isHome = location.pathname === "/";
   const isProfile = location.pathname.startsWith("/profile");
@@ -37,9 +45,9 @@ function ExplorePage() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex">
       {/* Sidebar navigation */}
-      <aside className="hidden md:flex flex-col w-72 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
+      <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
         <div className="px-1">
-          <h2 className="text-2xl font-extrabold text-black tracking-tight">SkillNest</h2>
+          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2"  />
           <p className="mt-1 text-xs text-gray-500">Your learning space</p>
         </div>
         <nav className="flex flex-col gap-1 text-sm">
@@ -99,6 +107,12 @@ function ExplorePage() {
           >
             <span>Settings</span>
           </Link>
+          <button
+            onClick={handleLogout}
+            className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
+          >
+            <span>Logout</span>
+          </button>
         </nav>
       </aside>
 

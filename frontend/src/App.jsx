@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import SignupForm from "./components/SignupForm";
 import LoginForm from "./components/LoginForm";
 import ResetPasswordPage from "./components/ResetPasswordPage";
@@ -9,14 +9,36 @@ import ExplorePage from "./components/ExplorePage";
 import CommunitiesPage from "./components/CommunitiesPage";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
+import { useEffect } from "react";
+import { clearAuth, isTokenValid } from "./utils/tokenUtils";
 
-function App() {
+function AppRoutes() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check token validity on app load and periodically
+    const checkToken = () => {
+      const token = localStorage.getItem("token");
+      
+      if (token && !isTokenValid(token)) {
+        console.log("Token expired, clearing auth");
+        clearAuth();
+        navigate("/login");
+      }
+    };
+
+    // Check on mount
+    checkToken();
+
+    // Check every 30 seconds
+    const interval = setInterval(checkToken, 30000);
+    
+    return () => clearInterval(interval);
+  }, [navigate]);
+
   return (
-    <Router>
-      <div>
-        {/* <h1 style={{ textAlign: "center" }}>SkillNest</h1> */}
-
-        <Routes>
+    <div>
+      <Routes>
 
           {/* Home route shows the main explore feed */}
           <Route path="/" element={<ExplorePage />} />
@@ -34,8 +56,14 @@ function App() {
           <Route path="/communities" element={<CommunitiesPage />} />
         </Routes>
       </div>
+    );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppRoutes />
     </Router>
   );
 }
-
 export default App;
