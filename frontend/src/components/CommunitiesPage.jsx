@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import logo from '../assets/Logo.png';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import CommunityCard from './CommunityCard';
+import './CommunitiesPage.css';
 import defaultHeader from '../assets/default-header.jpeg';
 import defaultAvatar from '../assets/default-avatar.jpg';
 import { clearAuth } from '../utils/tokenUtils';
+import {
+  getCommunityStatus,
+  isCommunityAdmin,
+  isCommunityModerator,
+  isCommunityMember,
+  hasAdminOrModeratorAccess,
+  getRoleLabel,
+  getRoleColor,
+  categorizeCommunitiesByStatus
+} from '../utils/communityUtils';
 
 // SVG Icon Components
 const Users = ({ className }) => (
@@ -353,7 +365,7 @@ const CommunitiesPage = () => {
     // Add community ID to URL params
     window.history.pushState({}, '', `?communityId=${community._id}&userId=${userId}`);
     await loadCommunityPosts(community._id);
-    if (isCommunityAdmin(community) || isCommunityModerator(community)) {
+    if (hasAdminOrModeratorAccess(community, userId)) {
       await loadCommunityDetails(community._id);
     }
   };
@@ -605,66 +617,21 @@ const CommunitiesPage = () => {
     }
   };
 
-  const isCommunityAdmin = (community) => {
-    if (!community?.admins || !userId) return false;
-    return community.admins.some(admin => {
-      const adminId = typeof admin === 'string' ? admin : admin._id;
-      return adminId === userId;
-    });
-  };
 
-  const isCommunityModerator = (community) => {
-    if (!community?.moderators || !userId) return false;
-    return community.moderators.some(mod => {
-      const modId = typeof mod === 'string' ? mod : mod._id;
-      return modId === userId;
-    });
-  };
-
-  const isMember = (community) => {
-    if (!community?.members || !userId) return false;
-    return community.members.some(member => {
-      const memberId = typeof member === 'string' ? member : member._id;
-      return memberId === userId;
-    });
-  };
-
-  const getRoleLabel = (community) => {
-    if (isCommunityAdmin(community)) return 'Admin';
-    if (isCommunityModerator(community)) return 'Moderator';
-    if (isMember(community)) return 'Member';
-    return null;
-  };
 
   // COMMUNITY DETAIL VIEW (RENDERED IF A COMMUNITY IS SELECTED)
   if (selectedCommunity) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans flex">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
-          <div className="px-1">
-            <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
-            <p className="mt-1 text-xs text-gray-500">Your learning space</p>
-          </div>
-          <nav className="flex flex-col gap-1 text-sm">
-            <Link to="/" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Home</span></Link>
-            <Link to={`/profile?userId=${userId}`} className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Profile</span></Link>
-            <Link to="/communities" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600"><span>Communities</span></Link>
-            <Link to="/marketplace" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Marketplace</span></Link>
-            <Link to="/events" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Events</span></Link>
-            <Link to="/notifications" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Notifications</span></Link>
-            <Link to="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"><span>Settings</span></Link>
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
-            >
-              <span>Logout</span>
-            </button>
-          </nav>
-        </aside>
+        <Sidebar 
+          showLogoutConfirm={showLogoutConfirm}
+          setShowLogoutConfirm={setShowLogoutConfirm}
+          onLogout={handleLogout}
+        />
 
         {/* Detail Content */}
-        <div className="flex-1 md:ml-72 flex justify-center px-4 py-8">
+        <div className="flex-1 transition-all duration-300 lg:ml-16 xl:ml-72 flex justify-center px-4 py-8">
           <div className="w-full max-w-4xl space-y-6">
             <button 
               onClick={() => {
@@ -688,7 +655,7 @@ const CommunitiesPage = () => {
                     <h1 className="text-3xl font-black text-gray-900">{selectedCommunity.name}</h1>
                     <p className="text-gray-500 mt-2">{selectedCommunity.description}</p>
                     <div className="mt-4 flex gap-3">
-                      {isMember(selectedCommunity) ? (
+                      {isCommunityMember(selectedCommunity, userId) ? (
                         <button 
                           onClick={() => handleLeaveCommunity(selectedCommunity._id)} 
                           className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
@@ -705,7 +672,7 @@ const CommunitiesPage = () => {
                       )}
                     </div>
                   </div>
-                  {(isCommunityAdmin(selectedCommunity) || isCommunityModerator(selectedCommunity)) && (
+                  {hasAdminOrModeratorAccess(selectedCommunity, userId) && (
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
@@ -723,7 +690,7 @@ const CommunitiesPage = () => {
 
             {/* Post Feed */}
             <div className="space-y-4">
-               {isMember(selectedCommunity) && (
+               {isCommunityMember(selectedCommunity, userId) && (
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                    <div className="p-4">
                      <div className="flex gap-3 mb-4">
@@ -869,7 +836,7 @@ const CommunitiesPage = () => {
                              {post.comments?.map((comment, idx) => {
                                const commentUserId = typeof comment.user === 'string' ? comment.user : comment.user._id;
                                const isCommentOwner = commentUserId === userId;
-                               const isAdmin = isCommunityAdmin(selectedCommunity);
+                               const isAdmin = isCommunityAdmin(selectedCommunity, userId);
                                const canDelete = isCommentOwner || isAdmin;
                                return (
                                  <div key={idx} className="bg-gray-50 p-3 rounded-lg relative">
@@ -912,8 +879,8 @@ const CommunitiesPage = () => {
                        {(() => {
                          const postUserId = typeof post.user === 'string' ? post.user : post.user._id;
                          const isPostOwner = postUserId === userId;
-                         const isAdmin = isCommunityAdmin(selectedCommunity);
-                         const isMod = isCommunityModerator(selectedCommunity);
+                         const isAdmin = isCommunityAdmin(selectedCommunity, userId);
+                         const isMod = isCommunityModerator(selectedCommunity, userId);
                          const canDelete = isPostOwner || isAdmin || isMod;
                          
                          return canDelete ? (
@@ -934,7 +901,7 @@ const CommunitiesPage = () => {
 
         {/* RIGHT DRAWER ADMIN PANEL */}
         {showCommunityAdminPanel && (
-          <div className="fixed inset-0 z-[100] flex justify-end">
+          <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCommunityAdminPanel(false)} />
             <div className="relative w-full max-w-md bg-white h-full shadow-2xl animate-in slide-in-from-right duration-300">
               <div className="p-6 border-b flex justify-between items-center bg-gray-900 text-white">
@@ -943,7 +910,7 @@ const CommunitiesPage = () => {
               </div>
               <div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
                 <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Members</h3>
-                {isCommunityAdmin(selectedCommunity) && (
+                {isCommunityAdmin(selectedCommunity, userId) && (
                   <div className="mb-6 p-4 bg-blue-50 rounded-2xl">
                     <h4 className="text-sm font-bold text-gray-700 mb-3">Add Member</h4>
                     <div className="flex gap-2">
@@ -975,7 +942,7 @@ const CommunitiesPage = () => {
                           <span className="font-bold text-sm text-gray-900">{member.username}</span>
                         </div>
                         <div className="flex gap-2">
-                          {isCommunityAdmin(selectedCommunity) && (
+                          {isCommunityAdmin(selectedCommunity, userId) && (
                             <button 
                               onClick={() => {
                                 const isMod = communityMembers.moderators?.some(mod => {
@@ -1095,7 +1062,7 @@ const CommunitiesPage = () => {
                     </div>
                   ))}
                 </div>
-                {isCommunityAdmin(selectedCommunity) && (
+                {isCommunityAdmin(selectedCommunity, userId) && (
                   <button 
                     onClick={() => handleRequestDeletion(selectedCommunity._id)} 
                     className="mt-6 w-full px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
@@ -1111,165 +1078,189 @@ const CommunitiesPage = () => {
     );
   }
 
-  // MAIN LIST VIEW (The Grid UI)
+  // Categorize communities based on user status
+  const categorizedCommunities = categorizeCommunitiesByStatus(communities, userId);
+
+  // MAIN LIST VIEW (The Categorized Grid UI)
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex">
-      {/* Sidebar navigation */}
-      <aside className="hidden lg:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
-        <div className="px-1">
-          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
-          <p className="mt-1 text-xs text-gray-500">Your learning space</p>
-        </div>
-        <nav className="flex flex-col gap-1 text-sm">
-          <Link
-            to="/"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <span>Home</span>
-          </Link>
-          <Link
-            to={`/profile?userId=${userId}`}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <span>Profile</span>
-          </Link>
-          <Link
-            to="/communities"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600"
-          >
-            <span>Communities</span>
-          </Link>
-          <Link
-            to="/marketplace"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <span>Marketplace</span>
-          </Link>
-          <Link
-            to="/events"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <span>Events</span>
-          </Link>
-          <Link
-            to="/notifications"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <span>Notifications</span>
-          </Link>
-          <Link
-            to="/settings"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <span>Settings</span>
-          </Link>
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
-          >
-            <span>Logout</span>
-          </button>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 font-sans flex">
+      {/* Sidebar */}
+      <Sidebar 
+        showLogoutConfirm={showLogoutConfirm}
+        setShowLogoutConfirm={setShowLogoutConfirm}
+        onLogout={handleLogout}
+      />
 
       {/* Main Content Area */}
-      <main className="flex-1 lg:ml-72 flex flex-col min-h-screen">
-        <div className="max-w-[1400px] mx-auto w-full px-6 py-10">
+      <main className="flex-1 transition-all duration-300 lg:ml-16 xl:ml-72">
+        <div className="max-w-[1600px] mx-auto w-full px-6 py-8 lg:py-12">
           
           {/* Header Section */}
-          <header className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-            <div className="space-y-1">
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Explore Communities</h1>
-              <p className="text-slate-500 font-medium text-lg">Join collaborative spaces tailored to your learning path.</p>
+          <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-16 gap-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-12 bg-blue-600 rounded-full" />
+                <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+                  Communities
+                </h1>
+              </div>
+              <p className="text-slate-600 font-medium text-lg lg:text-xl max-w-2xl leading-relaxed">
+                Discover collaborative spaces, connect with like-minded learners, and build your network.
+              </p>
             </div>
             
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-4 w-full lg:w-auto">
               {isAdmin && (
                 <button 
                   onClick={() => setShowAdminDashboard(true)}
-                  className="flex-1 md:flex-none px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 lg:flex-none px-6 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:shadow-lg hover:border-blue-200 transition-all flex items-center justify-center gap-2 group"
                 >
-                  <Shield className="w-4 h-4 text-blue-500" /> 
-                  Admin <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px]">{pendingRequests.pendingCreations.length}</span>
+                  <Shield className="w-4 h-4 text-blue-500 group-hover:text-blue-600" /> 
+                  Admin Dashboard
+                  {pendingRequests.pendingCreations.length > 0 && (
+                    <span className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-bold">
+                      {pendingRequests.pendingCreations.length}
+                    </span>
+                  )}
                 </button>
               )}
               <button 
                 onClick={() => setShowCreateModal(true)}
-                className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-2"
+                className="flex-1 lg:flex-none px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
               >
-                <Plus className="w-5 h-5" /> Create
+                <Plus className="w-5 h-5" /> Create Community
               </button>
             </div>
           </header>
 
-          {/* THE GRID LAYOUT */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-            {communities.map((community) => (
-              <div 
-                key={community._id}
-                onClick={() => handleViewCommunity(community)}
-                className="group relative bg-white rounded-[32px] border border-slate-100 p-4 hover:shadow-2xl hover:shadow-blue-900/10 hover:border-blue-200 transition-all duration-300 cursor-pointer flex flex-col h-full"
-              >
-                {/* Image Container */}
-                <div className="relative w-full h-48 rounded-[24px] overflow-hidden bg-slate-100 mb-5">
-                  <img 
-                    src={community.coverImage || defaultHeader} 
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
-                    alt={community.name} 
-                  />
-                  <div className="absolute top-3 left-3 flex gap-2">
-                    {getRoleLabel(community) && (
-                      <span className="px-3 py-1 rounded-full bg-black/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest border border-white/20">
-                        {getRoleLabel(community)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          {/* Categorized Communities Sections */}
+          <div className="space-y-16">
+            {/* My Communities - Owned */}
+            {categorizedCommunities.myCommunitiesOwned.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8">
+                  <Crown className="w-6 h-6 text-yellow-600" />
+                  <h2 className="text-2xl font-bold text-slate-800">Communities I Lead</h2>
+                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                    {categorizedCommunities.myCommunitiesOwned.length}
+                  </span>
                 </div>
-
-                {/* Content */}
-                <div className="px-2 flex-1 flex flex-col">
-                  <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors mb-2">
-                    {community.name}
-                  </h3>
-                  <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6">
-                    {community.description}
-                  </p>
-                  
-                  {/* Stats & Action */}
-                  <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <div className="flex -space-x-2">
-                         {[1,2,3].map(i => (
-                           <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200" />
-                         ))}
-                      </div>
-                      <span className="text-xs font-bold text-slate-500">{community.members?.length || 0}</span>
-                    </div>
-
-                    {isMember(community) ? (
-                      <button className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-blue-600 transition-colors">
-                        Open
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleJoinCommunity(community._id); }}
-                        className="px-5 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl font-bold text-xs hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all"
-                      >
-                        Join
-                      </button>
-                    )}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categorizedCommunities.myCommunitiesOwned.map((community) => (
+                    <CommunityCard
+                      key={community._id}
+                      community={community}
+                      userId={userId}
+                      onViewCommunity={handleViewCommunity}
+                      onJoinCommunity={handleJoinCommunity}
+                      isOwned={true}
+                    />
+                  ))}
                 </div>
+              </section>
+            )}
+
+            {/* My Communities - Joined */}
+            {categorizedCommunities.myCommunitiesJoined.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8">
+                  <Users className="w-6 h-6 text-green-600" />
+                  <h2 className="text-2xl font-bold text-slate-800">My Communities</h2>
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                    {categorizedCommunities.myCommunitiesJoined.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categorizedCommunities.myCommunitiesJoined.map((community) => (
+                    <CommunityCard
+                      key={community._id}
+                      community={community}
+                      userId={userId}
+                      onViewCommunity={handleViewCommunity}
+                      onJoinCommunity={handleJoinCommunity}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Pending Requests */}
+            {categorizedCommunities.pendingRequests.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                  <h2 className="text-2xl font-bold text-slate-800">Pending Requests</h2>
+                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                    {categorizedCommunities.pendingRequests.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categorizedCommunities.pendingRequests.map((community) => (
+                    <CommunityCard
+                      key={community._id}
+                      community={community}
+                      userId={userId}
+                      onViewCommunity={handleViewCommunity}
+                      onJoinCommunity={handleJoinCommunity}
+                      isPending={true}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Discover Communities */}
+            {categorizedCommunities.recommended.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <Plus className="w-4 h-4 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800">Discover Communities</h2>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                    {categorizedCommunities.recommended.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categorizedCommunities.recommended.map((community) => (
+                    <CommunityCard
+                      key={community._id}
+                      community={community}
+                      userId={userId}
+                      onViewCommunity={handleViewCommunity}
+                      onJoinCommunity={handleJoinCommunity}
+                      isRecommended={true}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Empty State */}
+            {communities.length === 0 && (
+              <div className="text-center py-20">
+                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="w-12 h-12 text-blue-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-700 mb-3">No Communities Yet</h3>
+                <p className="text-slate-500 text-lg mb-8 max-w-md mx-auto">
+                  Be the first to create a community and start building connections!
+                </p>
+                <button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" /> Create Your First Community
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </main>
 
       {/* Create Community Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+        <div className="fixed inset-0 z-50 flex justify-center items-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
           <div className="relative bg-white p-6 rounded-2xl w-full max-w-md">
             <h3 className="font-bold text-lg mb-4">Create Community</h3>
@@ -1301,7 +1292,7 @@ const CommunitiesPage = () => {
 
       {/* Admin Dashboard Modal */}
       {showAdminDashboard && (
-        <div className="fixed inset-0 z-[101] flex justify-center items-center">
+        <div className="fixed inset-0 z-50 flex justify-center items-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAdminDashboard(false)} />
           <div className="relative bg-white p-6 rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
             <h3 className="font-bold text-lg mb-4">Admin Dashboard</h3>
@@ -1344,20 +1335,7 @@ const CommunitiesPage = () => {
           </div>
         </div>
       )}
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[101] flex justify-center items-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="relative bg-white p-6 rounded-2xl w-full max-w-sm">
-            <h3 className="font-bold text-lg mb-2">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout? Your session will expire.</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">Cancel</button>
-              <button onClick={handleLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700">Logout</button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

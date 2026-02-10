@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import Sidebar from './Sidebar';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import logo from "../assets/Logo.png";
@@ -41,6 +42,10 @@ function UserProfile() {
   const [posting, setPosting] = useState(false);
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [showPostMenu, setShowPostMenu] = useState({});
+  const [editingPost, setEditingPost] = useState(null);
+  const [editPostText, setEditPostText] = useState('');
+  const [editPostTags, setEditPostTags] = useState([]);
 
   // --- Previews for avatar/header ---
   useEffect(() => {
@@ -297,6 +302,82 @@ function UserProfile() {
     }
   };
 
+  // --- Handle post update and delete ---
+  const handleEditPost = (post) => {
+    setEditingPost(post._id);
+    setEditPostText(post.text);
+    setEditPostTags(post.tags || []);
+    setShowPostMenu({});
+  };
+
+  const handleUpdatePost = async (postId) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          text: editPostText,
+          tags: editPostTags
+        })
+      });
+      if (res.ok) {
+        // Refresh posts
+        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        setPosts(await resPosts.json());
+        setEditingPost(null);
+        setEditPostText('');
+        setEditPostTags([]);
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Failed to update post');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating post');
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      const res = await fetch(`http://localhost:4000/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      if (res.ok) {
+        // Refresh posts
+        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        setPosts(await resPosts.json());
+        setShowPostMenu({});
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Failed to delete post');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting post');
+    }
+  };
+
+  const cancelEditPost = () => {
+    setEditingPost(null);
+    setEditPostText('');
+    setEditPostTags([]);
+  };
+
+  const removeEditTag = (tag) => {
+    setEditPostTags(prev => prev.filter(t => t !== tag));
+  };
+
+  const addEditTag = (tag) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !editPostTags.includes(trimmedTag)) {
+      setEditPostTags(prev => [...prev, trimmedTag]);
+    }
+  };
+
   const isHome = location.pathname === "/";
   const isProfile = location.pathname.startsWith("/profile");
   const isCommunities = location.pathname.startsWith("/communities");
@@ -306,81 +387,11 @@ function UserProfile() {
   const isSettings = location.pathname.startsWith("/settings");
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex">
-      {/* Sidebar navigation */}
-      <aside className="hidden md:flex flex-col w-50 border-r border-gray-200 bg-white py-8 px-6 gap-6 fixed inset-y-0 left-0">
-        <div className="px-1">
-          <img src={logo} alt="SkillNest Logo" className="h-20 mb-2" />
-          <p className="mt-1 text-xs text-gray-500">Your learning space</p>
-        </div>
-        <nav className="flex flex-col gap-1 text-sm">
-          <Link
-            to="/"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isHome ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Home</span>
-          </Link>
-          <Link
-            to={`/profile?userId=${userId}`}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isProfile ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Profile</span>
-          </Link>
-          <Link
-            to="/communities"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isCommunities ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Communities</span>
-          </Link>
-          <Link
-            to="/marketplace"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isMarketplace ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Marketplace</span>
-          </Link>
-          <Link
-            to="/events"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isEvents ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Events</span>
-          </Link>
-          <Link
-            to="/notifications"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isNotifications ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Notifications</span>
-          </Link>
-          <Link
-            to="/settings"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-              isSettings ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Settings</span>
-          </Link>
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors text-gray-700 hover:bg-red-50 hover:text-red-600 w-full text-left border-none bg-transparent cursor-pointer"
-          >
-            <span>Logout</span>
-          </button>
-        </nav>
-      </aside>
-
+    <div className="min-h-screen bg-slate-50 font-sans flex">
+      <Sidebar />
+      
       {/* Main content */}
-      <div className="flex-1 md:ml-72">
+      <div className="flex-1 ml-64">
         {/* Header */}
         <div className="relative w-full h-96 overflow-hidden bg-gray-300">
           <img
@@ -501,21 +512,21 @@ function UserProfile() {
       </div>
 
         {/* New Post Card - Improved UI */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mx-8 mt-6 mb-6">
-        <div className="p-4">
-          <div className="flex gap-3 mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 ml-8 mt-4 mb-4 max-w-2xl">
+        <div className="p-3">
+          <div className="flex gap-2 mb-3">
           <img
             src={profileImage || defaultAvatar}
             alt="Avatar"
-            className="w-10 h-10 rounded-full object-cover shrink-0"
+            className="w-8 h-8 rounded-full object-cover shrink-0"
           />
             <div className="flex-1">
               <textarea
                 value={newPostText}
                 onChange={(e) => setNewPostText(e.target.value)}
                 placeholder="What's on your mind?"
-                className="w-full px-4 py-3 rounded-lg border-none resize-none text-base font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
-                rows="4"
+                className="w-full px-3 py-2 rounded-lg border-none resize-none text-sm font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
+                rows="3"
               />
             </div>
           </div>
@@ -526,7 +537,7 @@ function UserProfile() {
               <img
                 src={newPostPreview}
                 alt="Post Preview"
-                className="w-full max-h-96 object-cover"
+                className="w-full max-h-64 object-contain"
               />
               <button
                 onClick={handleRemovePostImage}
@@ -568,7 +579,7 @@ function UserProfile() {
           </div>
 
           {/* Post Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -605,23 +616,23 @@ function UserProfile() {
       </div>
 
         {/* Posts List */}
-        <div className="flex flex-col gap-4 px-8 pb-8">
+        <div className="flex flex-col gap-3 ml-8 pb-8 max-w-2xl">
         {posts.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
             <p className="text-gray-500">No posts yet. Share something!</p>
           </div>
         ) : (
           posts.map((post) => (
-            <div key={post._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
+            <div key={post._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-3">
                 <img 
                   src={profileImage || "/default-avatar.png"} 
                   alt="Avatar" 
-                  className="w-12 h-12 rounded-full object-cover border-2 border-blue-100" 
+                  className="w-10 h-10 rounded-full object-cover border-2 border-blue-100" 
                 />
                 <div className="flex-1">
-                  <span className="font-semibold text-gray-900 block">{username}</span>
-                  <span className="text-sm text-gray-500">
+                  <span className="font-semibold text-gray-900 block text-sm">{username}</span>
+                  <span className="text-xs text-gray-500">
                     {new Date(post.createdAt).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric',
@@ -630,31 +641,126 @@ function UserProfile() {
                     })}
                   </span>
                 </div>
+                {/* 3-dot menu */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowPostMenu({ ...showPostMenu, [post._id]: !showPostMenu[post._id] })}
+                    className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                  </button>
+                  {showPostMenu[post._id] && (
+                    <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[120px]">
+                      <button 
+                        onClick={() => handleEditPost(post)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeletePost(post._id)}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              {post.text && (
-                <p className="text-gray-800 mb-4 leading-relaxed whitespace-pre-wrap">{post.text}</p>
-              )}
-              {post.image && (
-                <div className="rounded-lg overflow-hidden mb-2 border border-gray-200">
-                  <img 
-                    src={post.image} 
-                    alt="Post" 
-                    className="w-full h-auto object-contain"
+              
+              {/* Post content - editable if in edit mode */}
+              {editingPost === post._id ? (
+                <div className="mb-4">
+                  <textarea
+                    value={editPostText}
+                    onChange={(e) => setEditPostText(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 resize-none text-base font-sans text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                    rows="4"
+                    placeholder="What's on your mind?"
                   />
-                </div>
-              )}
-
-              {Array.isArray(post.tags) && post.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium"
+                  
+                  {/* Edit tags */}
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    {editPostTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
+                      >
+                        <span>#{tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeEditTag(tag)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      placeholder="Add tag (press Enter)"
+                      className="flex-1 min-w-[120px] px-3 py-1.5 text-xs rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          addEditTag(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleUpdatePost(post._id)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
                     >
-                      #{tag}
-                    </span>
-                  ))}
+                      Save
+                    </button>
+                    <button 
+                      onClick={cancelEditPost}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {post.text && (
+                    <p className="text-gray-800 mb-4 leading-relaxed whitespace-pre-wrap">{post.text}</p>
+                  )}
+                  {post.image && (
+                    <div className="rounded-lg  mb-2 border border-gray-200">
+                      <img 
+                        src={post.image} 
+                        alt="Post" 
+                        className="w-full max-h-100 object-contain"
+                      />
+                    </div>
+                  )}
+
+                  {Array.isArray(post.tags) && post.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {post.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Like and Comment Actions */}

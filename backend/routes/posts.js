@@ -183,4 +183,61 @@ router.delete("/:postId/comments/:commentIdx", async (req, res) => {
   }
 });
 
+// UPDATE POST
+router.put("/:postId", async (req, res) => {
+  try {
+    const { userId, text, tags } = req.body;
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    // Check if user owns the post
+    const postUserId = typeof post.user === 'string' ? post.user : post.user._id;
+    if (postUserId.toString() !== userId.toString()) {
+      return res.status(403).json({ msg: "You can only edit your own posts" });
+    }
+
+    // Update post
+    post.text = text;
+    if (tags && Array.isArray(tags)) {
+      post.tags = tags;
+    }
+
+    await post.save();
+    await post.populate("user", "username profileImage");
+    res.json({ msg: "Post updated", post });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// DELETE POST
+router.delete("/:postId", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    // Check if user owns the post
+    const postUserId = typeof post.user === 'string' ? post.user : post.user._id;
+    if (postUserId.toString() !== userId.toString()) {
+      return res.status(403).json({ msg: "You can only delete your own posts" });
+    }
+
+    await Post.findByIdAndDelete(postId);
+    res.json({ msg: "Post deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 export default router;
