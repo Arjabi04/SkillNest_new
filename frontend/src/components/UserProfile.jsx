@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from './Sidebar';
+import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import logo from "../assets/Logo.png";
@@ -11,6 +12,7 @@ function UserProfile() {
   const userId = params.get("userId");
   const location = useLocation();
   const navigate = useNavigate();
+  const { mainContentClass } = useSidebarLayout();
   
   const handleLogout = () => {
     clearAuth();
@@ -391,7 +393,7 @@ function UserProfile() {
       <Sidebar />
       
       {/* Main content */}
-      <div className="flex-1 ml-64">
+      <div className={`flex-1 ${mainContentClass}`}>
         {/* Header */}
         <div className="relative w-full h-96 overflow-hidden bg-gray-300">
           <img

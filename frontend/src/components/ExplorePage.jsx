@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from './Sidebar';
+import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import logo from "../assets/Logo.png";
 import { clearAuth } from "../utils/tokenUtils";
@@ -12,6 +13,7 @@ function ExplorePage() {
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
   const navigate = useNavigate();
+  const { mainContentClass } = useSidebarLayout();
 
   const location = useLocation();
   const params = new URLSearchParams(window.location.search);
@@ -130,7 +132,7 @@ function ExplorePage() {
       <Sidebar />
       
       {/* Main content */}
-      <div className="flex-1 ml-64 max-w-[1200px] mx-auto px-6 py-8">
+      <div className={`flex-1 ${mainContentClass} max-w-[1200px] mx-auto px-6 py-8`}>
         
         {/* Header */}
         <header className="mb-12">

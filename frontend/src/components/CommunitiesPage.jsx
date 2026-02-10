@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import CommunityCard from './CommunityCard';
+import useSidebarLayout from '../hooks/useSidebarLayout';
 import './CommunitiesPage.css';
 import defaultHeader from '../assets/default-header.jpeg';
 import defaultAvatar from '../assets/default-avatar.jpg';
@@ -82,6 +83,7 @@ const MessageCircle = ({ className }) => (
 
 const CommunitiesPage = () => {
   const [communities, setCommunities] = useState([]);
+  const { mainContentClass } = useSidebarLayout();
   const [pendingRequests, setPendingRequests] = useState({ pendingCreations: [], pendingDeletions: [] });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
@@ -1083,7 +1085,7 @@ const CommunitiesPage = () => {
 
   // MAIN LIST VIEW (The Categorized Grid UI)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 font-sans flex">
+    <div className="min-h-screen bg-slate-50 font-sans flex">
       {/* Sidebar */}
       <Sidebar 
         showLogoutConfirm={showLogoutConfirm}
@@ -1092,7 +1094,7 @@ const CommunitiesPage = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 transition-all duration-300 lg:ml-16 xl:ml-72">
+      <main className={`flex-1 ${mainContentClass}`}>
         <div className="max-w-[1600px] mx-auto w-full px-6 py-8 lg:py-12">
           
           {/* Header Section */}
