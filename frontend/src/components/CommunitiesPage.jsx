@@ -95,7 +95,7 @@ const CommunitiesPage = () => {
   const [newPostImage, setNewPostImage] = useState(null);
   const [newPostTags, setNewPostTags] = useState([]);
   const [newPostPreview, setNewPostPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showBanForm, setShowBanForm] = useState({});
   const [banData, setBanData] = useState({});
@@ -126,6 +126,13 @@ const CommunitiesPage = () => {
   const isSettings = location.pathname.startsWith('/settings');
 
   useEffect(() => {
+    console.log('CommunitiesPage mounted with userId:', userId);
+    if (!userId) {
+      console.error('No userId found! Checking localStorage...');
+      console.log('localStorage userId:', localStorage.getItem('userId'));
+      return;
+    }
+    
     checkAdminStatus();
     loadCommunities();
     
@@ -188,13 +195,22 @@ const CommunitiesPage = () => {
 
   const loadCommunities = async () => {
     try {
+      setLoading(true);
       const adminParam = isAdmin ? '&admin=true' : '';
       const url = `${API_BASE}/communities?userId=${userId}${adminParam}`;
+      console.log('Loading communities from:', url);
       const res = await fetch(url);
       const data = await res.json();
-      if (res.ok) setCommunities(data);
+      console.log('Communities data:', data);
+      if (res.ok) {
+        setCommunities(data);
+      } else {
+        console.error('Failed to load communities:', data);
+      }
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error loading communities:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1083,10 +1099,10 @@ const CommunitiesPage = () => {
   // Categorize communities based on user status
   const categorizedCommunities = categorizeCommunitiesByStatus(communities, userId);
 
-  // MAIN LIST VIEW (The Categorized Grid UI)
+  // MAIN LAYOUT (Explore Communities Center + My Communities Right Sidebar)
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
-      {/* Sidebar */}
+      {/* Left Sidebar */}
       <Sidebar 
         showLogoutConfirm={showLogoutConfirm}
         setShowLogoutConfirm={setShowLogoutConfirm}
@@ -1095,168 +1111,254 @@ const CommunitiesPage = () => {
 
       {/* Main Content Area */}
       <main className={`flex-1 ${mainContentClass}`}>
-        <div className="max-w-[1600px] mx-auto w-full px-6 py-8 lg:py-12">
+        <div className="max-w-[1600px] mx-auto w-full px-6 py-8 flex gap-8">
           
-          {/* Header Section */}
-          <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-16 gap-8">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-12 bg-blue-600 rounded-full" />
-                <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
-                  Communities
-                </h1>
+          {/* Center Content - Explore Communities */}
+          <div className="flex-1 max-w-4xl">
+            {loading ? (
+              <div className="space-y-8">
+                <div className="animate-pulse">
+                  <div className="h-8 bg-slate-200 rounded w-64 mb-4"></div>
+                  <div className="h-4 bg-slate-100 rounded w-96"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
+                      <div className="h-32 bg-slate-200 rounded-lg mb-4"></div>
+                      <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-slate-100 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-slate-600 font-medium text-lg lg:text-xl max-w-2xl leading-relaxed">
-                Discover collaborative spaces, connect with like-minded learners, and build your network.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-4 w-full lg:w-auto">
-              {isAdmin && (
+            ) : (
+              <>
+                {/* Header */}
+                <header className="mb-12">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-12 bg-blue-600 rounded-full" />
+                      <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+                        Explore Communities
+                      </h1>
+                    </div>
+                <p className="text-slate-600 font-medium text-lg max-w-2xl leading-relaxed">
+                  Discover new collaborative spaces and connect with like-minded learners.
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-4 mt-8">
+                {isAdmin && (
+                  <button 
+                    onClick={() => setShowAdminDashboard(true)}
+                    className="px-6 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:shadow-lg hover:border-blue-200 transition-all flex items-center justify-center gap-2 group"
+                  >
+                    <Shield className="w-4 h-4 text-blue-500 group-hover:text-blue-600" /> 
+                    Admin
+                    {pendingRequests.pendingCreations.length > 0 && (
+                      <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold">
+                        {pendingRequests.pendingCreations.length}
+                      </span>
+                    )}
+                  </button>
+                )}
                 <button 
-                  onClick={() => setShowAdminDashboard(true)}
-                  className="flex-1 lg:flex-none px-6 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:shadow-lg hover:border-blue-200 transition-all flex items-center justify-center gap-2 group"
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
                 >
-                  <Shield className="w-4 h-4 text-blue-500 group-hover:text-blue-600" /> 
-                  Admin Dashboard
-                  {pendingRequests.pendingCreations.length > 0 && (
-                    <span className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-bold">
-                      {pendingRequests.pendingCreations.length}
-                    </span>
-                  )}
+                  <Plus className="w-5 h-5" /> Create Community
                 </button>
-              )}
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="flex-1 lg:flex-none px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" /> Create Community
-              </button>
-            </div>
-          </header>
+              </div>
+            </header>
 
-          {/* Categorized Communities Sections */}
-          <div className="space-y-16">
-            {/* My Communities - Owned */}
+            {/* Debug Info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
+                <p><strong>Total Communities:</strong> {communities.length}</p>
+                <p><strong>User ID:</strong> {userId}</p>
+                <p><strong>Recommended:</strong> {categorizedCommunities.recommended.length}</p>
+                <p><strong>Owned:</strong> {categorizedCommunities.myCommunitiesOwned.length}</p>
+                <p><strong>Joined:</strong> {categorizedCommunities.myCommunitiesJoined.length}</p>
+                <p><strong>Pending:</strong> {categorizedCommunities.pendingRequests.length}</p>
+              </div>
+            )}
+
+            {/* Explore Communities Grid */}
+            <div className="space-y-12">
+              {/* Discover New Communities */}
+              {categorizedCommunities.recommended.length > 0 ? (
+                <section>
+                  <div className="flex items-center gap-3 mb-8">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <h2 className="text-2xl font-bold text-slate-800">Discover New Communities</h2>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                      {categorizedCommunities.recommended.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {categorizedCommunities.recommended.map((community) => (
+                      <CommunityCard
+                        key={community._id}
+                        community={community}
+                        userId={userId}
+                        onViewCommunity={handleViewCommunity}
+                        onJoinCommunity={handleJoinCommunity}
+                        isRecommended={true}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-700 mb-2">No New Communities to Explore</h3>
+                  <p className="text-slate-500 mb-6">
+                    All communities are either joined or pending. Check back later for new ones!
+                  </p>
+                </div>
+              )}
+            </div>
+              </>
+            )}
+          </div>
+
+          {/* Right Sidebar - My Communities */}
+          <aside className="w-80 space-y-6">
+            {/* Communities I Lead */}
             {categorizedCommunities.myCommunitiesOwned.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-8">
-                  <Crown className="w-6 h-6 text-yellow-600" />
-                  <h2 className="text-2xl font-bold text-slate-800">Communities I Lead</h2>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Crown className="w-5 h-5 text-yellow-600" />
+                  <h3 className="font-bold text-slate-900">Communities I Lead</h3>
+                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                     {categorizedCommunities.myCommunitiesOwned.length}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="space-y-3">
                   {categorizedCommunities.myCommunitiesOwned.map((community) => (
-                    <CommunityCard
+                    <div 
                       key={community._id}
-                      community={community}
-                      userId={userId}
-                      onViewCommunity={handleViewCommunity}
-                      onJoinCommunity={handleJoinCommunity}
-                      isOwned={true}
-                    />
+                      onClick={() => handleViewCommunity(community)}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 cursor-pointer transition-colors border border-yellow-200"
+                    >
+                      <img 
+                        src={community.coverImage || defaultHeader} 
+                        className="w-12 h-12 rounded-lg object-cover border border-yellow-200" 
+                        alt={community.name} 
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-slate-900 truncate">
+                          {community.name}
+                        </h4>
+                        <p className="text-xs text-slate-500 truncate">
+                          {community.members?.length || 0} members
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </section>
+              </div>
             )}
 
-            {/* My Communities - Joined */}
+            {/* My Communities */}
             {categorizedCommunities.myCommunitiesJoined.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-8">
-                  <Users className="w-6 h-6 text-green-600" />
-                  <h2 className="text-2xl font-bold text-slate-800">My Communities</h2>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-5 h-5 text-green-600" />
+                  <h3 className="font-bold text-slate-900">My Communities</h3>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                     {categorizedCommunities.myCommunitiesJoined.length}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="space-y-3">
                   {categorizedCommunities.myCommunitiesJoined.map((community) => (
-                    <CommunityCard
+                    <div 
                       key={community._id}
-                      community={community}
-                      userId={userId}
-                      onViewCommunity={handleViewCommunity}
-                      onJoinCommunity={handleJoinCommunity}
-                    />
+                      onClick={() => handleViewCommunity(community)}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50 cursor-pointer transition-colors border border-green-200"
+                    >
+                      <img 
+                        src={community.coverImage || defaultHeader} 
+                        className="w-12 h-12 rounded-lg object-cover border border-green-200" 
+                        alt={community.name} 
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-slate-900 truncate">
+                          {community.name}
+                        </h4>
+                        <p className="text-xs text-slate-500 truncate">
+                          {community.members?.length || 0} members
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </section>
+              </div>
             )}
 
             {/* Pending Requests */}
             {categorizedCommunities.pendingRequests.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-8">
-                  <AlertCircle className="w-6 h-6 text-yellow-600" />
-                  <h2 className="text-2xl font-bold text-slate-800">Pending Requests</h2>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <h3 className="font-bold text-slate-900">Pending Requests</h3>
+                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                     {categorizedCommunities.pendingRequests.length}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="space-y-3">
                   {categorizedCommunities.pendingRequests.map((community) => (
-                    <CommunityCard
+                    <div 
                       key={community._id}
-                      community={community}
-                      userId={userId}
-                      onViewCommunity={handleViewCommunity}
-                      onJoinCommunity={handleJoinCommunity}
-                      isPending={true}
-                    />
+                      className="flex items-center gap-3 p-3 rounded-xl bg-yellow-50 border border-yellow-200"
+                    >
+                      <img 
+                        src={community.coverImage || defaultHeader} 
+                        className="w-12 h-12 rounded-lg object-cover opacity-75" 
+                        alt={community.name} 
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-slate-900 truncate">
+                          {community.name}
+                        </h4>
+                        <p className="text-xs text-yellow-600 font-medium">
+                          Pending approval
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </section>
+              </div>
             )}
 
-            {/* Discover Communities */}
-            {categorizedCommunities.recommended.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <Plus className="w-4 h-4 text-white" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-800">Discover Communities</h2>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                    {categorizedCommunities.recommended.length}
-                  </span>
+            {/* Empty state */}
+            {(categorizedCommunities.myCommunitiesOwned.length === 0 && 
+              categorizedCommunities.myCommunitiesJoined.length === 0 && 
+              categorizedCommunities.pendingRequests.length === 0) && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-blue-500" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {categorizedCommunities.recommended.map((community) => (
-                    <CommunityCard
-                      key={community._id}
-                      community={community}
-                      userId={userId}
-                      onViewCommunity={handleViewCommunity}
-                      onJoinCommunity={handleJoinCommunity}
-                      isRecommended={true}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Empty State */}
-            {communities.length === 0 && (
-              <div className="text-center py-20">
-                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Users className="w-12 h-12 text-blue-500" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-700 mb-3">No Communities Yet</h3>
-                <p className="text-slate-500 text-lg mb-8 max-w-md mx-auto">
-                  Be the first to create a community and start building connections!
+                <h3 className="text-lg font-bold text-slate-700 mb-2">No Communities Yet</h3>
+                <p className="text-slate-500 text-sm mb-6">
+                  Join some communities to see them here!
                 </p>
                 <button 
                   onClick={() => setShowCreateModal(true)}
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                 >
-                  <Plus className="w-5 h-5" /> Create Your First Community
+                  <Plus className="w-4 h-4" /> Create Community
                 </button>
               </div>
             )}
-          </div>
+          </aside>
         </div>
       </main>
 
