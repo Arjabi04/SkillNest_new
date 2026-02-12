@@ -7,6 +7,8 @@ import ChooseInterests from "./components/ChooseInterests";
 import UserProfile from "./components/UserProfile";
 import ExplorePage from "./components/ExplorePage";
 import CommunitiesPage from "./components/CommunitiesPage";
+import EventsPage from "./components/EventsPage";
+import NotificationsPage from "./components/NotificationsPage";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
 import { useEffect } from "react";
@@ -54,7 +56,7 @@ function AppRoutes() {
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/communities" element={<CommunitiesPage />} />
-        </Routes>
+          <Route path="/events" element={<EventsPage />} />          <Route path="/notifications" element={<NotificationsPage />} />        </Routes>
       </div>
     );
 }
