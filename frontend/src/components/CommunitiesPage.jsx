@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import CommunityCard from './CommunityCard';
+import TagInput from './TagInput';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import './CommunitiesPage.css';
 import defaultHeader from '../assets/default-header.jpeg';
@@ -29,7 +30,7 @@ const Plus = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
   </svg>
 );
-const Check = ({ className }) => (
+const Check = ({ className }) => ( 
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
@@ -95,6 +96,7 @@ const CommunitiesPage = () => {
   const [newPostImage, setNewPostImage] = useState(null);
   const [newPostTags, setNewPostTags] = useState([]);
   const [newPostPreview, setNewPostPreview] = useState(null);
+  const [communityInterests, setCommunityInterests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showBanForm, setShowBanForm] = useState({});
@@ -251,6 +253,10 @@ const CommunitiesPage = () => {
     setLoading(true);
     const formData = new FormData(e.target);
     formData.append('creatorId', userId);
+    // Add interests array to FormData
+    if (communityInterests.length > 0) {
+      formData.append('interests', JSON.stringify(communityInterests));
+    }
     try {
       const res = await fetch(`${API_BASE}/communities`, {
         method: 'POST',
@@ -258,6 +264,7 @@ const CommunitiesPage = () => {
       });
       if (res.ok) {
         setShowCreateModal(false);
+        setCommunityInterests([]); // Reset interests
         e.target.reset();
         alert('Community request submitted!');
         if (isAdmin) loadPendingRequests();
@@ -1171,18 +1178,7 @@ const CommunitiesPage = () => {
               </div>
             </header>
 
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
-                <p><strong>Total Communities:</strong> {communities.length}</p>
-                <p><strong>User ID:</strong> {userId}</p>
-                <p><strong>Recommended:</strong> {categorizedCommunities.recommended.length}</p>
-                <p><strong>Owned:</strong> {categorizedCommunities.myCommunitiesOwned.length}</p>
-                <p><strong>Joined:</strong> {categorizedCommunities.myCommunitiesJoined.length}</p>
-                <p><strong>Pending:</strong> {categorizedCommunities.pendingRequests.length}</p>
-              </div>
-            )}
+          
 
             {/* Explore Communities Grid */}
             <div className="space-y-12">
@@ -1378,8 +1374,12 @@ const CommunitiesPage = () => {
                 <textarea name="description" required className="w-full p-2 border rounded" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Interests (comma separated)</label>
-                <input name="interests" className="w-full p-2 border rounded" />
+                <label className="block text-sm font-medium mb-1">Interests</label>
+                <TagInput 
+                  tags={communityInterests}
+                  setTags={setCommunityInterests}
+                  placeholder="Type interest and press Enter..."
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Cover Image</label>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/Logo.png';
 import { clearAuth } from '../utils/tokenUtils';
+import { useNotifications } from '../hooks/useNotifications';
 
 // SVG Icons
 const ChevronLeft = ({ className }) => (
@@ -48,7 +49,8 @@ const Calendar = ({ className }) => (
 
 const Bell = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM21 3l-6 6M9 1l4 8 8-4-4 8h7" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.73 21a2 2 0 01-3.46 0" />
   </svg>
 );
 
@@ -92,6 +94,7 @@ const Sidebar = ({
   const location = useLocation();
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
+  const { unreadCount = 0 } = useNotifications() || {};
 
   // Handle responsive behavior
   useEffect(() => {
@@ -217,7 +220,19 @@ const Sidebar = ({
               >
                 <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-blue-600' : ''}`} />
                 {!isCollapsed && (
-                  <span className="text-sm font-medium">{item.label}</span>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm font-medium">{item.label}</span>
+                    {item.id === 'notifications' && typeof unreadCount === 'number' && unreadCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] h-5 flex items-center justify-center">
+                        {unreadCount > 99 ? '99+' : String(unreadCount)}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {isCollapsed && item.id === 'notifications' && typeof unreadCount === 'number' && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : String(unreadCount)}
+                  </span>
                 )}
               </Link>
             );
