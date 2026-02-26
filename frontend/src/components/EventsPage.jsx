@@ -37,6 +37,12 @@ const Zap = ({ className }) => (
   </svg>
 );
 
+const X = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
 const EventsPage = () => {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
@@ -48,6 +54,7 @@ const EventsPage = () => {
     timeFrame: 'all'
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [eventForm, setEventForm] = useState({
@@ -336,8 +343,7 @@ const EventsPage = () => {
   };
 
   const handleViewEvent = (event) => {
-    // TODO: Navigate to event detail page
-    console.log('View event:', event);
+    setSelectedEvent(event || null);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -345,6 +351,36 @@ const EventsPage = () => {
       ...prev,
       [filterType]: value
     }));
+  };
+
+  const isCurrentUserOrganizer = (event) => {
+    const organizerId = event?.organizer?._id || event?.organizer;
+    return organizerId && String(organizerId) === String(userId);
+  };
+
+  const hasCurrentUserJoined = (event) => {
+    return event?.attendees?.some((attendee) => {
+      const attendeeId = attendee?.user?._id || attendee?.user;
+      return String(attendeeId) === String(userId) && attendee?.status === 'going';
+    });
+  };
+
+  const createdEvents = events.filter(isCurrentUserOrganizer);
+  const joinedEvents = events.filter((event) => !isCurrentUserOrganizer(event) && hasCurrentUserJoined(event));
+
+  const formatEventDate = (value) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -442,58 +478,102 @@ const EventsPage = () => {
             </div>
           </div>
 
-          {/* Events Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 animate-pulse">
-                  <div className="h-48 bg-slate-200 rounded-t-xl"></div>
-                  <div className="p-6 space-y-4">
-                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-slate-100 rounded w-1/2"></div>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-slate-100 rounded"></div>
-                      <div className="h-3 bg-slate-100 rounded w-4/5"></div>
+          {/* Events Content */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+            <div className="xl:col-span-3">
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-white rounded-xl border border-slate-200 animate-pulse">
+                      <div className="h-48 bg-slate-200 rounded-t-xl"></div>
+                      <div className="p-6 space-y-4">
+                        <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-slate-100 rounded w-1/2"></div>
+                        <div className="space-y-2">
+                          <div className="h-3 bg-slate-100 rounded"></div>
+                          <div className="h-3 bg-slate-100 rounded w-4/5"></div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : filteredEvents.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Calendar className="w-10 h-10 text-blue-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-700 mb-2">No Events Found</h3>
+                  <p className="text-slate-500 mb-6">
+                    {searchTerm || Object.values(selectedFilters).some(f => f !== 'all')
+                      ? 'Try adjusting your search or filters'
+                      : 'Be the first to create an event!'}
+                  </p>
+                  <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Create Event
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredEvents.map((event) => (
+                    <EventCard 
+                      key={event._id}
+                      event={event}
+                      currentUserId={userId}
+                      onRegister={handleRegister}
+                      onUnjoin={handleUnjoinEvent}
+                      onDelete={handleDeleteEvent}
+                      onView={handleViewEvent}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : filteredEvents.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Calendar className="w-10 h-10 text-blue-500" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">No Events Found</h3>
-              <p className="text-slate-500 mb-6">
-                {searchTerm || Object.values(selectedFilters).some(f => f !== 'all')
-                  ? 'Try adjusting your search or filters'
-                  : 'Be the first to create an event!'}
-              </p>
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Create Event
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((event) => (
-                <EventCard 
-                  key={event._id}
-                  event={event}
-                  currentUserId={userId}
-                  onRegister={handleRegister}
-                  onUnjoin={handleUnjoinEvent}
-                  onDelete={handleDeleteEvent}
-                  onView={handleViewEvent}
-                />
-              ))}
-            </div>
-          )}
 
-          {/* Quick Actions Sidebar - Placeholder */}
+            <aside className="xl:col-span-1 bg-white rounded-xl border border-slate-200 p-4 space-y-6 xl:sticky xl:top-6">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">Events Created</h3>
+                {createdEvents.length === 0 ? (
+                  <p className="text-sm text-slate-500">You haven't created any events yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {createdEvents.map((event) => (
+                      <button
+                        key={`created-${event._id}`}
+                        onClick={() => handleViewEvent(event)}
+                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                      >
+                        <p className="text-sm font-medium text-slate-800 truncate">{event.title}</p>
+                        <p className="text-xs text-slate-500 mt-1">{formatEventDate(event.startDate)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">Events Joined</h3>
+                {joinedEvents.length === 0 ? (
+                  <p className="text-sm text-slate-500">You haven't joined any events yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {joinedEvents.map((event) => (
+                      <button
+                        key={`joined-${event._id}`}
+                        onClick={() => handleViewEvent(event)}
+                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                      >
+                        <p className="text-sm font-medium text-slate-800 truncate">{event.title}</p>
+                        <p className="text-xs text-slate-500 mt-1">{formatEventDate(event.startDate)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
 
 
         </div>
@@ -800,6 +880,91 @@ const EventsPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Event Details Modal */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setSelectedEvent(null)}
+          />
+          <div className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-6 rounded-t-2xl flex items-center justify-between">
+              <h3 className="font-bold text-xl text-slate-900">Event Details</h3>
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+                aria-label="Close event details"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div>
+                <h4 className="text-2xl font-bold text-slate-900">{selectedEvent.title || 'Untitled Event'}</h4>
+                <p className="text-sm text-slate-500 mt-1 capitalize">
+                  {(selectedEvent.eventType || 'event')} • {(selectedEvent.category || 'general')}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Start</p>
+                  <p className="text-sm font-medium text-slate-800 mt-1">{formatEventDate(selectedEvent.startDate)}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">End</p>
+                  <p className="text-sm font-medium text-slate-800 mt-1">{formatEventDate(selectedEvent.endDate)}</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Description</p>
+                <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{selectedEvent.description || 'No description available.'}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Organizer</p>
+                  <p className="text-sm font-medium text-slate-800 mt-1">{selectedEvent.organizer?.username || 'Unknown'}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Price</p>
+                  <p className="text-sm font-medium text-slate-800 mt-1">
+                    {Number(selectedEvent.price) > 0 ? `$${selectedEvent.price}` : 'Free'}
+                  </p>
+                </div>
+              </div>
+
+              {(selectedEvent.location?.venue || selectedEvent.onlineDetails?.platform) && (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Location / Platform</p>
+                  {selectedEvent.location?.venue && (
+                    <p className="text-sm text-slate-700">Venue: {selectedEvent.location.venue}</p>
+                  )}
+                  {selectedEvent.onlineDetails?.platform && (
+                    <p className="text-sm text-slate-700">Platform: {selectedEvent.onlineDetails.platform}</p>
+                  )}
+                </div>
+              )}
+
+              {Array.isArray(selectedEvent.tags) && selectedEvent.tags.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEvent.tags.map((tag) => (
+                      <span key={tag} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
