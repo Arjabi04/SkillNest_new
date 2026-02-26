@@ -21,13 +21,19 @@ const NotificationsPage = () => {
     fetchNotifications 
   } = useNotifications() || {};
 
+  const safeNotifications = Array.isArray(notifications)
+    ? notifications.filter(Boolean)
+    : [];
+
   const handleLogout = () => {
     clearAuth();
     navigate("/login");
   };
 
   useEffect(() => {
-    fetchNotifications();
+    if (typeof fetchNotifications === 'function') {
+      fetchNotifications();
+    }
   }, [fetchNotifications]);
 
   const formatTimeAgo = (timestamp) => {
@@ -205,7 +211,7 @@ const NotificationsPage = () => {
           </div>
 
           <div className="notifications-content">
-            {!notifications || notifications.length === 0 ? (
+            {safeNotifications.length === 0 ? (
               <div className="empty-notifications">
                 <div className="empty-icon">🔔</div>
                 <h3>No notifications yet</h3>
@@ -213,7 +219,7 @@ const NotificationsPage = () => {
               </div>
             ) : (
               <div className="notifications-list">
-                {notifications.map(renderNotification)}
+                {safeNotifications.map(renderNotification)}
               </div>
             )}
           </div>

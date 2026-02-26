@@ -1,5 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 
+const normalizeNotifications = (rawData) => {
+  if (Array.isArray(rawData)) {
+    return rawData;
+  }
+
+  if (rawData && Array.isArray(rawData.notifications)) {
+    return rawData.notifications;
+  }
+
+  if (rawData && typeof rawData === 'object' && rawData._id) {
+    return [rawData];
+  }
+
+  return [];
+};
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -17,11 +33,19 @@ export const useNotifications = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
+        const normalizedNotifications = normalizeNotifications(data);
+        setNotifications(normalizedNotifications);
+
+        const normalizedUnreadCount = Number.isFinite(Number(data?.unreadCount))
+          ? Number(data.unreadCount)
+          : normalizedNotifications.filter((notification) => !notification?.read).length;
+        setUnreadCount(normalizedUnreadCount);
+      } else {
+        setNotifications([]);
       }
     } catch (err) {
       console.error('Error fetching notifications:', err);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -107,19 +131,22 @@ export const useNotifications = () => {
 
       if (response.ok) {
         setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
-        // Update unread count if the deleted notification was unread
-        setNotifications(prev => {
-          const wasUnread = prev.find(n => n._id === notificationId && !n.read);
-          if (wasUnread) {
-            setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+        setUnreadCount(prevCount => {
+          const deletedNotification = notifications.find(
+            (notification) => notification._id === notificationId
+          );
+
+          if (deletedNotification && !deletedNotification.read) {
+            return Math.max(0, prevCount - 1);
           }
-          return prev.filter(notif => notif._id !== notificationId);
+
+          return prevCount;
         });
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
     }
-  }, []);
+  }, [notifications]);
 
   useEffect(() => {
     fetchNotifications();
