@@ -141,7 +141,12 @@ const EventsPage = () => {
   };
 
   const applyFilters = () => {
-    let filtered = events;
+    const now = new Date();
+    let filtered = events.filter((event) => {
+      const eventEndDate = event?.endDate ? new Date(event.endDate) : null;
+      const isEnded = eventEndDate ? eventEndDate < now : false;
+      return !isEnded || isCurrentUserOrganizer(event);
+    });
 
     // Search filter
     if (searchTerm) {
@@ -164,7 +169,6 @@ const EventsPage = () => {
 
     // Time frame filter
     if (selectedFilters.timeFrame !== 'all') {
-      const now = new Date();
       const oneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       const oneMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
