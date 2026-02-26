@@ -138,7 +138,7 @@ const EventCard = ({
                   e.stopPropagation();
                   onUnjoin?.(event._id);
                 }}
-                className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition-colors"
               >
                 Leave Event
               </button>

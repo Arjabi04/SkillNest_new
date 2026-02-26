@@ -506,7 +506,7 @@ const EventsPage = () => {
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
             <div className="xl:col-span-3">
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className="bg-white rounded-xl border border-slate-200 animate-pulse">
                       <div className="h-48 bg-slate-200 rounded-t-xl"></div>
@@ -540,7 +540,7 @@ const EventsPage = () => {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredEvents.map((event) => (
                     <EventCard 
                       key={event._id}
@@ -997,7 +997,7 @@ const EventsPage = () => {
                 ) : selectedHasJoined ? (
                   <button
                     onClick={() => handleUnjoinEvent(selectedEvent._id)}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+                    className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
                   >
                     Leave Event
                   </button>
