@@ -316,8 +316,11 @@ const EventsPage = () => {
       });
 
       if (response.ok) {
-        const newEvent = await response.json();
-        setEvents(prev => [newEvent, ...prev]);
+        const createdPayload = await response.json();
+        const newEvent = createdPayload?.event || createdPayload;
+        if (newEvent?._id) {
+          setEvents(prev => [newEvent, ...prev]);
+        }
         setShowCreateModal(false);
         // Reset form
         setEventForm({
@@ -570,7 +573,11 @@ const EventsPage = () => {
                         className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
                       >
                         <p className="text-sm font-medium text-slate-800 truncate">{event.title}</p>
-                        <p className="text-xs text-slate-500 mt-1">{formatEventDate(event.startDate)}</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {event.approvalStatus === 'pending'
+                            ? 'Waiting admin approval'
+                            : formatEventDate(event.startDate)}
+                        </p>
                       </button>
                     ))}
                   </div>

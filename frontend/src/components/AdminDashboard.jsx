@@ -7,9 +7,10 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [pendingRequests, setPendingRequests] = useState({ 
     pendingCreations: [], 
-    pendingDeletions: [] 
+    pendingDeletions: [],
+    pendingEventCreations: []
   });
-  const [activeTab, setActiveTab] = useState("creations"); // 'creations' or 'deletions'
+  const [activeTab, setActiveTab] = useState("community-creations");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,17 +36,73 @@ function AdminDashboard() {
   const fetchPendingRequests = async () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
-      const res = await fetch("http://localhost:4000/api/communities/pending/all", {
-        headers: {
-          "x-admin-token": adminToken || "",
-        },
+      const [communitiesRes, eventsRes] = await Promise.all([
+        fetch("http://localhost:4000/api/communities/pending/all", {
+          headers: {
+            "x-admin-token": adminToken || "",
+          },
+        }),
+        fetch("http://localhost:4000/api/events/pending/all", {
+          headers: {
+            "x-admin-token": adminToken || "",
+          },
+        })
+      ]);
+
+      const communitiesData = await communitiesRes.json();
+      const eventsData = await eventsRes.json();
+
+      setPendingRequests({
+        pendingCreations: communitiesRes.ok ? (communitiesData.pendingCreations || []) : [],
+        pendingDeletions: communitiesRes.ok ? (communitiesData.pendingDeletions || []) : [],
+        pendingEventCreations: eventsRes.ok ? (eventsData.pendingEventCreations || []) : []
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleApproveEventCreation = async (eventId) => {
+    const adminToken = localStorage.getItem("adminToken");
+    try {
+      const res = await fetch(`http://localhost:4000/api/events/${eventId}/approve`, {
+        method: "POST",
+        headers: { "x-admin-token": adminToken || "" },
       });
       const data = await res.json();
       if (res.ok) {
-        setPendingRequests(data);
+        alert("Event approved successfully!");
+        fetchPendingRequests();
+      } else {
+        alert(data.msg || "Failed to approve event");
       }
     } catch (err) {
       console.error(err);
+      alert("Error approving event");
+    }
+  };
+
+  const handleRejectEventCreation = async (eventId) => {
+    const adminToken = localStorage.getItem("adminToken");
+    if (!window.confirm("Are you sure you want to reject this event? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:4000/api/events/${eventId}/reject`, {
+        method: "POST",
+        headers: { "x-admin-token": adminToken || "" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Event rejected");
+        fetchPendingRequests();
+      } else {
+        alert(data.msg || "Failed to reject event");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error rejecting event");
     }
   };
 
@@ -156,7 +213,8 @@ function AdminDashboard() {
     return null;
   }
 
-  const totalPending = pendingRequests.pendingCreations.length + pendingRequests.pendingDeletions.length;
+  const totalCreationRequests = pendingRequests.pendingCreations.length + pendingRequests.pendingEventCreations.length;
+  const totalPending = totalCreationRequests + pendingRequests.pendingDeletions.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,7 +256,7 @@ function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Creations</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {pendingRequests.pendingCreations.length}
+                  {totalCreationRequests}
                 </p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -247,14 +305,24 @@ function AdminDashboard() {
           <div className="border-b border-gray-200">
             <nav className="flex -mb-px">
               <button
-                onClick={() => setActiveTab("creations")}
+                onClick={() => setActiveTab("community-creations")}
                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "creations"
+                  activeTab === "community-creations"
                     ? "border-indigo-500 text-indigo-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                Pending Creations ({pendingRequests.pendingCreations.length})
+                Community Creations ({pendingRequests.pendingCreations.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("event-creations")}
+                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "event-creations"
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Event Creations ({pendingRequests.pendingEventCreations.length})
               </button>
               <button
                 onClick={() => setActiveTab("deletions")}
@@ -271,14 +339,14 @@ function AdminDashboard() {
 
           {/* Tab Content */}
           <div className="p-6">
-            {activeTab === "creations" && (
+            {activeTab === "community-creations" && (
               <div>
                 {pendingRequests.pendingCreations.length === 0 ? (
                   <div className="text-center py-12">
                     <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending creations</h3>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending community creations</h3>
                     <p className="mt-1 text-sm text-gray-500">All community creation requests have been processed.</p>
                   </div>
                 ) : (
@@ -354,6 +422,76 @@ function AdminDashboard() {
                             </button>
                             <button
                               onClick={() => handleRejectCreation(community._id)}
+                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium whitespace-nowrap"
+                            >
+                              ✗ Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "event-creations" && (
+              <div>
+                {pendingRequests.pendingEventCreations.length === 0 ? (
+                  <div className="text-center py-12">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending event creations</h3>
+                    <p className="mt-1 text-sm text-gray-500">All event creation requests have been processed.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingRequests.pendingEventCreations.map((event) => (
+                      <div
+                        key={event._id}
+                        className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-blue-50"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                Pending
+                              </span>
+                            </div>
+                            <p className="text-gray-600 mb-4">{event.description}</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p className="text-gray-500">Created by:</p>
+                                <p className="font-medium text-gray-900">{event.organizer?.username || "Unknown"}</p>
+                                <p className="text-gray-600 text-xs">{event.organizer?.email || ""}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Starts on:</p>
+                                <p className="font-medium text-gray-900">
+                                  {event.startDate ? new Date(event.startDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                  }) : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="ml-6 flex flex-col gap-2">
+                            <button
+                              onClick={() => handleApproveEventCreation(event._id)}
+                              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium whitespace-nowrap"
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectEventCreation(event._id)}
                               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium whitespace-nowrap"
                             >
                               ✗ Reject
