@@ -84,6 +84,22 @@ const NotificationsPage = () => {
 
   const renderNotification = (notification) => {
     try {
+      const relatedEvent = notification?.relatedEvent;
+      const eventLocation = (() => {
+        if (!relatedEvent?.location) return null;
+        if (typeof relatedEvent.location === 'string') return relatedEvent.location;
+        if (typeof relatedEvent.location === 'object') {
+          return relatedEvent.location.venue || relatedEvent.location.address || relatedEvent.location.city || null;
+        }
+        return null;
+      })();
+
+      const eventType = (() => {
+        if (!relatedEvent?.eventType) return null;
+        if (typeof relatedEvent.eventType === 'string') return relatedEvent.eventType;
+        return null;
+      })();
+
       return (
         <div
           key={notification?._id || Math.random()}
@@ -109,17 +125,17 @@ const NotificationsPage = () => {
               </div>
             </div>
             
-            {notification?.relatedEvent && (
+            {relatedEvent && (
               <div className="notification-event">
                 <div className="event-title">
-                  <strong>📅 {notification.relatedEvent?.title || 'Event'}</strong>
+                  <strong>📅 {relatedEvent?.title || 'Event'}</strong>
                 </div>
                 <div className="event-details">
-                  {notification?.relatedEvent?.startDate && (
+                  {relatedEvent?.startDate && (
                     <span className="event-date">
                       🗓️ {(() => {
                         try {
-                          const date = new Date(notification.relatedEvent.startDate);
+                          const date = new Date(relatedEvent.startDate);
                           return date.toLocaleDateString('en-US', {
                             weekday: 'short',
                             year: 'numeric',
@@ -129,19 +145,19 @@ const NotificationsPage = () => {
                             minute: '2-digit'
                           });
                         } catch (error) {
-                          return notification.relatedEvent.startDate;
+                          return relatedEvent.startDate;
                         }
                       })()}
                     </span>
                   )}
-                  {notification?.relatedEvent?.location && (
+                  {eventLocation && (
                     <span className="event-location">
-                      📍 {notification.relatedEvent.location}
+                      📍 {eventLocation}
                     </span>
                   )}
-                  {notification?.relatedEvent?.eventType && (
+                  {eventType && (
                     <span className="event-type">
-                      🎯 {notification.relatedEvent.eventType}
+                      🎯 {eventType}
                     </span>
                   )}
                 </div>
