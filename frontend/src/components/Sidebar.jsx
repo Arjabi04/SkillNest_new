@@ -164,7 +164,7 @@ const Sidebar = ({
         className={`
           fixed inset-y-0 left-0 z-[101] bg-white border-r border-gray-200 
           transition-all duration-300 ease-in-out flex flex-col
-          ${isCollapsed ? 'w-16' : 'w-72'}
+          ${isCollapsed ? 'w-16' : 'w-64'}
           ${isMobile && isCollapsed ? '-translate-x-full' : 'translate-x-0'}
           ${className}
         `}

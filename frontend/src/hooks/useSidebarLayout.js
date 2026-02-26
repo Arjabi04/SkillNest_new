@@ -61,7 +61,7 @@ export const useSidebarLayout = () => {
     }
     
     // On desktop, margin matches sidebar width
-    return isCollapsed ? 'ml-16' : 'ml-72';
+    return isCollapsed ? 'ml-16' : 'ml-64';
   };
 
   return {

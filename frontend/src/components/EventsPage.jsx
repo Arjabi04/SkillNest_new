@@ -104,6 +104,15 @@ const EventsPage = () => {
     applyFilters();
   }, [events, searchTerm, selectedFilters]);
 
+  useEffect(() => {
+    if (!selectedEvent?._id) return;
+
+    const updatedSelectedEvent = events.find((event) => event._id === selectedEvent._id);
+    if (updatedSelectedEvent) {
+      setSelectedEvent(updatedSelectedEvent);
+    }
+  }, [events, selectedEvent?._id]);
+
   const loadEvents = async () => {
     try {
       setLoading(true);
@@ -367,6 +376,21 @@ const EventsPage = () => {
 
   const createdEvents = events.filter(isCurrentUserOrganizer);
   const joinedEvents = events.filter((event) => !isCurrentUserOrganizer(event) && hasCurrentUserJoined(event));
+
+  const selectedIsOrganizer = isCurrentUserOrganizer(selectedEvent);
+  const selectedHasJoined = hasCurrentUserJoined(selectedEvent);
+  const selectedGoingCount = selectedEvent?.attendees?.filter((attendee) => attendee?.status === 'going').length || 0;
+  const selectedCapacity = Number(selectedEvent?.capacity) || null;
+  const selectedIsFull = Boolean(selectedCapacity && selectedGoingCount >= selectedCapacity && !selectedHasJoined);
+  const selectedIsPast = Boolean(selectedEvent?.endDate && new Date(selectedEvent.endDate) < new Date());
+  const selectedCanRegister = Boolean(
+    selectedEvent &&
+    selectedEvent.allowRegistration !== false &&
+    !selectedIsOrganizer &&
+    !selectedHasJoined &&
+    !selectedIsPast &&
+    !selectedIsFull
+  );
 
   const formatEventDate = (value) => {
     if (!value) return 'N/A';
@@ -964,6 +988,39 @@ const EventsPage = () => {
                   </div>
                 </div>
               )}
+
+              <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center gap-3">
+                {selectedIsOrganizer ? (
+                  <span className="px-3 py-2 bg-purple-100 text-purple-700 text-sm rounded-lg font-medium">
+                    You are the organizer
+                  </span>
+                ) : selectedHasJoined ? (
+                  <button
+                    onClick={() => handleUnjoinEvent(selectedEvent._id)}
+                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+                  >
+                    Leave Event
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleRegister(selectedEvent._id, 'going')}
+                    disabled={!selectedCanRegister}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                  >
+                    Join Event
+                  </button>
+                )}
+
+                {!selectedIsOrganizer && !selectedHasJoined && !selectedCanRegister && (
+                  <span className="text-sm text-slate-500">
+                    {selectedIsPast
+                      ? 'Event has ended'
+                      : selectedIsFull
+                        ? 'Event is full'
+                        : 'Registration is not available'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

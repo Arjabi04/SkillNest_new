@@ -656,7 +656,7 @@ const CommunitiesPage = () => {
         />
 
         {/* Detail Content */}
-        <div className="flex-1 transition-all duration-300 lg:ml-16 xl:ml-72 flex justify-center px-4 py-8">
+        <div className="flex-1 transition-all duration-300 lg:ml-16 xl:ml-64 flex justify-center px-4 py-8">
           <div className="w-full max-w-4xl space-y-6">
             <button 
               onClick={() => {
