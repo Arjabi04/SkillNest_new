@@ -1,7 +1,6 @@
 // src/components/ResetPasswordPage.jsx
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import "./ResetPassword.css"; 
 
 export default function ResetPasswordPage() {
   const { token } = useParams(); // get token from URL
@@ -36,18 +35,19 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="reset-page">
-      <div className="reset-container">
-        <h1 className="reset-brand">SkillNest</h1>
-        <h2 className="reset-heading">Reset Password</h2>
+    <div className="flex justify-center items-center h-screen w-screen bg-slate-100 font-sans">
+      <div className="w-[500px] min-h-[500px] p-12 bg-white shadow-[0_15px_40px_rgba(0,0,0,0.08)] rounded-xl flex flex-col items-center">
+        <h1 className="text-4xl font-bold text-slate-800 mb-16">SkillNest</h1>
+        <h2 className="text-3xl font-medium mb-16 text-slate-800">Reset Password</h2>
 
-        <form className="reset-form" onSubmit={handleSubmit}>
+        <form className="w-full flex flex-col gap-8" onSubmit={handleSubmit}>
           <input
             type="password"
             placeholder="Enter new password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="px-3 py-3 text-base rounded-lg border border-slate-300 focus:border-indigo-600 focus:outline-none"
           />
           <input
             type="password"
@@ -55,11 +55,12 @@ export default function ResetPasswordPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
+            className="px-3 py-3 text-base rounded-lg border border-slate-300 focus:border-indigo-600 focus:outline-none"
           />
-          <button type="submit">Reset Password</button>
+          <button type="submit" className="px-3 py-3 text-lg rounded-lg border-none bg-indigo-600 text-white cursor-pointer hover:bg-indigo-700 transition-colors">Reset Password</button>
         </form>
 
-        {message && <p className="reset-message">{message}</p>}
+        {message && <p className="mt-6 text-sm text-slate-700 text-center">{message}</p>}
       </div>
     </div>
   );

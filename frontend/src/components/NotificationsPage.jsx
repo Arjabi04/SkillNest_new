@@ -103,36 +103,36 @@ const NotificationsPage = () => {
       return (
         <div
           key={notification?._id || Math.random()}
-          className={`notification-item ${!notification?.read ? 'unread' : ''}`}
+          className={`flex items-start gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer transition-all relative hover:bg-slate-100 hover:border-blue-500 ${!notification?.read ? 'border-l-4 border-l-blue-500 bg-blue-50' : ''}`}
           onClick={() => handleNotificationClick(notification)}
         >
-          <div className="notification-icon">
+          <div className="text-2xl shrink-0 mt-0.5">
             {getNotificationIcon(notification?.type)}
           </div>
           
-          <div className="notification-content">
-            <div className="notification-main">
-              <div className="notification-message">
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-start mb-2 gap-4 max-md:flex-col max-md:items-start">
+              <div className="text-base text-slate-800 leading-6 flex-1 mr-4">
                 {notification?.message || 'No message'}
               </div>
-              <div className="notification-meta">
-                <span className="notification-time">
+              <div className="flex flex-col items-end gap-1 shrink-0 max-md:flex-row max-md:items-center max-md:gap-2.5">
+                <span className="text-xs text-slate-500 whitespace-nowrap">
                   {notification?.createdAt ? formatTimeAgo(notification.createdAt) : 'Unknown time'}
                 </span>
                 {!notification?.read && (
-                  <span className="unread-badge">New</span>
+                  <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[11px] font-medium">New</span>
                 )}
               </div>
             </div>
             
             {relatedEvent && (
-              <div className="notification-event">
-                <div className="event-title">
+              <div className="text-sm p-3 bg-slate-50 border border-slate-200 rounded-lg mt-2.5">
+                <div className="text-slate-800 mb-2 text-sm font-semibold">
                   <strong>📅 {relatedEvent?.title || 'Event'}</strong>
                 </div>
-                <div className="event-details">
+                <div className="flex flex-col gap-1 text-slate-600 text-xs">
                   {relatedEvent?.startDate && (
-                    <span className="event-date">
+                    <span className="font-medium text-blue-600 flex items-center gap-1.5">
                       🗓️ {(() => {
                         try {
                           const date = new Date(relatedEvent.startDate);
@@ -151,12 +151,12 @@ const NotificationsPage = () => {
                     </span>
                   )}
                   {eventLocation && (
-                    <span className="event-location">
+                    <span className="flex items-center gap-1.5">
                       📍 {eventLocation}
                     </span>
                   )}
                   {eventType && (
-                    <span className="event-type">
+                    <span className="flex items-center gap-1.5">
                       🎯 {eventType}
                     </span>
                   )}
@@ -166,7 +166,7 @@ const NotificationsPage = () => {
           </div>
 
           <button
-            className="delete-notification"
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded text-slate-500 hover:bg-red-100 hover:text-red-600 transition-all"
             onClick={(e) => handleDelete(notification?._id, e)}
             title="Delete notification"
           >
@@ -177,10 +177,10 @@ const NotificationsPage = () => {
     } catch (error) {
       console.error('Error rendering notification:', error, notification);
       return (
-        <div key={notification?._id || Math.random()} className="notification-item error">
-          <div className="notification-icon">⚠️</div>
-          <div className="notification-content">
-            <div className="notification-message">
+        <div key={notification?._id || Math.random()} className="flex items-start gap-4 p-4 bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded-lg relative">
+          <div className="text-2xl shrink-0 mt-0.5">⚠️</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-base text-red-600 italic leading-6">
               Error displaying notification
             </div>
           </div>
@@ -191,11 +191,9 @@ const NotificationsPage = () => {
 
   if (loading) {
     return (
-      <div className="notifications-page">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
+      <div className="px-5 max-w-[800px] mx-auto bg-transparent min-h-[300px] flex flex-col items-center justify-center text-slate-500">
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
           <p>Loading notifications...</p>
-        </div>
       </div>
     );
   }
@@ -211,14 +209,14 @@ const NotificationsPage = () => {
 
       {/* Main Content */}
       <main className={`flex-1 ${mainContentClass}`}>
-        <div className="notifications-page">
-          <div className="notifications-header">
-            <h1>Notifications</h1>
-            <div className="notifications-actions">
+        <div className="px-5 py-5 max-w-[800px] mx-auto bg-transparent">
+          <div className="flex justify-between items-center mb-7.5 pb-5 border-b-2 border-slate-200 max-md:flex-col max-md:items-start max-md:gap-4">
+            <h1 className="text-slate-800 m-0 text-[2rem] font-semibold max-md:text-[1.75rem]">Notifications</h1>
+            <div className="flex gap-2.5">
               {unreadCount > 0 && (
                 <button 
                   onClick={markAllAsRead}
-                  className="btn btn-secondary mark-all-read"
+                  className="bg-blue-600 text-white border-none px-4 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-blue-700"
                 >
                   Mark All as Read ({unreadCount})
                 </button>
@@ -228,13 +226,13 @@ const NotificationsPage = () => {
 
           <div className="notifications-content">
             {safeNotifications.length === 0 ? (
-              <div className="empty-notifications">
-                <div className="empty-icon">🔔</div>
-                <h3>No notifications yet</h3>
-                <p>You'll see notifications here when users interact with your events.</p>
+              <div className="text-center py-16 px-5 text-slate-500">
+                <div className="text-[4rem] mb-5 opacity-50">🔔</div>
+                <h3 className="text-slate-800 mb-2.5 text-2xl">No notifications yet</h3>
+                <p className="text-base leading-6">You'll see notifications here when users interact with your events.</p>
               </div>
             ) : (
-              <div className="notifications-list">
+              <div className="flex flex-col gap-3">
                 {safeNotifications.map(renderNotification)}
               </div>
             )}

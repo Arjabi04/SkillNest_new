@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import "./ForgotPassword.css";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -33,27 +32,28 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="forgot-page">
-  <div className="forgot-container">
-    <h1 className="forgot-brand">SkillNest</h1>
-    <div className="form-wrapper">
-      <h2 className="forgot-heading">Forgot Password</h2>
-      <h3 className="forgot-subheading">
+    <div className="flex justify-center items-center min-h-screen w-screen bg-slate-100 font-sans">
+  <div className="w-[500px] p-12 bg-white shadow-[0_15px_40px_rgba(0,0,0,0.08)] rounded-xl flex flex-col items-center text-center">
+    <h1 className="text-4xl font-bold text-slate-800 mb-8">SkillNest</h1>
+    <div className="w-full">
+      <h2 className="text-3xl font-medium mb-4 text-slate-800">Forgot Password</h2>
+      <h3 className="text-base font-light mb-8 text-slate-600">
         Enter your email to receive a reset link
       </h3>
-      <form onSubmit={handleSubmit} className="forgot-form">
+      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 items-center">
         <input
           type="email"
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          className="w-full max-w-[350px] px-3 py-3 text-base rounded-lg border border-slate-300 text-center focus:border-indigo-600 focus:outline-none"
         />
-        <button type="submit">{loading ? "Sending..." : "Send Reset Link"}</button>
+        <button type="submit" className="w-full max-w-[350px] px-3 py-3 text-lg rounded-lg border-none bg-indigo-600 text-white cursor-pointer transition-colors hover:bg-indigo-700">{loading ? "Sending..." : "Send Reset Link"}</button>
       </form>
-      {message && <p className="forgot-message">{message}</p>}
-      <p className="forgot-helper">
-        Remembered your password? <Link to="/login">Back to Login</Link>
+      {message && <p className="mt-6 text-sm text-slate-700 text-center">{message}</p>}
+      <p className="mt-4 text-sm text-center">
+        Remembered your password? <Link to="/login" className="text-indigo-600 no-underline hover:underline">Back to Login</Link>
       </p>
     </div>
   </div>

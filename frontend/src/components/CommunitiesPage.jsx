@@ -4,7 +4,6 @@ import Sidebar from './Sidebar';
 import CommunityCard from './CommunityCard';
 import TagInput from './TagInput';
 import useSidebarLayout from '../hooks/useSidebarLayout';
-import './CommunitiesPage.css';
 import defaultHeader from '../assets/default-header.jpeg';
 import defaultAvatar from '../assets/default-avatar.jpg';
 import { clearAuth } from '../utils/tokenUtils';
