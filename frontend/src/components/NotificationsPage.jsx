@@ -4,7 +4,6 @@ import Sidebar from './Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth } from '../utils/tokenUtils';
 import { useNavigate } from 'react-router-dom';
-import './NotificationsPage.css';
 
 const NotificationsPage = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);

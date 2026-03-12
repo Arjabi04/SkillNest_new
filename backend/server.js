@@ -11,6 +11,7 @@ import communityRoute from './routes/communities.js';
 import adminRoute from './routes/admin.js';
 import eventsRoute from './routes/events.js';
 import notificationsRoute from './routes/notifications.js';
+import recommendationsRoute from './routes/recommendations.js';
 import cors from 'cors';
 
 const app = express();
@@ -56,6 +57,7 @@ async function startServer() {
   app.use('/api/admin', adminRoute);
   app.use('/api/events', eventsRoute);
   app.use('/api/notifications', notificationsRoute);
+  app.use('/api/recommendations', recommendationsRoute);
 
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

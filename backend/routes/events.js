@@ -2,8 +2,10 @@ import { Router } from "express";
 const router = Router();
 import multer, { memoryStorage } from "multer";
 import { createReadStream } from "streamifier";
+import { createTransport } from "nodemailer";
 import cloudinary from "../config/cloudinary.js";
 import auth from "../middleware/auth.js";
+import { verifyAdmin } from "../middleware/adminAuth.js";
 import { createEventJoinNotification, createEventLeaveNotification, notifyParticipantsOfNewJoiner, notifyParticipantsOfLeaver } from "./notifications.js";
 import Event from "../models/Event.js";
 import User from "../models/User.js";
@@ -12,6 +14,51 @@ import Notification from "../models/Notification.js";
 
 const storage = memoryStorage();
 const upload = multer({ storage });
+
+const sendEventJoinConfirmationEmail = async ({ toEmail, username, event }) => {
+  if (!toEmail) return;
+
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('Email configuration missing. Skipping join confirmation email.');
+    return;
+  }
+
+  try {
+    const transporter = createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    });
+
+    const startDateText = event?.startDate
+      ? new Date(event.startDate).toLocaleString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : 'TBA';
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: toEmail,
+      subject: `Event Registration Confirmed: ${event?.title || 'SkillNest Event'}`,
+      html: `
+        <p>Hi ${username || 'there'},</p>
+        <p>Your registration is confirmed for <strong>${event?.title || 'the event'}</strong>.</p>
+        <p><strong>Start:</strong> ${startDateText}</p>
+        <p>Thanks for joining via SkillNest.</p>
+      `
+    });
+  } catch (emailError) {
+    console.error('Error sending join confirmation email:', emailError);
+  }
+};
 
 // ============================================================
 // EVENT CRUD OPERATIONS
@@ -35,7 +82,24 @@ router.get("/", auth, async (req, res) => {
     } = req.query;
 
     // Build query
-    let query = { status: 'published' };
+    const query = {
+      status: 'published',
+      $and: [
+        {
+          $or: [
+            { approvalStatus: 'approved' },
+            { approvalStatus: { $exists: false } },
+            { organizer: req.user._id }
+          ]
+        },
+        {
+          $or: [
+            { endDate: { $gte: new Date() } },
+            { organizer: req.user._id }
+          ]
+        }
+      ]
+    };
     
     // Filter by event type
     if (eventType) query.eventType = eventType;
@@ -63,11 +127,13 @@ router.get("/", auth, async (req, res) => {
     
     // Search functionality
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
+      query.$and.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { tags: { $in: [new RegExp(search, 'i')] } }
+        ]
+      });
     }
 
     const events = await Event.find(query)
@@ -92,8 +158,63 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// GET PENDING EVENT CREATIONS (Site Admin only)
+router.get("/pending/all", verifyAdmin, async (req, res) => {
+  try {
+    const pendingEventCreations = await Event.find({ approvalStatus: 'pending' })
+      .populate('organizer', 'username profileImage email')
+      .populate('community', 'name coverImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ pendingEventCreations });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// APPROVE EVENT (Site Admin only)
+router.post("/:eventId/approve", verifyAdmin, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.eventId);
+    if (!event) {
+      return res.status(404).json({ msg: "Event not found" });
+    }
+
+    event.approvalStatus = 'approved';
+    event.approvalReviewedAt = new Date();
+    event.approvalReviewedBy = req.admin?.username || 'admin';
+    await event.save();
+
+    res.json({ msg: "Event approved successfully", event });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// REJECT EVENT (Site Admin only)
+router.post("/:eventId/reject", verifyAdmin, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.eventId);
+    if (!event) {
+      return res.status(404).json({ msg: "Event not found" });
+    }
+
+    event.approvalStatus = 'rejected';
+    event.approvalReviewedAt = new Date();
+    event.approvalReviewedBy = req.admin?.username || 'admin';
+    await event.save();
+
+    res.json({ msg: "Event rejected", event });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 // GET SINGLE EVENT
-router.get("/:eventId", async (req, res) => {
+router.get("/:eventId", auth, async (req, res) => {
   try {
     const event = await Event.findById(req.params.eventId)
       .populate('organizer', 'username profileImage email')
@@ -105,6 +226,12 @@ router.get("/:eventId", async (req, res) => {
 
     if (!event) {
       return res.status(404).json({ msg: "Event not found" });
+    }
+
+    const isOrganizer = event.organizer?._id?.toString() === req.user._id.toString();
+    const isApproved = event.approvalStatus === 'approved' || !event.approvalStatus;
+    if (!isApproved && !isOrganizer) {
+      return res.status(403).json({ msg: "Event is pending admin approval" });
     }
 
     res.json(event);
@@ -192,7 +319,8 @@ router.post("/", auth, upload.single("coverImage"), async (req, res) => {
       allowRegistration: allowRegistration === true || allowRegistration === 'true',
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
       coverImage: coverImageUrl,
-      status: 'published'
+      status: 'published',
+      approvalStatus: 'pending'
     });
 
     await event.save();
@@ -201,7 +329,10 @@ router.post("/", auth, upload.single("coverImage"), async (req, res) => {
       .populate('organizer', 'username profileImage')
       .populate('community', 'name coverImage');
 
-    res.status(201).json(populatedEvent);
+    res.status(201).json({
+      msg: "Event creation request submitted. Waiting for admin approval.",
+      event: populatedEvent
+    });
   } catch (err) {
     console.error('Event creation error:', err);
     console.error('Request body:', req.body);
@@ -217,6 +348,12 @@ router.put("/:eventId", upload.single("coverImage"), async (req, res) => {
     
     if (!event) {
       return res.status(404).json({ msg: "Event not found" });
+    }
+
+    const isOrganizer = event.organizer?._id?.toString() === userId.toString();
+    const isApproved = event.approvalStatus === 'approved' || !event.approvalStatus;
+    if (!isApproved && !isOrganizer) {
+      return res.status(403).json({ msg: "Event is pending admin approval" });
     }
 
     // Check if user is organizer (basic auth check)
@@ -362,7 +499,27 @@ router.post("/:eventId/attend", auth, async (req, res) => {
 
     // Send notifications
     if (!wasJoining && isNowJoining) {
+      const joiner = await User.findById(userId).select('username email');
+
       // User joined the event
+
+      // Notify joiner with an in-app confirmation
+      await Notification.createNotification({
+        recipient: userId,
+        sender: event.organizer._id,
+        type: 'system',
+        title: 'Event Registration Confirmed',
+        message: `You joined "${event.title}" successfully.`,
+        relatedEvent: event._id,
+        actionUrl: `/events/${event._id}`
+      });
+
+      // Email joiner with registration confirmation
+      await sendEventJoinConfirmationEmail({
+        toEmail: joiner?.email,
+        username: joiner?.username,
+        event
+      });
       
       // Notify organizer (but not if organizer is joining their own event)
       if (event.organizer._id.toString() !== userId.toString()) {
@@ -560,17 +717,27 @@ router.get("/user/:userId", async (req, res) => {
         query = { organizer: userId };
         break;
       case 'attending':
-        query = { 'attendees.user': userId, 'attendees.status': 'going' };
+        query = {
+          'attendees.user': userId,
+          'attendees.status': 'going',
+          $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false } }]
+        };
         break;
       case 'invited':
-        query = { 'invitations.user': userId, 'invitations.status': 'sent' };
+        query = {
+          'invitations.user': userId,
+          'invitations.status': 'sent',
+          $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false } }]
+        };
         break;
       default:
         query = {
           $or: [
             { organizer: userId },
-            { 'attendees.user': userId },
-            { 'invitations.user': userId }
+            { 'attendees.user': userId, approvalStatus: 'approved' },
+            { 'attendees.user': userId, approvalStatus: { $exists: false } },
+            { 'invitations.user': userId, approvalStatus: 'approved' },
+            { 'invitations.user': userId, approvalStatus: { $exists: false } }
           ]
         };
     }
@@ -647,6 +814,7 @@ router.get("/calendar/:userId", async (req, res) => {
           ]
         },
         { status: 'published' },
+        { $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false } }] },
         { startDate: { $gte: new Date(startDate) } },
         { endDate: { $lte: new Date(endDate) } }
       ]
@@ -677,6 +845,7 @@ router.get("/discover/:userId", async (req, res) => {
     // Get events based on user interests and communities
     let query = {
       status: 'published',
+      $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false } }],
       startDate: { $gte: new Date() },
       // Exclude events user is already attending or organizing
       $and: [

@@ -80,6 +80,19 @@ const eventSchema = new mongoose.Schema({
     enum: ['draft', 'published', 'cancelled', 'completed'],
     default: 'draft'
   },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
+  },
+  approvalReviewedAt: {
+    type: Date,
+    default: null
+  },
+  approvalReviewedBy: {
+    type: String,
+    default: null
+  },
   visibility: {
     type: String,
     enum: ['public', 'community', 'private', 'invite-only'],
