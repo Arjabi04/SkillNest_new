@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from './Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
+import TagInput from './TagInput';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import logo from "../assets/Logo.png";
@@ -30,6 +31,10 @@ function UserProfile() {
   const [bio, setBio] = useState("");
   const [bioMessage, setBioMessage] = useState("");
   const [username, setUsername] = useState("");
+  const [interests, setInterests] = useState([]);
+  const [editingInterests, setEditingInterests] = useState(false);
+  const [interestDraft, setInterestDraft] = useState([]);
+  const [interestsMessage, setInterestsMessage] = useState("");
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -85,6 +90,9 @@ function UserProfile() {
           setBio(data.bio || "");
           setProfileImage(data.profileImage || "");
           setHeaderImage(data.headerImage || "");
+          const userInterests = Array.isArray(data.interests) ? data.interests : [];
+          setInterests(userInterests);
+          setInterestDraft(userInterests);
         }
       } catch (err) {
         console.error(err);
@@ -157,6 +165,40 @@ function UserProfile() {
       console.error(err);
       setBioMessage("Network error");
     }
+  };
+
+  const handleInterestsSave = async () => {
+    if (!userId) {
+      setInterestsMessage("User ID missing");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:4000/api/interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, interests: interestDraft }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        const updatedInterests = Array.isArray(data.interests) ? data.interests : interestDraft;
+        setInterests(updatedInterests);
+        setInterestDraft(updatedInterests);
+        setEditingInterests(false);
+        setInterestsMessage("Interests updated successfully");
+      } else {
+        setInterestsMessage(data.msg || "Failed to update interests");
+      }
+    } catch (err) {
+      console.error(err);
+      setInterestsMessage("Network error while updating interests");
+    }
+  };
+
+  const handleInterestsCancel = () => {
+    setInterestDraft(interests);
+    setEditingInterests(false);
   };
 
   // --- Handle image selection for post ---
@@ -395,21 +437,23 @@ function UserProfile() {
       {/* Main content */}
       <div className={`flex-1 ${mainContentClass}`}>
         {/* Header */}
-        <div className="relative w-full h-96 overflow-hidden bg-gray-300">
+        <div className="relative w-full h-56 overflow-hidden bg-linear-to-br from-blue-400 to-indigo-600">
           <img
             src={headerPreview || headerImage || defaultHeader}
             alt="Header"
             className="w-full h-full object-cover"
           />
+          <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
           <label 
             htmlFor="headerInput" 
-            className="absolute bottom-4 right-4 bg-blue-500 text-white rounded-full p-3 cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
+            className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm text-gray-700 rounded-xl px-3 py-2 cursor-pointer hover:bg-white transition-all shadow-md flex items-center gap-2 text-sm font-medium"
             title="Change header"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
+            Change cover
           </label>
           <input
             id="headerInput"
@@ -425,33 +469,21 @@ function UserProfile() {
         </div>
 
         {/* Edit profile button row (BELOW header, right side) */}
-        <div className="flex justify-end px-8 mt-4 relative">
-          {/* <button
-            onClick={() => setEditingBio(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-800 rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Edit profile
-          </button> */}
-        </div>
-
         {/* Profile info */}
-        <div className="bg-white px-8 pb-6 border-b border-gray-200">
-        <div className="relative -mt-16 mb-4">
+        <div className="bg-white px-8 pb-6 border-b border-gray-100">
+        <div className="relative -mt-12 mb-4">
           <div className="relative inline-block">
           <img
         src={preview || profileImage || defaultAvatar}
         alt="Avatar"
-        className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg"
+        className="w-28 h-28 rounded-full border-4 border-white object-cover shadow-xl ring-2 ring-slate-100"
       />
             <label 
               htmlFor="avatarInput" 
-              className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-2 cursor-pointer hover:bg-blue-600 transition-colors shadow-md"
+              className="absolute bottom-1 right-1 bg-blue-600 text-white rounded-full p-1.5 cursor-pointer hover:bg-blue-700 transition-colors shadow-md border-2 border-white"
               title="Change avatar"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -471,22 +503,25 @@ function UserProfile() {
         </div>
 
         <div className="profile-details">
-          <h3 className="text-3xl font-bold text-gray-900 mb-2">{username}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-1">{username}</h3>
 
           {!editingBio ? (
             <>
-              <p className="text-gray-700 mb-3">{bio || "No bio yet. Click edit to add one!"}</p>
+              <p className="text-gray-500 mb-3 text-sm leading-relaxed">{bio || "No bio yet — tell the community about yourself!"}</p>
               <button 
                 onClick={() => setEditingBio(true)} 
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
               >
-                Edit Bio
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit bio
               </button>
             </>
           ) : (
             <>
               <textarea
-                className="w-full mt-3 px-4 py-3 rounded-lg border border-gray-300 resize-none text-base font-sans text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full mt-2 px-4 py-3 rounded-xl border border-gray-200 resize-none text-sm font-sans text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Tell us about yourself..."
@@ -495,13 +530,13 @@ function UserProfile() {
               <div className="flex gap-2 mt-2">
                 <button 
                   onClick={handleBioUpdate} 
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
                 >
-                  Save Bio
+                  Save
                 </button>
                 <button 
                   onClick={() => setEditingBio(false)} 
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-sm font-medium"
                 >
                   Cancel
                 </button>
@@ -509,25 +544,85 @@ function UserProfile() {
             </>
           )}
 
-          {bioMessage && <p className="text-sm text-green-600 mt-2">{bioMessage}</p>}
+          {bioMessage && <p className="text-xs text-green-600 mt-2 font-medium">{bioMessage}</p>}
+
+          {/* Interests — flat section with divider */}
+          <div className="mt-5 pt-5 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Interests</span>
+              {!editingInterests && (
+                <button
+                  onClick={() => {
+                    setInterestDraft(interests);
+                    setEditingInterests(true);
+                    setInterestsMessage("");
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                >
+                  {interests.length > 0 ? 'Edit' : '+ Add interests'}
+                </button>
+              )}
+            </div>
+
+            {editingInterests ? (
+              <>
+                <TagInput
+                  tags={interestDraft}
+                  setTags={setInterestDraft}
+                  placeholder="Type an interest and press Enter..."
+                />
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={handleInterestsSave}
+                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleInterestsCancel}
+                    className="px-4 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {interests.length > 0 ? (
+                  interests.map((interest) => (
+                    <span
+                      key={interest}
+                      className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
+                    >
+                      #{interest}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-400">No interests yet.</p>
+                )}
+              </div>
+            )}
+
+            {interestsMessage && <p className="text-xs text-green-600 mt-2">{interestsMessage}</p>}
+          </div>
         </div>
       </div>
 
-        {/* New Post Card - Improved UI */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 ml-8 mt-4 mb-4 max-w-2xl">
-        <div className="p-3">
-          <div className="flex gap-2 mb-3">
+        {/* New Post Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mx-6 mt-5 mb-3 max-w-2xl">
+        <div className="p-4">
+          <div className="flex gap-3 mb-3">
           <img
             src={profileImage || defaultAvatar}
             alt="Avatar"
-            className="w-8 h-8 rounded-full object-cover shrink-0"
+            className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
           />
             <div className="flex-1">
               <textarea
                 value={newPostText}
                 onChange={(e) => setNewPostText(e.target.value)}
                 placeholder="What's on your mind?"
-                className="w-full px-3 py-2 rounded-lg border-none resize-none text-sm font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 resize-none text-sm font-sans text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-50 focus:bg-white transition-all"
                 rows="3"
               />
             </div>
@@ -618,14 +713,19 @@ function UserProfile() {
       </div>
 
         {/* Posts List */}
-        <div className="flex flex-col gap-3 ml-8 pb-8 max-w-2xl">
+        <div className="flex flex-col gap-3 mx-6 pb-10 max-w-2xl">
         {posts.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-            <p className="text-gray-500">No posts yet. Share something!</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-sm font-medium">No posts yet. Share something!</p>
           </div>
         ) : (
           posts.map((post) => (
-            <div key={post._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+            <div key={post._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-200">
               <div className="flex items-center gap-2 mb-3">
                 <img 
                   src={profileImage || "/default-avatar.png"} 

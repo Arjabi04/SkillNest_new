@@ -51,19 +51,40 @@ const NotificationsPage = () => {
   };
 
   const getNotificationIcon = (type) => {
+    const cls = 'w-5 h-5';
     switch (type) {
       case 'event_join':
-        return '👥';
-      case 'event_leave':
-        return '👋';
       case 'event_new_participant':
-        return '🆕';
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' />
+          </svg>
+        );
+      case 'event_leave':
       case 'event_participant_left':
-        return '📤';
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1' />
+          </svg>
+        );
       case 'event_deleted':
-        return '🗑️';
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' />
+          </svg>
+        );
+      case 'community_approved':
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' />
+          </svg>
+        );
       default:
-        return '🔔';
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' />
+          </svg>
+        );
     }
   };
 
@@ -102,10 +123,16 @@ const NotificationsPage = () => {
       return (
         <div
           key={notification?._id || Math.random()}
-          className={`flex items-start gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer transition-all relative hover:bg-slate-100 hover:border-blue-500 ${!notification?.read ? 'border-l-4 border-l-blue-500 bg-blue-50' : ''}`}
+          className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all relative border ${
+            !notification?.read
+              ? 'bg-blue-50 border-blue-200 border-l-4 border-l-blue-500'
+              : 'bg-white border-slate-200 hover:border-slate-300'
+          } hover:shadow-md`}
           onClick={() => handleNotificationClick(notification)}
         >
-          <div className="text-2xl shrink-0 mt-0.5">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+            !notification?.read ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'
+          }`}>
             {getNotificationIcon(notification?.type)}
           </div>
           
@@ -125,51 +152,31 @@ const NotificationsPage = () => {
             </div>
             
             {relatedEvent && (
-              <div className="text-sm p-3 bg-slate-50 border border-slate-200 rounded-lg mt-2.5">
-                <div className="text-slate-800 mb-2 text-sm font-semibold">
-                  <strong>📅 {relatedEvent?.title || 'Event'}</strong>
-                </div>
-                <div className="flex flex-col gap-1 text-slate-600 text-xs">
-                  {relatedEvent?.startDate && (
-                    <span className="font-medium text-blue-600 flex items-center gap-1.5">
-                      🗓️ {(() => {
-                        try {
-                          const date = new Date(relatedEvent.startDate);
-                          return date.toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
-                        } catch (error) {
-                          return relatedEvent.startDate;
-                        }
-                      })()}
-                    </span>
-                  )}
-                  {eventLocation && (
-                    <span className="flex items-center gap-1.5">
-                      📍 {eventLocation}
-                    </span>
-                  )}
-                  {eventType && (
-                    <span className="flex items-center gap-1.5">
-                      🎯 {eventType}
-                    </span>
-                  )}
-                </div>
+              <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-0.5 text-xs text-slate-500">
+                <span className="font-medium text-slate-700">{relatedEvent?.title || 'Event'}</span>
+                {relatedEvent?.startDate && (
+                  <span className="text-blue-600">{(() => {
+                    try {
+                      return new Date(relatedEvent.startDate).toLocaleDateString('en-US', {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      });
+                    } catch { return relatedEvent.startDate; }
+                  })()}</span>
+                )}
+                {eventLocation && <span>{eventLocation}</span>}
               </div>
             )}
           </div>
 
           <button
-            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded text-slate-500 hover:bg-red-100 hover:text-red-600 transition-all"
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
             onClick={(e) => handleDelete(notification?._id, e)}
             title="Delete notification"
           >
-            ✕
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       );
@@ -208,34 +215,47 @@ const NotificationsPage = () => {
 
       {/* Main Content */}
       <main className={`flex-1 ${mainContentClass}`}>
-        <div className="px-5 py-5 max-w-[800px] mx-auto bg-transparent">
-          <div className="flex justify-between items-center mb-7.5 pb-5 border-b-2 border-slate-200 max-md:flex-col max-md:items-start max-md:gap-4">
-            <h1 className="text-slate-800 m-0 text-[2rem] font-semibold max-md:text-[1.75rem]">Notifications</h1>
-            <div className="flex gap-2.5">
-              {unreadCount > 0 && (
-                <button 
-                  onClick={markAllAsRead}
-                  className="bg-blue-600 text-white border-none px-4 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-blue-700"
-                >
-                  Mark All as Read ({unreadCount})
-                </button>
-              )}
+        <div className="px-6 py-8 max-w-3xl mx-auto">
+          {/* Page Header */}
+          <header className="mb-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-10 bg-blue-600 rounded-full" />
+                <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900">Notifications</h1>
+              </div>
+              <p className="text-slate-500 text-sm ml-5">
+                {unreadCount > 0 ? (
+                  <span className="font-medium text-blue-600">{unreadCount} unread</span>
+                ) : (
+                  'All caught up'
+                )}
+              </p>
             </div>
-          </div>
-
-          <div className="notifications-content">
-            {safeNotifications.length === 0 ? (
-              <div className="text-center py-16 px-5 text-slate-500">
-                <div className="text-[4rem] mb-5 opacity-50">🔔</div>
-                <h3 className="text-slate-800 mb-2.5 text-2xl">No notifications yet</h3>
-                <p className="text-base leading-6">You'll see notifications here when users interact with your events.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {safeNotifications.map(renderNotification)}
-              </div>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                Mark all as read
+              </button>
             )}
-          </div>
+          </header>
+
+          {safeNotifications.length === 0 ? (
+            <div className="text-center py-20 px-5">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-700 mb-2">No notifications yet</h3>
+              <p className="text-slate-500 text-sm">You'll see activity here when people interact with your content.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {safeNotifications.map(renderNotification)}
+            </div>
+          )}
         </div>
       </main>
     </div>

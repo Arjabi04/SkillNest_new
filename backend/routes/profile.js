@@ -22,7 +22,8 @@ router.get("/:userId", async (req, res) => {
       username: user.username,
       bio: user.bio || "",       // we will add bio field
       profileImage: user.profileImage || "",
-      headerImage: user.headerImage || ""
+      headerImage: user.headerImage || "",
+      interests: Array.isArray(user.interests) ? user.interests : []
       
     });
   } catch (err) {

@@ -135,16 +135,16 @@ function ExplorePage() {
       <div className={`flex-1 ${mainContentClass} max-w-[1200px] mx-auto px-6 py-8`}>
         
         {/* Header */}
-        <header className="mb-12">
-          <div className="space-y-3">
+        <header className="mb-8">
+          <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-12 bg-blue-600 rounded-full" />
-              <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
+              <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
+              <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900">
                 Explore
               </h1>
             </div>
-            <p className="text-slate-600 font-medium text-lg max-w-2xl leading-relaxed">
-              Discover posts, connect with the community, and explore trending content.
+            <p className="text-slate-500 text-sm ml-5">
+              Discover posts and connect with the community.
             </p>
           </div>
         </header>
@@ -187,7 +187,7 @@ function ExplorePage() {
               posts.map((post) => (
                 <article
                   key={post._id}
-                  className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300"
+                  className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <img
@@ -348,31 +348,53 @@ function ExplorePage() {
             )}
           </main>
 
-          {/* Right sidebar with trending */}
-          <aside className="hidden lg:block w-80 space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4">Trending Topics</h3>
-              <div className="space-y-3">
-                {['JavaScript', 'React', 'Web Development', 'UI/UX', 'Machine Learning'].map((topic) => (
-                  <div key={topic} className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                    <span className="font-medium text-slate-700">#{topic}</span>
-                    <span className="text-sm text-slate-500">127 posts</span>
+          {/* Right sidebar */}
+          <aside className="hidden lg:block w-80 space-y-5">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.66 11.2c-.23-.3-.51-.56-.77-.82-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32-2.59 2.08-3.61 5.75-2.39 8.9.04.1.08.2.08.33 0 .22-.15.42-.35.5-.23.1-.47.04-.66-.12a.58.58 0 01-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5.14.6.41 1.2.71 1.73 1.08 1.73 2.95 2.97 4.96 3.22 2.14.27 4.43-.12 6.07-1.6 1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.45-.46-.87-.77-1.26zm-4.05 6.28c-.6.44-1.44.57-2.13.32-.55-.2-.88-.73-.81-1.3.07-.5.42-.82.83-1.09.38-.26.81-.45 1.13-.77.15-.16.28-.34.4-.53.27.41.43.88.46 1.37.04.75-.21 1.56-.88 2z"/>
+                </svg>
+                <h3 className="text-sm font-bold text-slate-800">Trending Topics</h3>
+              </div>
+              <div className="space-y-1">
+                {[
+                  { tag: 'JavaScript', color: 'text-yellow-600 bg-yellow-50' },
+                  { tag: 'React', color: 'text-cyan-600 bg-cyan-50' },
+                  { tag: 'Web Development', color: 'text-blue-600 bg-blue-50' },
+                  { tag: 'UI/UX Design', color: 'text-purple-600 bg-purple-50' },
+                  { tag: 'Machine Learning', color: 'text-green-600 bg-green-50' },
+                ].map(({ tag, color }) => (
+                  <div key={tag} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>#{tag}</span>
+                    <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 ))}
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4">Suggested Users</h3>
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <h3 className="text-sm font-bold text-slate-800">People to Follow</h3>
+              </div>
+              <div className="space-y-3">
+                {['Alice Chen', 'Marco Rossi', 'Priya Singh'].map((name, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-200" />
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900 text-sm">User {i}</p>
-                      <p className="text-xs text-slate-500">Web Developer</p>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${
+                      ['bg-violet-500', 'bg-emerald-500', 'bg-rose-500'][i]
+                    }`}>
+                      {name[0]}
                     </div>
-                    <button className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm truncate">{name}</p>
+                      <p className="text-xs text-slate-400">{['Frontend Dev', 'Designer', 'ML Engineer'][i]}</p>
+                    </div>
+                    <button className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors border border-blue-100">
                       Follow
                     </button>
                   </div>
