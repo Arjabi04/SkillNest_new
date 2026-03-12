@@ -3,7 +3,11 @@ import Community from "../models/Community.js";
 export const isCommunityAdmin = async (req, res, next) => {
   try {
     const { communityId } = req.params;
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.body?.userId || req.query?.userId;
+
+    if (!userId) {
+      return res.status(400).json({ msg: "userId is required" });
+    }
 
     const community = await Community.findById(communityId);
     if (!community) return res.status(404).json({ msg: "Community not found" });
@@ -22,19 +26,17 @@ export const isCommunityAdmin = async (req, res, next) => {
 export const isCommunityAdminOrModerator = async (req, res, next) => {
   try {
     const { communityId } = req.params;
-    const userId = req.body.userId || req.query.userId;
-    
-    console.log('Community auth middleware - communityId:', communityId);
-    console.log('Community auth middleware - userId from body/query:', userId);
-    console.log('Community auth middleware - req.body:', req.body);
+    const userId = req.body?.userId || req.query?.userId;
+
+    if (!userId) {
+      return res.status(400).json({ msg: "userId is required" });
+    }
 
     const community = await Community.findById(communityId);
     if (!community) return res.status(404).json({ msg: "Community not found" });
 
     const isAdmin = community.admins.some(id => id.toString() === userId);
     const isMod = community.moderators.some(id => id.toString() === userId);
-    
-    console.log('Community auth middleware - isAdmin:', isAdmin, 'isMod:', isMod);
 
     if (!isAdmin && !isMod) return res.status(403).json({ msg: "Staff permission required" });
 

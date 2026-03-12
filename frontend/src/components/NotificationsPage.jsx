@@ -79,6 +79,18 @@ const NotificationsPage = () => {
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' />
           </svg>
         );
+      case 'community_post_report':
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 5v14M5 5c5 0 5 2 10 2 1.667 0 2.5-.222 4-1v8c-1.5.778-2.333 1-4 1-5 0-5-2-10-2' />
+          </svg>
+        );
+      case 'community_ban':
+        return (
+          <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' />
+          </svg>
+        );
       default:
         return (
           <svg className={cls} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -123,16 +135,10 @@ const NotificationsPage = () => {
       return (
         <div
           key={notification?._id || Math.random()}
-          className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all relative border ${
-            !notification?.read
-              ? 'bg-blue-50 border-blue-200 border-l-4 border-l-blue-500'
-              : 'bg-white border-slate-200 hover:border-slate-300'
-          } hover:shadow-md`}
+          className={`flex items-start gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer transition-all relative hover:bg-slate-100 hover:border-blue-500 ${!notification?.read ? 'border-l-4 border-l-blue-500 bg-blue-50' : ''}`}
           onClick={() => handleNotificationClick(notification)}
         >
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-            !notification?.read ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'
-          }`}>
+          <div className="text-2xl shrink-0 mt-0.5">
             {getNotificationIcon(notification?.type)}
           </div>
           
@@ -152,31 +158,51 @@ const NotificationsPage = () => {
             </div>
             
             {relatedEvent && (
-              <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-0.5 text-xs text-slate-500">
-                <span className="font-medium text-slate-700">{relatedEvent?.title || 'Event'}</span>
-                {relatedEvent?.startDate && (
-                  <span className="text-blue-600">{(() => {
-                    try {
-                      return new Date(relatedEvent.startDate).toLocaleDateString('en-US', {
-                        weekday: 'short', month: 'short', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      });
-                    } catch { return relatedEvent.startDate; }
-                  })()}</span>
-                )}
-                {eventLocation && <span>{eventLocation}</span>}
+              <div className="text-sm p-3 bg-slate-50 border border-slate-200 rounded-lg mt-2.5">
+                <div className="text-slate-800 mb-2 text-sm font-semibold">
+                  <strong>{relatedEvent?.title || 'Event'}</strong>
+                </div>
+                <div className="flex flex-col gap-1 text-slate-600 text-xs">
+                  {relatedEvent?.startDate && (
+                    <span className="font-medium text-blue-600 flex items-center gap-1.5">
+                      {(() => {
+                        try {
+                          const date = new Date(relatedEvent.startDate);
+                          return date.toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        } catch (error) {
+                          return relatedEvent.startDate;
+                        }
+                      })()}
+                    </span>
+                  )}
+                  {eventLocation && (
+                    <span className="flex items-center gap-1.5">
+                      {eventLocation}
+                    </span>
+                  )}
+                  {eventType && (
+                    <span className="flex items-center gap-1.5">
+                      {eventType}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
           <button
-            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded text-slate-500 hover:bg-red-100 hover:text-red-600 transition-all"
             onClick={(e) => handleDelete(notification?._id, e)}
             title="Delete notification"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
       );
@@ -197,9 +223,20 @@ const NotificationsPage = () => {
 
   if (loading) {
     return (
-      <div className="px-5 max-w-[800px] mx-auto bg-transparent min-h-[300px] flex flex-col items-center justify-center text-slate-500">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-          <p>Loading notifications...</p>
+      <div className="min-h-screen bg-slate-50 font-sans flex">
+        <Sidebar 
+          showLogoutConfirm={showLogoutConfirm}
+          setShowLogoutConfirm={setShowLogoutConfirm}
+          onLogout={handleLogout}
+        />
+        <main className={`flex-1 ${mainContentClass}`}>
+          <div className="w-full max-w-300 mx-auto px-6 py-8">
+            <div className="max-w-4xl min-h-75 flex flex-col items-center justify-center text-slate-500">
+              <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <p>Loading notifications...</p>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -215,47 +252,39 @@ const NotificationsPage = () => {
 
       {/* Main Content */}
       <main className={`flex-1 ${mainContentClass}`}>
-        <div className="px-6 py-8 max-w-3xl mx-auto">
-          {/* Page Header */}
-          <header className="mb-8">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-10 bg-blue-600 rounded-full" />
-                <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900">Notifications</h1>
-              </div>
-              <p className="text-slate-500 text-sm ml-5">
-                {unreadCount > 0 ? (
-                  <span className="font-medium text-blue-600">{unreadCount} unread</span>
-                ) : (
-                  'All caught up'
-                )}
-              </p>
+        <div className="w-full max-w-300 mx-auto px-6 py-8">
+          <div className="max-w-4xl">
+          <div className="flex justify-between items-center mb-7.5 pb-5 border-b-2 border-slate-200 max-md:flex-col max-md:items-start max-md:gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-10 bg-blue-600 rounded-full" />
+              <h1 className="text-slate-800 m-0 text-[2rem] font-black max-md:text-[1.75rem]">Notifications</h1>
             </div>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                Mark all as read
-              </button>
-            )}
-          </header>
+            <div className="flex gap-2.5">
+              {unreadCount > 0 && (
+                <button 
+                  onClick={markAllAsRead}
+                  className="bg-blue-600 text-white border-none px-4 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-blue-700"
+                >
+                  Mark All as Read ({unreadCount})
+                </button>
+              )}
+            </div>
+          </div>
 
-          {safeNotifications.length === 0 ? (
-            <div className="text-center py-20 px-5">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
+          <div className="notifications-content">
+            {safeNotifications.length === 0 ? (
+              <div className="text-center py-16 px-5 text-slate-500">
+                <div className="text-[4rem] mb-5 opacity-50">🔔</div>
+                <h3 className="text-slate-800 mb-2.5 text-2xl">No notifications yet</h3>
+                <p className="text-base leading-6">You'll see notifications here when users interact with your events.</p>
               </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">No notifications yet</h3>
-              <p className="text-slate-500 text-sm">You'll see activity here when people interact with your content.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {safeNotifications.map(renderNotification)}
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col gap-3">
+                {safeNotifications.map(renderNotification)}
+              </div>
+            )}
+          </div>
+          </div>
         </div>
       </main>
     </div>

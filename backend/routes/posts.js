@@ -12,8 +12,8 @@ const upload = multer({ storage });
 // CREATE POST
 router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const { userId, text, tags } = req.body;
-    if (!userId || !text) return res.status(400).json({ msg: "Missing user or text" });
+    const { userId, text, tags } = req.body || {};
+    if (!userId || !String(text || "").trim()) return res.status(400).json({ msg: "Missing user or text" });
 
     let tagArray = [];
     if (tags) {
@@ -50,7 +50,7 @@ router.post("/", upload.single("image"), async (req, res) => {
 
     const post = new Post({
       user: user._id, // matches your schema
-      text,
+      text: String(text).trim(),
       image: imageUrl,
       tags: tagArray,
     });

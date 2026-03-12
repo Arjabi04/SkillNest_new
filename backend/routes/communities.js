@@ -13,6 +13,118 @@ import { isCommunityAdmin, isCommunityAdminOrModerator } from "../middleware/com
 const storage = memoryStorage();
 const upload = multer({ storage });
 
+const getActiveBanEntry = (community, userId) => {
+  return community.bannedUsers.find((banEntry) => {
+    if (banEntry.user.toString() !== userId.toString()) return false;
+    if (banEntry.banType === "permanent") return true;
+    return Boolean(
+      banEntry.banType === "temporary" &&
+        banEntry.expiresAt &&
+        new Date(banEntry.expiresAt) > new Date()
+    );
+  });
+};
+
+const isUserCurrentlyBanned = (community, userId) => {
+  return Boolean(getActiveBanEntry(community, userId));
+};
+
+const getCommunityStaffIds = (community) => {
+  return Array.from(
+    new Set(
+      [...community.admins, ...community.moderators]
+        .filter(Boolean)
+        .map((id) => id.toString())
+    )
+  );
+};
+
+const banUserFromCommunity = async ({
+  community,
+  targetUserId,
+  adminId,
+  banType = "permanent",
+  reason = "",
+  expiresAt = null,
+}) => {
+  if (targetUserId === adminId) {
+    return { ok: false, status: 400, msg: "You cannot ban yourself" };
+  }
+
+  if (community.creator.toString() === targetUserId) {
+    return { ok: false, status: 400, msg: "Cannot ban the community creator" };
+  }
+
+  const existingBan = getActiveBanEntry(community, targetUserId);
+  if (existingBan) {
+    return { ok: false, status: 400, msg: "User is already banned" };
+  }
+
+  if (!["temporary", "permanent"].includes(banType)) {
+    return { ok: false, status: 400, msg: "Invalid ban type" };
+  }
+
+  const trimmedReason = String(reason || "").trim();
+  const banData = {
+    user: targetUserId,
+    bannedBy: adminId,
+    banType,
+    reason: trimmedReason,
+    bannedAt: new Date(),
+    appealStatus: "none",
+    appealMessage: "",
+    appealedAt: null,
+    appealReviewedBy: null,
+    appealReviewedAt: null,
+    appealReviewNote: "",
+  };
+
+  if (banType === "temporary") {
+    if (!expiresAt) {
+      return { ok: false, status: 400, msg: "Temporary bans require an expiry date" };
+    }
+
+    const expiryDate = new Date(expiresAt);
+    if (Number.isNaN(expiryDate.getTime()) || expiryDate <= new Date()) {
+      return { ok: false, status: 400, msg: "Temporary ban expiry must be in the future" };
+    }
+
+    banData.expiresAt = expiryDate;
+  }
+
+  community.bannedUsers.push(banData);
+  community.members = community.members.filter(
+    (memberId) => memberId.toString() !== targetUserId
+  );
+  community.moderators = community.moderators.filter(
+    (moderatorId) => moderatorId.toString() !== targetUserId
+  );
+  await community.save();
+
+  try {
+    await Notification.createNotification({
+      recipient: targetUserId,
+      sender: adminId,
+      type: "community_ban",
+      title: `Removed from ${community.name}`,
+      message: trimmedReason
+        ? `You were banned from \"${community.name}\". Reason: ${trimmedReason}`
+        : `You were banned from \"${community.name}\" by the community staff.`,
+      relatedCommunity: community._id,
+      actionUrl: `/communities?communityId=${community._id}`,
+      metadata: {
+        reason: trimmedReason,
+        banType,
+        expiresAt: banData.expiresAt || null,
+      },
+    });
+  } catch (notificationError) {
+    console.error("Community ban notification error:", notificationError);
+  }
+
+  return { ok: true, banData };
+};
+
 // ============================================================
 // PILLAR 1: GATED COMMUNITY CREATION (Site Admin Approval)
 // ============================================================
@@ -337,12 +449,7 @@ router.post("/:communityId/join", async (req, res) => {
     }
 
     // Check if user is banned
-    const isBanned = community.bannedUsers.some(b => {
-      if (b.user.toString() !== userId) return false;
-      if (b.banType === 'permanent') return true;
-      if (b.banType === 'temporary' && b.expiresAt && new Date(b.expiresAt) > new Date()) return true;
-      return false;
-    });
+    const isBanned = isUserCurrentlyBanned(community, userId);
 
     if (isBanned) {
       return res.status(403).json({ msg: "You are banned from this community" });
@@ -618,60 +725,27 @@ router.post("/:communityId/rules", isCommunityAdminOrModerator, async (req, res)
 // BAN USER (Community Admin or Moderator)
 router.post("/:communityId/ban-user", isCommunityAdminOrModerator, async (req, res) => {
   try {
-    console.log('Ban user endpoint called with body:', req.body);
-    console.log('Community from middleware:', req.community?.name);
-    console.log('Admin ID from middleware:', req.userId);
-    
     const { targetUserId, banType, reason, expiresAt } = req.body;
     const community = req.community;
     const adminId = req.userId;
 
     if (!targetUserId) {
-      console.log('Missing targetUserId');
       return res.status(400).json({ msg: "targetUserId is required" });
     }
 
-    console.log('Attempting to ban user:', targetUserId, 'by admin:', adminId);
-
-    // Cannot ban yourself
-    if (targetUserId === adminId) {
-      return res.status(400).json({ msg: "You cannot ban yourself" });
-    }
-
-    // Cannot ban community creator
-    if (community.creator.toString() === targetUserId) {
-      return res.status(400).json({ msg: "Cannot ban the community creator" });
-    }
-
-    // Check if already banned
-    const existingBan = community.bannedUsers.find(b => b.user.toString() === targetUserId);
-    if (existingBan) {
-      return res.status(400).json({ msg: "User is already banned" });
-    }
-
-    // Add ban
-    const banData = {
-      user: targetUserId,
-      bannedBy: adminId,
+    const result = await banUserFromCommunity({
+      community,
+      targetUserId,
+      adminId,
       banType: banType || 'permanent',
       reason: reason || '',
-      bannedAt: new Date()
-    };
+      expiresAt: expiresAt || null,
+    });
 
-    if (banType === 'temporary' && expiresAt) {
-      banData.expiresAt = new Date(expiresAt);
+    if (!result.ok) {
+      return res.status(result.status || 400).json({ msg: result.msg });
     }
 
-    console.log('Adding ban data:', banData);
-    community.bannedUsers.push(banData);
-
-    // Remove from members and moderators (but not admins - admins must be demoted first)
-    community.members = community.members.filter(m => m.toString() !== targetUserId);
-    community.moderators = community.moderators.filter(m => m.toString() !== targetUserId);
-
-    console.log('Saving community...');
-    await community.save();
-    console.log('Ban successful, bannedUsers count:', community.bannedUsers.length);
     res.json({ msg: "User banned successfully", bannedUsers: community.bannedUsers });
   } catch (err) {
     console.error('Ban user error:', err);
@@ -689,13 +763,154 @@ router.post("/:communityId/unban-user", isCommunityAdminOrModerator, async (req,
       return res.status(400).json({ msg: "targetUserId is required" });
     }
 
-    // Remove ban
     community.bannedUsers = community.bannedUsers.filter(b => b.user.toString() !== targetUserId);
     await community.save();
 
     res.json({ msg: "User unbanned successfully" });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// APPEAL COMMUNITY BAN (Banned user)
+router.post("/:communityId/appeal-ban", async (req, res) => {
+  try {
+    const { userId, appealMessage } = req.body || {};
+    const community = await Community.findById(req.params.communityId);
+
+    if (!community) {
+      return res.status(404).json({ msg: "Community not found" });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ msg: "userId is required" });
+    }
+
+    const activeBan = getActiveBanEntry(community, userId);
+    if (!activeBan) {
+      return res.status(400).json({ msg: "You do not have an active ban in this community" });
+    }
+
+    if (!String(appealMessage || "").trim()) {
+      return res.status(400).json({ msg: "Appeal message is required" });
+    }
+
+    activeBan.appealStatus = "pending";
+    activeBan.appealMessage = String(appealMessage).trim();
+    activeBan.appealedAt = new Date();
+    activeBan.appealReviewedBy = null;
+    activeBan.appealReviewedAt = null;
+    activeBan.appealReviewNote = "";
+    await community.save();
+
+    const staffIds = getCommunityStaffIds(community).filter((staffId) => staffId !== userId);
+    if (staffIds.length > 0) {
+      await Promise.all(
+        staffIds.map((staffId) =>
+          Notification.createNotification({
+            recipient: staffId,
+            sender: userId,
+            type: "system",
+            title: `Ban appeal in ${community.name}`,
+            message: "A banned user submitted an appeal that needs review.",
+            relatedCommunity: community._id,
+            actionUrl: `/communities?communityId=${community._id}`,
+            metadata: {
+              userId,
+              appealMessage: String(appealMessage).trim(),
+            },
+          })
+        )
+      );
+    }
+
+    res.json({ msg: "Appeal submitted. Community staff will review it." });
+  } catch (err) {
+    console.error("Ban appeal error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// REVIEW BAN APPEAL (Community Admin or Moderator)
+router.post("/:communityId/review-ban-appeal", isCommunityAdminOrModerator, async (req, res) => {
+  try {
+    const { targetUserId, action, reviewNote } = req.body || {};
+    const community = req.community;
+
+    if (!targetUserId) {
+      return res.status(400).json({ msg: "targetUserId is required" });
+    }
+
+    if (!["approve", "reject"].includes(action)) {
+      return res.status(400).json({ msg: "Invalid review action" });
+    }
+
+    const activeBan = getActiveBanEntry(community, targetUserId);
+    if (!activeBan) {
+      return res.status(400).json({ msg: "No active ban found for this user" });
+    }
+
+    if (activeBan.appealStatus !== "pending") {
+      return res.status(400).json({ msg: "This ban does not have a pending appeal" });
+    }
+
+    if (action === "approve") {
+      community.bannedUsers = community.bannedUsers.filter(
+        (banEntry) => banEntry.user.toString() !== targetUserId
+      );
+
+      if (!community.members.some((memberId) => memberId.toString() === targetUserId)) {
+        community.members.push(targetUserId);
+      }
+
+      await community.save();
+
+      try {
+        await Notification.createNotification({
+          recipient: targetUserId,
+          sender: req.userId,
+          type: "system",
+          title: `Appeal approved in ${community.name}`,
+          message: "Your appeal was approved. You can join the community again now.",
+          relatedCommunity: community._id,
+          actionUrl: `/communities?communityId=${community._id}`,
+          metadata: {
+            reviewNote: String(reviewNote || "").trim(),
+          },
+        });
+      } catch (notificationError) {
+        console.error("Ban appeal approval notification error:", notificationError);
+      }
+
+      return res.json({ msg: "Appeal approved and user restored to the community" });
+    }
+
+    activeBan.appealStatus = "rejected";
+    activeBan.appealReviewNote = String(reviewNote || "").trim();
+    activeBan.appealReviewedBy = req.userId;
+    activeBan.appealReviewedAt = new Date();
+    await community.save();
+
+    try {
+      await Notification.createNotification({
+        recipient: targetUserId,
+        sender: req.userId,
+        type: "system",
+        title: `Appeal rejected in ${community.name}`,
+        message: activeBan.appealReviewNote
+          ? `Your appeal was rejected. Note: ${activeBan.appealReviewNote}`
+          : "Your appeal was rejected by the community staff.",
+        relatedCommunity: community._id,
+        actionUrl: `/communities?communityId=${community._id}`,
+      });
+    } catch (notificationError) {
+      console.error("Ban appeal rejection notification error:", notificationError);
+    }
+
+    res.json({ msg: "Appeal rejected" });
+  } catch (err) {
+    console.error("Review ban appeal error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -726,12 +941,7 @@ router.post("/:communityId/add-member", isCommunityAdminOrModerator, async (req,
     }
 
     // Check if banned
-    const isBanned = community.bannedUsers.some(b => {
-      if (b.user.toString() !== userToAdd._id.toString()) return false;
-      if (b.banType === 'permanent') return true;
-      if (b.banType === 'temporary' && b.expiresAt && new Date(b.expiresAt) > new Date()) return true;
-      return false;
-    });
+    const isBanned = isUserCurrentlyBanned(community, userToAdd._id.toString());
 
     if (isBanned) {
       return res.status(400).json({ msg: "User is banned from this community" });
@@ -793,6 +1003,7 @@ router.get("/:communityId/posts", async (req, res) => {
     }
 
     const posts = await Post.find({ community: req.params.communityId })
+      .select("-reports")
       .populate("user", "username profileImage")
       .populate("comments.user", "username profileImage")
       .sort({ createdAt: -1 });
@@ -807,10 +1018,10 @@ router.get("/:communityId/posts", async (req, res) => {
 // CREATE POST IN COMMUNITY (Must be a member)
 router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
   try {
-    const { userId, text, tags } = req.body;
+    const { userId, text, tags } = req.body || {};
     const community = await Community.findById(req.params.communityId);
 
-    if (!userId || !text) {
+    if (!userId || !String(text || "").trim()) {
       return res.status(400).json({ msg: "Missing user or text" });
     }
 
@@ -828,12 +1039,7 @@ router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
     }
 
     // Check if user is banned
-    const isBanned = community.bannedUsers.some(b => {
-      if (b.user.toString() !== userId) return false;
-      if (b.banType === 'permanent') return true;
-      if (b.banType === 'temporary' && b.expiresAt && new Date(b.expiresAt) > new Date()) return true;
-      return false;
-    });
+    const isBanned = isUserCurrentlyBanned(community, userId);
 
     if (isBanned) {
       return res.status(403).json({ msg: "You are banned from this community" });
@@ -878,7 +1084,7 @@ router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
     // Create post
     const post = new Post({
       user: userId,
-      text,
+      text: String(text).trim(),
       image: imageUrl,
       tags: tagArray,
       community: req.params.communityId,
@@ -890,6 +1096,196 @@ router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
     res.json({ msg: "Post created successfully", post });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// REPORT COMMUNITY POST (Community members only)
+router.post("/:communityId/posts/:postId/report", async (req, res) => {
+  try {
+    const { userId, reason, details } = req.body;
+    const { communityId, postId } = req.params;
+
+    if (!userId || !String(reason || "").trim()) {
+      return res.status(400).json({ msg: "Reason is required" });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ msg: "Community not found" });
+    }
+
+    if (!community.members.some((memberId) => memberId.toString() === userId)) {
+      return res.status(403).json({ msg: "You must be a member to report posts" });
+    }
+
+    if (isUserCurrentlyBanned(community, userId)) {
+      return res.status(403).json({ msg: "You are banned from this community" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post || post.community?.toString() !== communityId) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    if (post.user.toString() === userId) {
+      return res.status(400).json({ msg: "You cannot report your own post" });
+    }
+
+    const duplicatePendingReport = post.reports.some(
+      (report) => report.reporter.toString() === userId && report.status === "pending"
+    );
+
+    if (duplicatePendingReport) {
+      return res.status(400).json({ msg: "You already reported this post" });
+    }
+
+    post.reports.push({
+      reporter: userId,
+      reason: String(reason).trim(),
+      details: typeof details === "string" ? details.trim() : "",
+      status: "pending",
+      createdAt: new Date(),
+    });
+    await post.save();
+
+    const staffIds = getCommunityStaffIds(community).filter((staffId) => staffId !== userId);
+    if (staffIds.length > 0) {
+      await Promise.all(
+        staffIds.map((staffId) =>
+          Notification.createNotification({
+            recipient: staffId,
+            sender: userId,
+            type: "community_post_report",
+            title: `Post reported in ${community.name}`,
+            message: `A post was reported for \"${String(reason).trim()}\" and needs review.`,
+            relatedCommunity: community._id,
+            actionUrl: `/communities?communityId=${community._id}`,
+            metadata: {
+              postId: post._id,
+              reason: String(reason).trim(),
+            },
+          })
+        )
+      );
+    }
+
+    res.json({ msg: "Post reported. Community staff will review it." });
+  } catch (err) {
+    console.error("Community post report error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// GET REPORTED COMMUNITY POSTS (Community Admin or Moderator)
+router.get("/:communityId/reported-posts", isCommunityAdminOrModerator, async (req, res) => {
+  try {
+    const posts = await Post.find({
+      community: req.params.communityId,
+      reports: { $exists: true, $ne: [] },
+    })
+      .populate("user", "username profileImage")
+      .populate("reports.reporter", "username profileImage")
+      .populate("reports.reviewedBy", "username")
+      .sort({ createdAt: -1 });
+
+    const reportedPosts = posts
+      .map((post) => {
+        const pendingReports = post.reports.filter(
+          (report) => !report.status || report.status === "pending"
+        );
+        return {
+          ...post.toObject(),
+          reports: pendingReports,
+        };
+      })
+      .filter((post) => post.reports.length > 0)
+      .sort((left, right) => {
+        const latestLeft = Math.max(
+          ...left.reports.map((report) => new Date(report.createdAt || left.createdAt).getTime())
+        );
+        const latestRight = Math.max(
+          ...right.reports.map((report) => new Date(report.createdAt || right.createdAt).getTime())
+        );
+        return latestRight - latestLeft;
+      });
+
+    res.json(reportedPosts);
+  } catch (err) {
+    console.error("Get reported posts error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// REVIEW REPORTED COMMUNITY POST (Community Admin or Moderator)
+router.post("/:communityId/posts/:postId/review-report", isCommunityAdminOrModerator, async (req, res) => {
+  try {
+    const { action, reviewNote, banType, expiresAt } = req.body || {};
+    const { communityId, postId } = req.params;
+    const community = req.community;
+    const reviewerId = req.userId;
+
+    if (!["dismiss", "ban"].includes(action)) {
+      return res.status(400).json({ msg: "Invalid review action" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post || post.community?.toString() !== communityId) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    const pendingReports = post.reports.filter((report) => report.status === "pending");
+    if (pendingReports.length === 0) {
+      return res.status(400).json({ msg: "This post has no pending reports" });
+    }
+
+    if (action === "ban" && !String(reviewNote || "").trim()) {
+      return res.status(400).json({ msg: "Ban reason is required" });
+    }
+
+    const resolvedBanType = banType || "permanent";
+    if (action === "ban" && !["temporary", "permanent"].includes(resolvedBanType)) {
+      return res.status(400).json({ msg: "Invalid ban type" });
+    }
+
+    const reviewedAt = new Date();
+    post.reports.forEach((report) => {
+      if (report.status !== "pending") return;
+      report.status = action === "dismiss" ? "dismissed" : "actioned";
+      report.reviewedBy = reviewerId;
+      report.reviewNote = String(reviewNote || "").trim();
+      report.reviewedAt = reviewedAt;
+    });
+
+    if (action === "dismiss") {
+      await post.save();
+      return res.json({ msg: "Report marked as nothing to worry about" });
+    }
+
+    const banResult = await banUserFromCommunity({
+      community,
+      targetUserId: post.user.toString(),
+      adminId: reviewerId,
+      banType: resolvedBanType,
+      reason: String(reviewNote).trim(),
+      expiresAt: resolvedBanType === "temporary" ? expiresAt || null : null,
+    });
+
+    if (!banResult.ok) {
+      return res.status(banResult.status || 400).json({ msg: banResult.msg });
+    }
+
+    await post.save();
+    await Post.findByIdAndDelete(postId);
+
+    res.json({
+      msg:
+        resolvedBanType === "temporary"
+          ? "Reported post resolved and author temporarily banned"
+          : "Reported post resolved and author permanently banned",
+    });
+  } catch (err) {
+    console.error("Review reported post error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });

@@ -6,7 +6,17 @@ const bannedUserSchema = new Schema({
   banType: { type: String, enum: ['temporary', 'permanent'], required: true },
   reason: { type: String, default: "" },
   expiresAt: { type: Date },
-  bannedAt: { type: Date, default: Date.now }
+  bannedAt: { type: Date, default: Date.now },
+  appealStatus: {
+    type: String,
+    enum: ['none', 'pending', 'rejected'],
+    default: 'none'
+  },
+  appealMessage: { type: String, default: "" },
+  appealedAt: { type: Date, default: null },
+  appealReviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+  appealReviewedAt: { type: Date, default: null },
+  appealReviewNote: { type: String, default: "" }
 }, { _id: false });
 
 const communitySchema = new Schema({

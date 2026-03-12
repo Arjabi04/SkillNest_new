@@ -22,6 +22,8 @@ const notificationSchema = new mongoose.Schema({
       'event_updated',
       'event_cancelled',
       'community_join',
+      'community_post_report',
+      'community_ban',
       'system'
     ],
     required: true
