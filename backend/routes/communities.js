@@ -556,6 +556,65 @@ router.post("/:communityId/edit", isCommunityAdmin, upload.single("coverImage"),
   }
 });
 
+// UPDATE COMMUNITY COVER IMAGE (Community Admin or Moderator)
+router.post("/:communityId/cover-image", isCommunityAdminOrModerator, upload.single("coverImage"), async (req, res) => {
+  try {
+    const community = req.community;
+
+    if (!req.file) {
+      return res.status(400).json({ msg: "Cover image file is required" });
+    }
+
+    try {
+      const uploadPromise = new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: "skillnest_communities" },
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result.secure_url);
+          }
+        );
+        createReadStream(req.file.buffer).pipe(uploadStream);
+      });
+
+      community.coverImage = await uploadPromise;
+      await community.save();
+
+      return res.json({
+        msg: "Community image updated successfully",
+        coverImage: community.coverImage,
+        community
+      });
+    } catch (uploadErr) {
+      console.error("Community cover upload error:", uploadErr);
+      return res.status(500).json({ msg: "Image upload failed" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// UPDATE COMMUNITY RULES (Community Admin or Moderator)
+router.post("/:communityId/rules", isCommunityAdminOrModerator, async (req, res) => {
+  try {
+    const { rules } = req.body;
+    const community = req.community;
+
+    if (typeof rules !== 'string') {
+      return res.status(400).json({ msg: "Rules must be provided as text" });
+    }
+
+    community.rules = rules.trim();
+    await community.save();
+
+    res.json({ msg: "Community rules updated", rules: community.rules, community });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 // BAN USER (Community Admin or Moderator)
 router.post("/:communityId/ban-user", isCommunityAdminOrModerator, async (req, res) => {
   try {

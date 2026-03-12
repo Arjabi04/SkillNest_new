@@ -103,6 +103,10 @@ const CommunitiesPage = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [communityRulesDraft, setCommunityRulesDraft] = useState('');
+  const [newCommunityCoverImage, setNewCommunityCoverImage] = useState(null);
+  const [updatingCommunityImage, setUpdatingCommunityImage] = useState(false);
+  const [savingCommunityRules, setSavingCommunityRules] = useState(false);
 
   // const location = useLocation();
   const navigate = useNavigate();
@@ -169,6 +173,17 @@ const CommunitiesPage = () => {
     setNewPostPreview(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [newPostImage]);
+
+  useEffect(() => {
+    if (!selectedCommunity) {
+      setCommunityRulesDraft('');
+      setNewCommunityCoverImage(null);
+      return;
+    }
+
+    setCommunityRulesDraft(selectedCommunity.rules || '');
+    setNewCommunityCoverImage(null);
+  }, [selectedCommunity]);
 
   const addTagsFromText = () => {
     const hashtagRegex = /#(\w+)/g;
@@ -244,6 +259,18 @@ const CommunitiesPage = () => {
       if (res.ok) setCommunityPosts(data);
     } catch (err) {
       console.error('Error:', err);
+    }
+  };
+
+  const loadSingleCommunity = async (communityId) => {
+    try {
+      const res = await fetch(`${API_BASE}/communities/${communityId}?userId=${userId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setSelectedCommunity(data);
+      }
+    } catch (err) {
+      console.error('Error loading community details:', err);
     }
   };
 
@@ -642,6 +669,71 @@ const CommunitiesPage = () => {
     }
   };
 
+  const handleUpdateCommunityImage = async () => {
+    if (!selectedCommunity?._id) return;
+    if (!newCommunityCoverImage) {
+      alert('Please select an image first');
+      return;
+    }
+
+    setUpdatingCommunityImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('userId', userId);
+      formData.append('coverImage', newCommunityCoverImage);
+
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/cover-image`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.msg || 'Community image updated');
+        await loadSingleCommunity(selectedCommunity._id);
+        await loadCommunities();
+        setNewCommunityCoverImage(null);
+      } else {
+        alert(data.msg || 'Failed to update community image');
+      }
+    } catch (err) {
+      console.error('Error updating community image:', err);
+      alert('Error updating community image');
+    } finally {
+      setUpdatingCommunityImage(false);
+    }
+  };
+
+  const handleUpdateCommunityRules = async () => {
+    if (!selectedCommunity?._id) return;
+
+    setSavingCommunityRules(true);
+    try {
+      const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/rules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          rules: communityRulesDraft
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.msg || 'Community rules updated');
+        await loadSingleCommunity(selectedCommunity._id);
+        await loadCommunities();
+      } else {
+        alert(data.msg || 'Failed to update community rules');
+      }
+    } catch (err) {
+      console.error('Error updating community rules:', err);
+      alert('Error updating community rules');
+    } finally {
+      setSavingCommunityRules(false);
+    }
+  };
+
 
 
   // COMMUNITY DETAIL VIEW (RENDERED IF A COMMUNITY IS SELECTED)
@@ -679,6 +771,12 @@ const CommunitiesPage = () => {
                   <div>
                     <h1 className="text-3xl font-black text-gray-900">{selectedCommunity.name}</h1>
                     <p className="text-gray-500 mt-2">{selectedCommunity.description}</p>
+                    {selectedCommunity.rules && (
+                      <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-200 max-w-2xl">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Community Rules</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedCommunity.rules}</p>
+                      </div>
+                    )}
                     <div className="mt-4 flex gap-3">
                       {isCommunityMember(selectedCommunity, userId) ? (
                         <button 
@@ -934,6 +1032,44 @@ const CommunitiesPage = () => {
                 <button onClick={() => setShowCommunityAdminPanel(false)}><X className="w-6 h-6" /></button>
               </div>
               <div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Community Settings</h3>
+                <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Change Cover Image</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setNewCommunityCoverImage(e.target.files?.[0] || null)}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                    <button
+                      onClick={handleUpdateCommunityImage}
+                      disabled={!newCommunityCoverImage || updatingCommunityImage}
+                      className="mt-2 w-full px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {updatingCommunityImage ? 'Updating image...' : 'Update Cover Image'}
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Community Rules</label>
+                    <textarea
+                      value={communityRulesDraft}
+                      onChange={(e) => setCommunityRulesDraft(e.target.value)}
+                      rows={5}
+                      placeholder="Write rules for members..."
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                    <button
+                      onClick={handleUpdateCommunityRules}
+                      disabled={savingCommunityRules}
+                      className="mt-2 w-full px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingCommunityRules ? 'Saving rules...' : 'Save Rules'}
+                    </button>
+                  </div>
+                </div>
+
                 <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Members</h3>
                 {isCommunityAdmin(selectedCommunity, userId) && (
                   <div className="mb-6 p-4 bg-blue-50 rounded-2xl">
