@@ -6,6 +6,7 @@ import cloudinary from "../config/cloudinary.js";
 import Community from "../models/Community.js";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
 import { verifyAdmin } from "../middleware/adminAuth.js";
 import { isCommunityAdmin, isCommunityAdminOrModerator } from "../middleware/communityAuth.js";
 
@@ -202,6 +203,21 @@ router.post("/:communityId/approve", verifyAdmin, async (req, res) => {
     }
 
     await community.save();
+
+    try {
+      await Notification.createNotification({
+        recipient: community.creator,
+        sender: community.creator,
+        type: 'system',
+        title: 'Community Approved',
+        message: `Your community \"${community.name}\" has been approved by admin.`,
+        relatedCommunity: community._id,
+        actionUrl: '/communities'
+      });
+    } catch (notificationError) {
+      console.error('Community approval notification error:', notificationError);
+    }
+
     res.json({ msg: "Community approved and creator promoted to Admin", community });
   } catch (err) {
     res.status(500).json({ msg: "Server error" });

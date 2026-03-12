@@ -11,11 +11,26 @@ import EventsPage from "./components/EventsPage";
 import NotificationsPage from "./components/NotificationsPage";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
+import ToastContainer from "./components/ToastContainer";
 import { useEffect } from "react";
 import { clearAuth, isTokenValid } from "./utils/tokenUtils";
+import { showToast } from "./utils/toast";
 
 function AppRoutes() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const originalAlert = window.alert;
+
+    // Render all legacy alert() calls as non-blocking toasts.
+    window.alert = (message) => {
+      showToast(message || "Notice", { type: "info" });
+    };
+
+    return () => {
+      window.alert = originalAlert;
+    };
+  }, []);
 
   useEffect(() => {
     // Check token validity on app load and periodically
@@ -40,6 +55,7 @@ function AppRoutes() {
 
   return (
     <div>
+      <ToastContainer />
       <Routes>
 
           {/* Home route shows the main explore feed */}

@@ -186,6 +186,20 @@ router.post("/:eventId/approve", verifyAdmin, async (req, res) => {
     event.approvalReviewedBy = req.admin?.username || 'admin';
     await event.save();
 
+    try {
+      await Notification.createNotification({
+        recipient: event.organizer,
+        sender: event.organizer,
+        type: 'system',
+        title: 'Event Approved',
+        message: `Your event \"${event.title}\" has been approved by admin.`,
+        relatedEvent: event._id,
+        actionUrl: '/events'
+      });
+    } catch (notificationError) {
+      console.error('Event approval notification error:', notificationError);
+    }
+
     res.json({ msg: "Event approved successfully", event });
   } catch (err) {
     console.error(err);
@@ -273,8 +287,15 @@ router.post("/", auth, upload.single("coverImage"), async (req, res) => {
       return res.status(400).json({ msg: "Missing required fields" });
     }
 
-    // Validate dates
-    if (new Date(endDate) <= new Date(startDate)) {
+    const parsedStartDate = new Date(startDate);
+    const parsedEndDate = new Date(endDate);
+
+    // Validate date parsing and logical order
+    if (Number.isNaN(parsedStartDate.getTime()) || Number.isNaN(parsedEndDate.getTime())) {
+      return res.status(400).json({ msg: "Invalid start/end date" });
+    }
+
+    if (parsedEndDate <= parsedStartDate) {
       return res.status(400).json({ msg: "End date must be after start date" });
     }
 
@@ -305,8 +326,8 @@ router.post("/", auth, upload.single("coverImage"), async (req, res) => {
       community: community || null,
       eventType: eventType || 'online',
       category: category || 'other',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
       timezone: timezone || 'UTC',
       location: location || {},
       onlineDetails: onlineDetails || {},
@@ -342,7 +363,7 @@ router.post("/", auth, upload.single("coverImage"), async (req, res) => {
 });
 
 // UPDATE EVENT
-router.put("/:eventId", upload.single("coverImage"), async (req, res) => {
+router.put("/:eventId", auth, upload.single("coverImage"), async (req, res) => {
   try {
     const event = await Event.findById(req.params.eventId);
     
@@ -350,14 +371,10 @@ router.put("/:eventId", upload.single("coverImage"), async (req, res) => {
       return res.status(404).json({ msg: "Event not found" });
     }
 
-    const isOrganizer = event.organizer?._id?.toString() === userId.toString();
-    const isApproved = event.approvalStatus === 'approved' || !event.approvalStatus;
-    if (!isApproved && !isOrganizer) {
-      return res.status(403).json({ msg: "Event is pending admin approval" });
-    }
+    const userId = req.user._id;
 
-    // Check if user is organizer (basic auth check)
-    if (event.organizer.toString() !== req.body.userId) {
+    // Check if user is organizer
+    if (event.organizer.toString() !== userId.toString()) {
       return res.status(403).json({ msg: "Not authorized to update this event" });
     }
 
@@ -380,17 +397,43 @@ router.put("/:eventId", upload.single("coverImage"), async (req, res) => {
       }
     }
 
-    // Parse JSON fields
-    if (req.body.location) req.body.location = JSON.parse(req.body.location);
-    if (req.body.onlineDetails) req.body.onlineDetails = JSON.parse(req.body.onlineDetails);
-    if (req.body.tags) req.body.tags = req.body.tags.split(',').map(tag => tag.trim());
+    // Parse structured fields safely
+    if (typeof req.body.location === 'string') {
+      req.body.location = JSON.parse(req.body.location);
+    }
+    if (typeof req.body.onlineDetails === 'string') {
+      req.body.onlineDetails = JSON.parse(req.body.onlineDetails);
+    }
+    if (typeof req.body.tags === 'string') {
+      req.body.tags = req.body.tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    }
 
-    // Update event
-    Object.keys(req.body).forEach(key => {
-      if (key !== 'userId' && req.body[key] !== undefined) {
-        event[key] = req.body[key];
+    // Validate date/time ordering when updating start/end
+    const nextStartDate = req.body.startDate ? new Date(req.body.startDate) : new Date(event.startDate);
+    const nextEndDate = req.body.endDate ? new Date(req.body.endDate) : new Date(event.endDate);
+
+    if (Number.isNaN(nextStartDate.getTime()) || Number.isNaN(nextEndDate.getTime())) {
+      return res.status(400).json({ msg: "Invalid start/end date" });
+    }
+
+    if (nextEndDate <= nextStartDate) {
+      return res.status(400).json({ msg: "End date must be after start date" });
+    }
+
+    // Apply updates
+    const updates = { ...req.body };
+    delete updates.userId;
+    delete updates.startDate;
+    delete updates.endDate;
+
+    Object.keys(updates).forEach((key) => {
+      if (updates[key] !== undefined) {
+        event[key] = updates[key];
       }
     });
+
+    event.startDate = nextStartDate;
+    event.endDate = nextEndDate;
 
     await event.save();
     

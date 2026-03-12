@@ -262,10 +262,11 @@ const CommunitiesPage = () => {
         body: formData,
       });
       if (res.ok) {
+        const data = await res.json();
         setShowCreateModal(false);
         setCommunityInterests([]); // Reset interests
         e.target.reset();
-        alert('Community request submitted!');
+        alert(data.msg || 'Your community is being reviewed by the admin. Please wait for approval.');
         if (isAdmin) loadPendingRequests();
       } else {
         const data = await res.json();

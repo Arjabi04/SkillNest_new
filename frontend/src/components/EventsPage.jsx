@@ -87,6 +87,8 @@ const EventsPage = () => {
   const API_BASE = 'http://localhost:4000/api';
   const params = new URLSearchParams(window.location.search);
   const userId = params.get('userId') || localStorage.getItem('userId');
+  const todayDate = new Date().toISOString().split('T')[0];
+  const currentTime = new Date().toTimeString().slice(0, 5);
 
   const handleLogout = () => {
     clearAuth();
@@ -266,14 +268,75 @@ const EventsPage = () => {
   };
 
   const handleFormChange = (field, value) => {
-    setEventForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setEventForm((prev) => {
+      const next = {
+        ...prev,
+        [field]: value
+      };
+
+      // Keep the end date/time aligned when start moves forward.
+      if (field === 'startDate') {
+        if (next.endDate && next.endDate < value) {
+          next.endDate = value;
+        }
+
+        if (
+          next.endDate === value &&
+          next.startTime &&
+          next.endTime &&
+          next.endTime < next.startTime
+        ) {
+          next.endTime = next.startTime;
+        }
+      }
+
+      if (field === 'endDate' && next.startDate && value < next.startDate) {
+        next.endDate = next.startDate;
+      }
+
+      if (
+        field === 'startTime' &&
+        next.startDate &&
+        next.endDate &&
+        next.startDate === next.endDate &&
+        next.endTime &&
+        next.endTime < value
+      ) {
+        next.endTime = value;
+      }
+
+      if (
+        field === 'endTime' &&
+        next.startDate &&
+        next.endDate &&
+        next.startDate === next.endDate &&
+        next.startTime &&
+        value &&
+        value < next.startTime
+      ) {
+        next.endTime = next.startTime;
+      }
+
+      return next;
+    });
   };
 
   const handleCreateEvent = async (e) => {
     e.preventDefault();
+
+    const startDateTime = new Date(`${eventForm.startDate}T${eventForm.startTime}`);
+    const endDateTime = new Date(`${eventForm.endDate}T${eventForm.endTime}`);
+
+    if (Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime())) {
+      alert('Please enter a valid start and end date/time.');
+      return;
+    }
+
+    if (endDateTime <= startDateTime) {
+      alert('End date/time must be after start date/time.');
+      return;
+    }
+
     setCreateLoading(true);
     
     try {
@@ -285,8 +348,8 @@ const EventsPage = () => {
         description: eventForm.description,
         eventType: eventForm.eventType,
         category: eventForm.category,
-        startDate: new Date(`${eventForm.startDate}T${eventForm.startTime}`),
-        endDate: new Date(`${eventForm.endDate}T${eventForm.endTime}`),
+        startDate: startDateTime.toISOString(),
+        endDate: endDateTime.toISOString(),
         price: parseFloat(eventForm.price) || 0,
         capacity: eventForm.capacity ? parseInt(eventForm.capacity) : null,
         allowRegistration: eventForm.allowRegistration,
@@ -325,6 +388,12 @@ const EventsPage = () => {
         if (newEvent?._id) {
           setEvents(prev => [newEvent, ...prev]);
         }
+
+        alert(
+          createdPayload?.msg ||
+          'Your event is being reviewed by the admin. Please wait for approval.'
+        );
+
         setShowCreateModal(false);
         // Reset form
         setEventForm({
@@ -347,12 +416,13 @@ const EventsPage = () => {
           city: '',
           country: ''
         });
-        console.log('Event created successfully!');
       } else {
-        console.error('Failed to create event');
+        const error = await response.json();
+        alert(error?.msg || 'Failed to create event');
       }
     } catch (err) {
       console.error('Error creating event:', err);
+      alert('Failed to create event');
     }
     
     setCreateLoading(false);
@@ -705,6 +775,7 @@ const EventsPage = () => {
                       type="date"
                       value={eventForm.startDate}
                       onChange={(e) => handleFormChange('startDate', e.target.value)}
+                      min={todayDate}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     />
@@ -716,6 +787,7 @@ const EventsPage = () => {
                       type="time"
                       value={eventForm.startTime}
                       onChange={(e) => handleFormChange('startTime', e.target.value)}
+                      min={eventForm.startDate === todayDate ? currentTime : undefined}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     />
@@ -729,6 +801,7 @@ const EventsPage = () => {
                       type="date"
                       value={eventForm.endDate}
                       onChange={(e) => handleFormChange('endDate', e.target.value)}
+                      min={eventForm.startDate || todayDate}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     />
@@ -740,6 +813,13 @@ const EventsPage = () => {
                       type="time"
                       value={eventForm.endTime}
                       onChange={(e) => handleFormChange('endTime', e.target.value)}
+                      min={
+                        eventForm.startDate &&
+                        eventForm.endDate &&
+                        eventForm.startDate === eventForm.endDate
+                          ? eventForm.startTime || undefined
+                          : undefined
+                      }
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     />

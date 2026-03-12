@@ -90,11 +90,36 @@ const Sidebar = ({
     return saved !== null ? JSON.parse(saved) : false;
   });
   const [isMobile, setIsMobile] = useState(false);
+  const [internalShowLogoutConfirm, setInternalShowLogoutConfirm] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
   const { unreadCount = 0 } = useNotifications() || {};
+
+  const isControlledLogoutModal =
+    typeof showLogoutConfirm === 'boolean' &&
+    typeof setShowLogoutConfirm === 'function';
+
+  const isLogoutModalOpen = isControlledLogoutModal
+    ? showLogoutConfirm
+    : internalShowLogoutConfirm;
+
+  const openLogoutModal = () => {
+    if (isControlledLogoutModal) {
+      setShowLogoutConfirm(true);
+      return;
+    }
+    setInternalShowLogoutConfirm(true);
+  };
+
+  const closeLogoutModal = () => {
+    if (isControlledLogoutModal) {
+      setShowLogoutConfirm(false);
+      return;
+    }
+    setInternalShowLogoutConfirm(false);
+  };
 
   // Handle responsive behavior
   useEffect(() => {
@@ -119,6 +144,15 @@ const Sidebar = ({
   const handleLogout = () => {
     clearAuth();
     navigate("/login");
+  };
+
+  const executeLogout = () => {
+    closeLogoutModal();
+    if (typeof onLogout === 'function') {
+      onLogout();
+      return;
+    }
+    handleLogout();
   };
 
   const toggleSidebar = () => {
@@ -242,7 +276,7 @@ const Sidebar = ({
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-100">
           <button
-            onClick={() => setShowLogoutConfirm(true)}
+            onClick={openLogoutModal}
             className={`
               w-full flex items-center gap-3 px-3 py-2.5 rounded-xl 
               text-gray-600 hover:bg-red-50 hover:text-red-600 
@@ -258,11 +292,11 @@ const Sidebar = ({
       </aside>
 
       {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
+      {isLogoutModalOpen && (
         <div className="fixed inset-0 z-[103] flex justify-center items-center">
           <div 
             className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
-            onClick={() => setShowLogoutConfirm(false)} 
+            onClick={closeLogoutModal} 
           />
           <div className="relative bg-white p-6 rounded-2xl w-full max-w-sm mx-4 shadow-2xl">
             <div className="text-center">
@@ -276,13 +310,13 @@ const Sidebar = ({
             </div>
             <div className="flex gap-3">
               <button 
-                onClick={() => setShowLogoutConfirm(false)} 
+                onClick={closeLogoutModal} 
                 className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button 
-                onClick={onLogout || handleLogout} 
+                onClick={executeLogout} 
                 className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
               >
                 Logout
