@@ -7,33 +7,75 @@ import logo from "../assets/Logo.png";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
-  const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const validateForm = () => {
+    const nextErrors = {};
+    const email = form.email.trim();
+    const password = form.password;
+
+    if (!email) {
+      nextErrors.email = "Email is required";
+    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+      nextErrors.email = "Please enter a valid email address";
+    }
+
+    if (!password) {
+      nextErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      nextErrors.password = "Password must be at least 6 characters";
+    }
+
+    return nextErrors;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
+
+    if (serverError) setServerError("");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+
+    setFieldErrors({});
+    setServerError("");
+    setSubmitting(true);
+
     try {
-      const data = await login(form.email, form.password);
+      const data = await login(form.email.trim().toLowerCase(), form.password);
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.user._id || data.user.id);
-      setMessage(`Logged in as ${data.user.username}`);
       setForm({ email: "", password: "" });
       
       // Navigate based on whether user has interests
-      setTimeout(() => {
-        if (data.hasInterests) {
-          // Old user with interests -> go to explore
-          navigate("/explore");
-        } else {
-          // New user without interests -> go to choose-interests
-          navigate(`/choose-interests?userId=${data.user._id || data.user.id}`);
-        }
-      }, 500);
+      if (data.hasInterests) {
+        navigate("/explore");
+      } else {
+        navigate(`/choose-interests?userId=${data.user._id || data.user.id}`);
+      }
     } catch (err) {
-      setMessage("⚠️ Login failed. Invalid credentials.");
+      setServerError(err?.message || "Login failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -52,26 +94,49 @@ export default function LoginPage() {
         <div className="flex flex-col justify-center items-start w-full max-w-md">
           <h3 className="text-2xl font-medium text-black text-left w-full">Welcome Back!</h3>
           <h3 className="font-light text-gray-800 text-left w-full mb-8">Enter your email and password</h3>
+
+          {serverError && (
+            <div className="w-full mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              {serverError}
+            </div>
+          )}
           
-          <form onSubmit={handleSubmit} className="flex flex-col w-full max-w-md gap-8">
-            <input
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-3 text-base rounded-lg border border-gray-300 transition-colors duration-300 focus:border-indigo-600 focus:outline-none"
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-3 text-base rounded-lg border border-gray-300 transition-colors duration-300 focus:border-indigo-600 focus:outline-none"
-            />
+          <form onSubmit={handleSubmit} className="flex flex-col w-full max-w-md gap-5" noValidate>
+            <div className="w-full">
+              <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={handleChange}
+                autoComplete="email"
+                aria-invalid={Boolean(fieldErrors.email)}
+                className={`w-full px-3 py-3 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
+                  fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
+                }`}
+              />
+              {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
+            </div>
+
+            <div className="w-full">
+              <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+                aria-invalid={Boolean(fieldErrors.password)}
+                className={`w-full px-3 py-3 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
+                  fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
+                }`}
+              />
+              {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
+            </div>
             
             <p className="text-center w-full text-sm">
               <Link to="/forgot-password" className="text-indigo-600 no-underline hover:underline">
@@ -81,17 +146,16 @@ export default function LoginPage() {
             
             <button 
               type="submit" 
-              className="w-full px-3 py-3 text-base rounded-lg border-none bg-indigo-600 text-white cursor-pointer transition-colors duration-300 hover:bg-indigo-700"
+              disabled={submitting}
+              className="w-full px-3 py-3 text-base rounded-lg border-none bg-indigo-600 text-white transition-colors duration-300 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Login
+              {submitting ? "Logging in..." : "Login"}
             </button>
           </form>
 
           <p className="text-center w-full text-sm mt-4">
             Don't have an account? <Link to="/signup" className="text-indigo-600 no-underline hover:underline">Sign up</Link>
           </p>
-          
-          {message && <p className="login-message text-sm text-red-600 mt-4">{message}</p>}
         </div>
       </div>
     </div>

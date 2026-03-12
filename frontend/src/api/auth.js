@@ -1,23 +1,58 @@
 const API_URL = "http://localhost:4000/api";
 
+const parseErrorResponse = async (res, fallbackMessage) => {
+  try {
+    const data = await res.json();
+    if (data?.msg) return data.msg;
+    if (data?.error) return data.error;
+  } catch {
+    // Ignore parse errors and fall back to default message.
+  }
+
+  return fallbackMessage;
+};
+
+const requestJson = async (url, options, fallbackMessage) => {
+  let res;
+
+  try {
+    res = await fetch(url, options);
+  } catch {
+    throw new Error("Unable to connect to the server. Please try again.");
+  }
+
+  if (!res.ok) {
+    const message = await parseErrorResponse(res, fallbackMessage);
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json();
+};
+
 export const signup = async (username, email, password) => {
-  const res = await fetch(`${API_URL}/signup`, {
+  return requestJson(
+    `${API_URL}/signup`,
+    {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, email, password }),
-  });
-  if (!res.ok) throw new Error("Signup failed");
-  return await res.json();
+    },
+    "Signup failed"
+  );
 }; 
 
 export const login = async (email, password) => {
-  const res = await fetch(`${API_URL}/login`, {
+  return requestJson(
+    `${API_URL}/login`,
+    {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error("Login failed");
-  return await res.json();
+    },
+    "Login failed"
+  );
 };
 
 export const adminLogin = async (username, password) => {

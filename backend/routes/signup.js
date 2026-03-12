@@ -7,15 +7,39 @@ import jwt from 'jsonwebtoken';
 // Signup Route
 router.post('/', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const username = (req.body?.username || '').trim();
+    const email = (req.body?.email || '').trim().toLowerCase();
+    const password = req.body?.password || '';
 
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: "User already exists" });
+    if (!username || !email || !password) {
+      return res.status(400).json({ msg: 'Username, email, and password are required' });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (existingUser) {
+      const usernameTaken = existingUser.username === username;
+      const emailTaken = existingUser.email === email;
+
+      if (usernameTaken && emailTaken) {
+        return res.status(400).json({ msg: 'Username and email already exist' });
+      }
+
+      if (usernameTaken) {
+        return res.status(400).json({ msg: 'Username already exists' });
+      }
+
+      if (emailTaken) {
+        return res.status(400).json({ msg: 'Email already exists' });
+      }
+    }
 
     const salt = await genSalt(10);
     const hashedPassword = await hash(password, salt);
 
-    user = new User({ username, email, password: hashedPassword });
+    const user = new User({ username, email, password: hashedPassword });
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '3h' });
@@ -31,8 +55,21 @@ router.post('/', async (req, res) => {
       isNew: true
     });
   } catch (err) {
+    if (err?.code === 11000 && err?.keyPattern) {
+      if (err.keyPattern.username && err.keyPattern.email) {
+        return res.status(400).json({ msg: 'Username and email already exist' });
+      }
+      if (err.keyPattern.username) {
+        return res.status(400).json({ msg: 'Username already exists' });
+      }
+      if (err.keyPattern.email) {
+        return res.status(400).json({ msg: 'Email already exists' });
+      }
+      return res.status(400).json({ msg: 'Account already exists' });
+    }
+
     console.error(err.message);
-    return res.status(500).send("Server error");
+    return res.status(500).json({ msg: 'Server error' });
   }
 });
 

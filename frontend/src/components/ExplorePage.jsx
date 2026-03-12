@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Sidebar from './Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultAvatar from "../assets/default-avatar.jpg";
-import logo from "../assets/Logo.png";
 import { clearAuth } from "../utils/tokenUtils";
 
 function ExplorePage() {
@@ -15,9 +14,42 @@ function ExplorePage() {
   const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
 
-  const location = useLocation();
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId") || localStorage.getItem("userId") || "";
+
+  const trendingTopics = Object.entries(
+    posts.reduce((acc, post) => {
+      (post.tags || []).forEach((rawTag) => {
+        const tag = String(rawTag || "").trim();
+        if (!tag) return;
+        acc[tag] = (acc[tag] || 0) + 1;
+      });
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+
+  const peopleYouMayKnow = Object.values(
+    posts.reduce((acc, post) => {
+      const user = post.user;
+      const userKey = user?._id || user?.id;
+      if (!user || !userKey || userKey.toString() === userId.toString()) return acc;
+      if (!acc[userKey]) {
+        acc[userKey] = {
+          id: userKey,
+          username: user.username || "Unknown User",
+          profileImage: user.profileImage || defaultAvatar,
+          postsCount: 1,
+        };
+      } else {
+        acc[userKey].postsCount += 1;
+      }
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b.postsCount - a.postsCount)
+    .slice(0, 4);
 
   const handleLogout = () => {
     clearAuth();
@@ -352,56 +384,59 @@ function ExplorePage() {
           <aside className="hidden lg:block w-80 space-y-5">
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.66 11.2c-.23-.3-.51-.56-.77-.82-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32-2.59 2.08-3.61 5.75-2.39 8.9.04.1.08.2.08.33 0 .22-.15.42-.35.5-.23.1-.47.04-.66-.12a.58.58 0 01-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5.14.6.41 1.2.71 1.73 1.08 1.73 2.95 2.97 4.96 3.22 2.14.27 4.43-.12 6.07-1.6 1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.45-.46-.87-.77-1.26zm-4.05 6.28c-.6.44-1.44.57-2.13.32-.55-.2-.88-.73-.81-1.3.07-.5.42-.82.83-1.09.38-.26.81-.45 1.13-.77.15-.16.28-.34.4-.53.27.41.43.88.46 1.37.04.75-.21 1.56-.88 2z"/>
                 </svg>
                 <h3 className="text-sm font-bold text-slate-800">Trending Topics</h3>
               </div>
-              <div className="space-y-1">
-                {[
-                  { tag: 'JavaScript', color: 'text-yellow-600 bg-yellow-50' },
-                  { tag: 'React', color: 'text-cyan-600 bg-cyan-50' },
-                  { tag: 'Web Development', color: 'text-blue-600 bg-blue-50' },
-                  { tag: 'UI/UX Design', color: 'text-purple-600 bg-purple-50' },
-                  { tag: 'Machine Learning', color: 'text-green-600 bg-green-50' },
-                ].map(({ tag, color }) => (
-                  <div key={tag} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>#{tag}</span>
-                    <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                ))}
-              </div>
+
+              {trendingTopics.length === 0 ? (
+                <p className="text-xs text-slate-500">No topics yet. Add tags to posts to see trends.</p>
+              ) : (
+                <div className="space-y-1">
+                  {trendingTopics.map(([tag, count]) => (
+                    <div key={tag} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-slate-700 bg-slate-100">#{tag}</span>
+                      <span className="text-xs text-slate-500">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            
+
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <h3 className="text-sm font-bold text-slate-800">People to Follow</h3>
+                <h3 className="text-sm font-bold text-slate-800">People You May Know</h3>
               </div>
-              <div className="space-y-3">
-                {['Alice Chen', 'Marco Rossi', 'Priya Singh'].map((name, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${
-                      ['bg-violet-500', 'bg-emerald-500', 'bg-rose-500'][i]
-                    }`}>
-                      {name[0]}
+
+              {peopleYouMayKnow.length === 0 ? (
+                <p className="text-xs text-slate-500">Not enough activity yet to suggest people.</p>
+              ) : (
+                <div className="space-y-3">
+                  {peopleYouMayKnow.map((person) => (
+                    <div key={person.id} className="flex items-center gap-3">
+                      <img
+                        src={person.profileImage}
+                        alt={person.username}
+                        className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-800 text-sm truncate">{person.username}</p>
+                        <p className="text-xs text-slate-500">{person.postsCount} post{person.postsCount > 1 ? "s" : ""}</p>
+                      </div>
+                      <button className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition-colors border border-slate-200">
+                        View
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm truncate">{name}</p>
-                      <p className="text-xs text-slate-400">{['Frontend Dev', 'Designer', 'ML Engineer'][i]}</p>
-                    </div>
-                    <button className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors border border-blue-100">
-                      Follow
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </aside>
+
         </div>
       </div>
 
