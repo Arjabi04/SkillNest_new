@@ -56,20 +56,33 @@ function ExplorePage() {
     navigate("/login");
   };
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
+  const loadFeed = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const personalizedRes = await fetch(
+        "http://localhost:4000/api/recommendations/feed?postLimit=50&relevantLimit=35&exploreLimit=15&relevantThreshold=0.25",
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+
+      if (personalizedRes.ok) {
+        const personalizedData = await personalizedRes.json();
+        setPosts(personalizedData.posts || []);
+      } else {
         const res = await fetch("http://localhost:4000/api/posts");
         const data = await res.json();
         if (res.ok) setPosts(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchPosts();
+  useEffect(() => {
+    loadFeed();
   }, []);
 
   // --- Handle post interactions ---
@@ -84,22 +97,22 @@ function ExplorePage() {
       if (res.ok) {
         setPosts((prev) =>
           prev.map((post) => {
-            if (post._id === postId) {
-              const isLiked = post.likes?.some((likeUserId) => {
-                const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
-                return String(id) === String(userId);
-              });
-              return {
-                ...post,
-                likes: isLiked
-                  ? (post.likes || []).filter((id) => {
-                      const likeId = typeof id === "string" ? id : id?._id;
-                      return String(likeId) !== String(userId);
-                    })
-                  : [...(post.likes || []), userId],
-              };
-            }
-            return post;
+            if (post._id !== postId) return post;
+
+            const isLiked = (post.likes || []).some((likeUserId) => {
+              const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
+              return String(id) === String(userId);
+            });
+
+            return {
+              ...post,
+              likes: isLiked
+                ? (post.likes || []).filter((id) => {
+                    const likeId = typeof id === "string" ? id : id?._id;
+                    return String(likeId) !== String(userId);
+                  })
+                : [...(post.likes || []), userId],
+            };
           })
         );
       }
@@ -120,22 +133,21 @@ function ExplorePage() {
     if (!commentText) return;
 
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ text: commentText }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, text: commentText }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        const updatedPost = await res.json();
         setPosts(prev => prev.map(post => 
-          post._id === postId ? updatedPost : post
+          post._id === postId ? { ...post, comments: data.comments || post.comments } : post
         ));
         setNewComment(prev => ({ ...prev, [postId]: "" }));
+      } else {
+        alert(data.msg || 'Failed to add comment');
       }
     } catch (err) {
       console.error(err);
@@ -143,21 +155,24 @@ function ExplorePage() {
     }
   };
 
-  const handleDeleteComment = async (postId, commentId) => {
+  const handleDeleteComment = async (postId, commentIdx) => {
     if (!confirm('Delete this comment?')) return;
     
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment/${commentId}`, {
+      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        const updatedPost = await res.json();
         setPosts(prev => prev.map(post => 
-          post._id === postId ? updatedPost : post
+          post._id === postId ? { ...post, comments: data.comments || post.comments } : post
         ));
+      } else {
+        alert(data.msg || 'Failed to delete comment');
       }
     } catch (err) {
       console.error(err);
@@ -353,7 +368,7 @@ function ExplorePage() {
                       {/* Comments list */}
                       {post.comments && post.comments.length > 0 && (
                         <div className="space-y-3">
-                          {post.comments.map((comment) => (
+                          {post.comments.map((comment, commentIdx) => (
                             <div key={comment._id} className="flex gap-3">
                               <img
                                 src={comment.user?.profileImage || defaultAvatar}
@@ -371,7 +386,7 @@ function ExplorePage() {
                                     </span>
                                     {comment.user?._id === userId && (
                                       <button
-                                        onClick={() => handleDeleteComment(post._id, comment._id)}
+                                        onClick={() => handleDeleteComment(post._id, commentIdx)}
                                         className="text-xs text-red-500 hover:text-red-700"
                                       >
                                         Delete

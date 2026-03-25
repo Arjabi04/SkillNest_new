@@ -54,6 +54,29 @@ const buildInteractionTokenMap = (posts) => {
   return tokenMap;
 };
 
+const tokenizeText = (text) =>
+  String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2);
+
+const getPostContentTokens = (post) => {
+  const tags = Array.isArray(post.tags) ? post.tags : [];
+  return [...tags, ...tokenizeText(post.text)];
+};
+
+const buildBehaviorScore = (postTokens, interactedPostTokenSets) => {
+  if (!interactedPostTokenSets.length) return 0;
+
+  let bestScore = 0;
+  for (const tokens of interactedPostTokenSets) {
+    const score = jaccardSimilarity(postTokens, tokens);
+    if (score > bestScore) bestScore = score;
+  }
+  return bestScore;
+};
+
 const buildUserRecommendations = async (userId, limit = 10) => {
   const currentUser = await User.findById(userId).lean();
   if (!currentUser) {
@@ -270,6 +293,92 @@ router.get('/users', auth, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('User recommendations error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.get('/feed', auth, async (req, res) => {
+  try {
+    const postLimit = parseInt(req.query.postLimit) || 50;
+    const currentUserId = String(req.user._id);
+
+    // 1. Get Similarity & Posts
+    const userResult = await buildUserRecommendations(req.user._id, 100);
+    const similarityByUserId = new Map(userResult.recommendations.map(i => [String(i.userId), i.score]));
+    
+    // Self-post similarity is high, but handled by decay later
+    similarityByUserId.set(currentUserId, 0.8); 
+
+    const posts = await Post.find({})
+      .populate('user', 'username profileImage')
+      .lean();
+
+    // 2. Build "Active Topic Affinity" 
+    // We look at the tags of posts the user RECENTLY interacted with
+    const interactedPosts = posts.filter(post => 
+      (post.likes || []).some(id => String(id) === currentUserId) ||
+      (post.comments || []).some(c => String(c.user) === currentUserId)
+    ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 15);
+
+    const activeTopicTags = new Set(interactedPosts.flatMap(p => p.tags || []));
+
+    // 3. Score calculation
+    const maxLikes = Math.max(...posts.map(p => (p.likes || []).length), 1);
+    const maxComments = Math.max(...posts.map(p => (p.comments || []).length), 1);
+    const now = new Date();
+
+    const scoredPosts = posts.map(post => {
+      const postTags = post.tags || [];
+      const authorId = String(post.user?._id || post.user);
+
+      // --- 1. THE ANCHOR: Profile Interests (Art) ---
+      // This is the most important signal.
+      const interestTagSim = jaccardSimilarity(req.user.interests || [], postTags);
+
+      // --- 2. THE MODIFIER: Interaction Affinity (Gaming) ---
+      // We check if this post matches things you've liked recently.
+      const hasActiveTopicMatch = postTags.some(tag => activeTopicTags.has(tag)) ? 1 : 0;
+
+      // --- 3. THE SOCIAL SIGNAL: Author & Decay ---
+      const baseAuthorSim = similarityByUserId.get(authorId) || 0;
+      const hoursOld = (now - new Date(post.createdAt)) / (1000 * 60 * 60);
+      const timeDecay = Math.pow(0.92, hoursOld); // Slightly faster decay (8% per hour)
+      const authorScore = baseAuthorSim * timeDecay;
+
+      // Engagement score from likes + comments.
+      const likesCount = (post.likes || []).length;
+      const commentsCount = (post.comments || []).length;
+      const engagementScore =
+        (0.5 * (likesCount / maxLikes)) +
+        (0.5 * (commentsCount / maxComments));
+
+      // --- 4. NEW BALANCED FORMULA ---
+      const feedScore = 
+        (0.55 * interestTagSim) +      // PRIMARY: Your "Art" tags (highest weight)
+        (0.20 * hasActiveTopicMatch) + // SECONDARY: Your "Gaming" interactions
+        (0.15 * authorScore) +         // TERTIARY: Social proximity
+        (0.10 * engagementScore);      // QUATERNARY: Quality/Popularity
+
+      // NOTE: We removed the "directBehaviorBoost" (+0.2) entirely.
+      // This stops liked posts from teleporting to the top.
+      return {
+        ...post,
+        feedScore: Number(feedScore.toFixed(4)),
+        debug: {
+          interestTagSim: Number(interestTagSim.toFixed(4)),
+          hasActiveTopicMatch,
+          authorScore: Number(authorScore.toFixed(4))
+        }
+      };
+    });
+
+    // 4. Sort and Return
+    const rankedPosts = scoredPosts
+      .sort((a, b) => b.feedScore - a.feedScore)
+      .slice(0, postLimit);
+
+    res.json({ strategy: 'decay-topic-affinity-v2', posts: rankedPosts });
+  } catch (err) {
     res.status(500).json({ msg: 'Server error' });
   }
 });
