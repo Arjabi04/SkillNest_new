@@ -1225,7 +1225,7 @@ router.post("/:communityId/posts/:postId/review-report", isCommunityAdminOrModer
     const community = req.community;
     const reviewerId = req.userId;
 
-    if (!["dismiss", "ban"].includes(action)) {
+    if (!["dismiss", "ban", "delete"].includes(action)) {
       return res.status(400).json({ msg: "Invalid review action" });
     }
 
@@ -1239,8 +1239,12 @@ router.post("/:communityId/posts/:postId/review-report", isCommunityAdminOrModer
       return res.status(400).json({ msg: "This post has no pending reports" });
     }
 
-    if (action === "ban" && !String(reviewNote || "").trim()) {
-      return res.status(400).json({ msg: "Ban reason is required" });
+    const trimmedReviewNote = String(reviewNote || "").trim();
+
+    if ((action === "ban" || action === "delete") && !trimmedReviewNote) {
+      return res.status(400).json({
+        msg: action === "ban" ? "Ban reason is required" : "Delete reason is required",
+      });
     }
 
     const resolvedBanType = banType || "permanent";
@@ -1253,7 +1257,7 @@ router.post("/:communityId/posts/:postId/review-report", isCommunityAdminOrModer
       if (report.status !== "pending") return;
       report.status = action === "dismiss" ? "dismissed" : "actioned";
       report.reviewedBy = reviewerId;
-      report.reviewNote = String(reviewNote || "").trim();
+      report.reviewNote = trimmedReviewNote;
       report.reviewedAt = reviewedAt;
     });
 
@@ -1262,12 +1266,40 @@ router.post("/:communityId/posts/:postId/review-report", isCommunityAdminOrModer
       return res.json({ msg: "Report marked as nothing to worry about" });
     }
 
+    if (action === "delete") {
+      const postOwnerId = post.user.toString();
+
+      await post.save();
+      await Post.findByIdAndDelete(postId);
+
+      try {
+        await Notification.createNotification({
+          recipient: postOwnerId,
+          sender: reviewerId,
+          type: "system",
+          title: `Post removed in ${community.name}`,
+          message: `Your post in "${community.name}" was removed by community staff. Reason: ${trimmedReviewNote}`,
+          relatedCommunity: community._id,
+          actionUrl: `/communities?communityId=${community._id}`,
+          metadata: {
+            postId: post._id,
+            reason: trimmedReviewNote,
+            action: "delete_post_after_report",
+          },
+        });
+      } catch (notificationError) {
+        console.error("Reported post delete notification error:", notificationError);
+      }
+
+      return res.json({ msg: "Reported post deleted and author notified" });
+    }
+
     const banResult = await banUserFromCommunity({
       community,
       targetUserId: post.user.toString(),
       adminId: reviewerId,
       banType: resolvedBanType,
-      reason: String(reviewNote).trim(),
+      reason: trimmedReviewNote,
       expiresAt: resolvedBanType === "temporary" ? expiresAt || null : null,
     });
 

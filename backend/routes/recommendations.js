@@ -6,7 +6,8 @@ import User from '../models/User.js';
 import Community from '../models/Community.js';
 import Event from '../models/Event.js';
 
-const toSet = (arr) => new Set(Array.isArray(arr) ? arr.map(String) : []);
+const toSet = (arr) => 
+  new Set(Array.isArray(arr) ? arr.map(s => String(s).trim().toLowerCase()) : []);
 
 const jaccardSimilarity = (arrA, arrB) => {
   const setA = toSet(arrA);
