@@ -5,6 +5,7 @@ import auth from '../middleware/auth.js';
 import User from '../models/User.js';
 import Community from '../models/Community.js';
 import Event from '../models/Event.js';
+import Post from '../models/Post.js';
 
 const toSet = (arr) => 
   new Set(Array.isArray(arr) ? arr.map(s => String(s).trim().toLowerCase()) : []);
@@ -29,22 +30,49 @@ const normalizeByMax = (value, maxValue) => {
   return value / maxValue;
 };
 
+const buildInteractionTokenMap = (posts) => {
+  const tokenMap = new Map();
+
+  for (const post of posts) {
+    const postId = String(post._id);
+
+    for (const likerId of post.likes || []) {
+      const key = String(likerId);
+      if (!tokenMap.has(key)) tokenMap.set(key, []);
+      tokenMap.get(key).push(`like:${postId}`);
+    }
+
+    for (const comment of post.comments || []) {
+      const commenterId = comment?.user;
+      if (!commenterId) continue;
+      const key = String(commenterId);
+      if (!tokenMap.has(key)) tokenMap.set(key, []);
+      tokenMap.get(key).push(`comment:${postId}`);
+    }
+  }
+
+  return tokenMap;
+};
+
 const buildUserRecommendations = async (userId, limit = 10) => {
   const currentUser = await User.findById(userId).lean();
   if (!currentUser) {
     return { missingUser: true, recommendations: [] };
   }
 
-  const [allUsers, approvedCommunities, approvedEvents] = await Promise.all([
+  const [allUsers, approvedCommunities, approvedEvents, posts] = await Promise.all([
     User.find({ _id: { $ne: userId } }).select('username profileImage interests').lean(),
     Community.find({ status: 'approved' }).select('members').lean(),
     Event.find({
       status: 'published',
       $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false } }]
-    }).select('attendees').lean()
+    }).select('attendees').lean(),
+    Post.find({}).select('likes comments.user').lean()
   ]);
 
   const currentUserId = String(userId);
+  const interactionTokenMap = buildInteractionTokenMap(posts);
+  const currentInteractionTokens = interactionTokenMap.get(currentUserId) || [];
 
   const currentCommunities = approvedCommunities
     .filter((community) => (community.members || []).some((memberId) => String(memberId) === currentUserId))
@@ -57,6 +85,8 @@ const buildUserRecommendations = async (userId, limit = 10) => {
   const recommendations = allUsers
     .map((candidate) => {
       const interestSimilarity = jaccardSimilarity(currentUser.interests, candidate.interests);
+      const candidateInteractionTokens = interactionTokenMap.get(String(candidate._id)) || [];
+      const interactionSimilarity = jaccardSimilarity(currentInteractionTokens, candidateInteractionTokens);
 
       const candidateCommunityIds = approvedCommunities
         .filter((community) => (community.members || []).some((memberId) => String(memberId) === String(candidate._id)))
@@ -79,7 +109,7 @@ const buildUserRecommendations = async (userId, limit = 10) => {
         Math.max(currentEvents.length, candidateEventIds.length, 1)
       );
 
-      const score = (0.5 * interestSimilarity) + (0.3 * mutualConnections) + (0.2 * communityOverlap);
+      const score = (0.4 * interestSimilarity) + (0.2 * interactionSimilarity) + (0.25 * mutualConnections) + (0.15 * communityOverlap);
 
       return {
         userId: candidate._id,
@@ -88,6 +118,7 @@ const buildUserRecommendations = async (userId, limit = 10) => {
         score: Number(score.toFixed(4)),
         explanation: {
           sharedInterests: Number((interestSimilarity * 100).toFixed(1)),
+          interactionSimilarity: Number((interactionSimilarity * 100).toFixed(1)),
           mutualConnections: Number((mutualConnections * 100).toFixed(1)),
           communityOverlap: Number((communityOverlap * 100).toFixed(1))
         }
@@ -98,8 +129,8 @@ const buildUserRecommendations = async (userId, limit = 10) => {
 
   return {
     missingUser: false,
-    strategy: 'hybrid-content-overlap',
-    scoring: '0.5*interest + 0.3*mutual + 0.2*community',
+    strategy: 'hybrid-content-interaction-overlap',
+    scoring: '0.4*interest + 0.2*interaction(likes/comments) + 0.25*mutual + 0.15*community',
     recommendations
   };
 };
