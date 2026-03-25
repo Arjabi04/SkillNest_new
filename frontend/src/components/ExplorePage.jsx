@@ -75,21 +75,27 @@ function ExplorePage() {
   // --- Handle post interactions ---
   const handleLikePost = async (postId) => {
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
 
       if (res.ok) {
         setPosts((prev) =>
           prev.map((post) => {
             if (post._id === postId) {
-              const isLiked = post.likes?.includes(userId);
+              const isLiked = post.likes?.some((likeUserId) => {
+                const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
+                return String(id) === String(userId);
+              });
               return {
                 ...post,
                 likes: isLiked
-                  ? post.likes.filter((id) => id !== userId)
+                  ? (post.likes || []).filter((id) => {
+                      const likeId = typeof id === "string" ? id : id?._id;
+                      return String(likeId) !== String(userId);
+                    })
                   : [...(post.likes || []), userId],
               };
             }
@@ -217,6 +223,12 @@ function ExplorePage() {
               </div>
             ) : (
               posts.map((post) => (
+                (() => {
+                  const isLiked = (post.likes || []).some((likeUserId) => {
+                    const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
+                    return String(id) === String(userId);
+                  });
+                  return (
                 <article
                   key={post._id}
                   className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
@@ -276,14 +288,14 @@ function ExplorePage() {
                     <button
                       onClick={() => handleLikePost(post._id)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-all ${
-                        post.likes?.includes(userId)
+                        isLiked
                           ? "bg-red-50 text-red-600 hover:bg-red-100"
                           : "text-slate-600 hover:bg-slate-100"
                       }`}
                     >
                       <svg 
-                        className={`w-5 h-5 ${post.likes?.includes(userId) ? 'fill-current' : ''}`} 
-                        fill={post.likes?.includes(userId) ? "currentColor" : "none"}
+                        className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} 
+                        fill={isLiked ? "currentColor" : "none"}
                         stroke="currentColor" 
                         viewBox="0 0 24 24"
                       >
@@ -376,6 +388,8 @@ function ExplorePage() {
                     </div>
                   )}
                 </article>
+                  );
+                })()
               ))
             )}
           </main>
