@@ -7,6 +7,7 @@ import ChooseInterests from "./components/ChooseInterests";
 import UserProfile from "./components/UserProfile";
 import ExplorePage from "./components/ExplorePage";
 import CommunitiesPage from "./components/CommunitiesPage";
+import MarketplacePage from "./components/MarketplacePage";
 import EventsPage from "./components/EventsPage";
 import NotificationsPage from "./components/NotificationsPage";
 import AdminLogin from "./components/AdminLogin";
@@ -72,6 +73,7 @@ function AppRoutes() {
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/communities" element={<CommunitiesPage />} />
+            <Route path="/marketplace" element={<MarketplacePage />} />
           <Route path="/events" element={<EventsPage />} />          <Route path="/notifications" element={<NotificationsPage />} />        </Routes>
       </div>
     );

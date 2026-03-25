@@ -5,10 +5,12 @@
 export const getCommunityStatus = (community, userId) => {
   if (!community || !userId) return 'none';
 
+  const normalizedUserId = String(userId);
+
   // Check if user is admin
   if (community.admins?.some(admin => {
     const adminId = typeof admin === 'string' ? admin : admin._id;
-    return adminId === userId;
+    return String(adminId) === normalizedUserId;
   })) {
     return 'admin';
   }
@@ -16,7 +18,7 @@ export const getCommunityStatus = (community, userId) => {
   // Check if user is moderator
   if (community.moderators?.some(mod => {
     const modId = typeof mod === 'string' ? mod : mod._id;
-    return modId === userId;
+    return String(modId) === normalizedUserId;
   })) {
     return 'moderator';
   }
@@ -24,7 +26,7 @@ export const getCommunityStatus = (community, userId) => {
   // Check if user is member
   if (community.members?.some(member => {
     const memberId = typeof member === 'string' ? member : member._id;
-    return memberId === userId;
+    return String(memberId) === normalizedUserId;
   })) {
     return 'member';
   }
@@ -32,7 +34,7 @@ export const getCommunityStatus = (community, userId) => {
   // Check if user has pending request (if this data is available)
   if (community.pendingRequests?.some(request => {
     const requesterId = typeof request === 'string' ? request : request._id;
-    return requesterId === userId;
+    return String(requesterId) === normalizedUserId;
   })) {
     return 'pending';
   }

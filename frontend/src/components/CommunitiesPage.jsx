@@ -667,6 +667,11 @@ const CommunitiesPage = () => {
   };
 
   const handleReportPost = async (postId) => {
+    if (!selectedCommunity?._id || !userId) {
+      alert('Session expired. Please log in again and reopen this community.');
+      return;
+    }
+
     const payload = reportFormData[postId] || {};
     if (!String(payload.reason || '').trim()) {
       alert('Please select a reason');
@@ -706,12 +711,20 @@ const CommunitiesPage = () => {
 
   const handleReviewReportedPost = async (postId, action) => {
     const payload = reviewData[postId] || {};
-    if (action === 'ban' && !String(payload.note || '').trim()) {
+    const shouldBanAuthor = action === 'delete' && Boolean(payload.banAuthor);
+    const resolvedAction = shouldBanAuthor ? 'ban' : action;
+
+    if (resolvedAction === 'ban' && !String(payload.note || '').trim()) {
       alert('Please provide the ban reason');
       return;
     }
 
-    if (action === 'ban' && payload.banType === 'temporary' && !payload.expiresAt) {
+    if (resolvedAction === 'delete' && !String(payload.note || '').trim()) {
+      alert('Please provide why the post is being deleted');
+      return;
+    }
+
+    if (resolvedAction === 'ban' && payload.banType === 'temporary' && !payload.expiresAt) {
       alert('Please provide when the temporary ban should end');
       return;
     }
@@ -723,7 +736,7 @@ const CommunitiesPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          action,
+          action: resolvedAction,
           reviewNote: payload.note || '',
           banType: payload.banType || 'permanent',
           expiresAt: payload.banType === 'temporary' ? payload.expiresAt || '' : '',
@@ -1382,8 +1395,8 @@ const CommunitiesPage = () => {
                          </div>
                        )}
                        {(() => {
-                         const postUserId = typeof post.user === 'string' ? post.user : post.user._id;
-                         const isPostOwner = postUserId === userId;
+                         const postUserId = String(typeof post.user === 'string' ? post.user : post.user?._id || '');
+                         const isPostOwner = postUserId === String(userId || '');
                          const isAdmin = isCommunityAdmin(selectedCommunity, userId);
                          const isMod = isCommunityModerator(selectedCommunity, userId);
                          const canDelete = isPostOwner || isAdmin || isMod;
@@ -1470,7 +1483,7 @@ const CommunitiesPage = () => {
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-black text-slate-900">Reported Posts</h3>
-                      <p className="mt-1 text-sm text-slate-500">Each card shows the reported content, the reason, and the moderation controls.</p>
+                      <p className="mt-1 text-sm text-slate-500">Each card shows the reported content, the reason, and controls to dismiss, delete, or ban.</p>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -1539,10 +1552,24 @@ const CommunitiesPage = () => {
                           </div>
 
                           <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/70 p-4">
-                            <p className="text-sm font-bold text-slate-900">Ban template</p>
-                            <p className="mt-1 text-sm text-slate-500">Use the same temporary or permanent ban structure as manual member bans.</p>
+                            <p className="text-sm font-bold text-slate-900">Moderation note</p>
+                            <p className="mt-1 text-sm text-slate-500">Delete post is default. Tick the option below if you also want to ban the author.</p>
 
-                            <div className="mt-4">
+                            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(reviewData[post._id]?.banAuthor)}
+                                onChange={(e) => setReviewData((prev) => ({
+                                  ...prev,
+                                  [post._id]: { ...prev[post._id], banAuthor: e.target.checked },
+                                }))}
+                                className="h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-500"
+                              />
+                              Tick to ban author after deleting this post
+                            </label>
+
+                            {Boolean(reviewData[post._id]?.banAuthor) && (
+                              <div className="mt-4">
                               <label className="mb-1 block text-xs font-medium text-slate-700">Ban Type</label>
                               <select
                                 value={reviewData[post._id]?.banType || 'permanent'}
@@ -1555,9 +1582,10 @@ const CommunitiesPage = () => {
                                 <option value="temporary">Temporary</option>
                                 <option value="permanent">Permanent</option>
                               </select>
-                            </div>
+                              </div>
+                            )}
 
-                            {(reviewData[post._id]?.banType || 'permanent') === 'temporary' && (
+                            {Boolean(reviewData[post._id]?.banAuthor) && (reviewData[post._id]?.banType || 'permanent') === 'temporary' && (
                               <div className="mt-4">
                                 <label className="mb-1 block text-xs font-medium text-slate-700">Expires At</label>
                                 <input
@@ -1579,7 +1607,7 @@ const CommunitiesPage = () => {
                                 [post._id]: { ...prev[post._id], note: e.target.value },
                               }))}
                               rows={3}
-                              placeholder="Add the ban reason or dismissal note."
+                              placeholder="Add reason (required for delete or ban)."
                               className="mt-4 w-full rounded-2xl border border-red-200 bg-white p-3 text-sm"
                             />
                           </div>
@@ -1593,11 +1621,15 @@ const CommunitiesPage = () => {
                               Not an issue
                             </button>
                             <button
-                              onClick={() => handleReviewReportedPost(post._id, 'ban')}
+                              onClick={() => handleReviewReportedPost(post._id, 'delete')}
                               disabled={Boolean(reportActionLoading[post._id])}
-                              className="flex-1 rounded-2xl bg-red-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                              className="flex-1 rounded-2xl bg-orange-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
                             >
-                              {reportActionLoading[post._id] ? 'Reviewing...' : 'Ban author'}
+                              {reportActionLoading[post._id]
+                                ? 'Reviewing...'
+                                : Boolean(reviewData[post._id]?.banAuthor)
+                                  ? 'Delete post + ban author'
+                                  : 'Delete post'}
                             </button>
                           </div>
                         </div>
