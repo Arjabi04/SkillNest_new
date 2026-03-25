@@ -56,6 +56,12 @@ function ExplorePage() {
     navigate("/login");
   };
 
+  const handleNavigateToCommunity = (communityId) => {
+    if (!communityId) return;
+    const query = new URLSearchParams({ communityId: String(communityId), userId: String(userId) });
+    navigate(`/communities?${query.toString()}`);
+  };
+
   const loadFeed = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -259,12 +265,20 @@ function ExplorePage() {
                         {post.user?.username || "Unknown User"}
                       </h3>
                       <p className="text-sm text-slate-500">
-                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                        {new Date(post.postedAt || post.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
-                          month: 'long', 
+                          month: 'long',
                           day: 'numeric'
                         })}
                       </p>
+                      {post.communityMeta?.id && (
+                        <button
+                          onClick={() => handleNavigateToCommunity(post.communityMeta.id)}
+                          className="mt-1 inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                        >
+                          from {post.communityMeta.name || "Community"}
+                        </button>
+                      )}
                     </div>
                   </div>
 

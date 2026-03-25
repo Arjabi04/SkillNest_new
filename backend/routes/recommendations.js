@@ -311,11 +311,24 @@ router.get('/feed', auth, async (req, res) => {
 
     const posts = await Post.find({})
       .populate('user', 'username profileImage')
+      .populate('community', 'name')
       .lean();
 
-    // 2. Build "Active Topic Affinity" 
+    // Only members can see community posts in Explore feed.
+    const userCommunityIds = new Set(
+      (
+        await Community.find({ members: req.user._id, status: 'approved' }).select('_id').lean()
+      ).map((community) => String(community._id))
+    );
+
+    const visiblePosts = posts.filter((post) => {
+      if (!post.community) return true;
+      return userCommunityIds.has(String(post.community._id || post.community));
+    });
+
+    // 2. Build "Active Topic Affinity"
     // We look at the tags of posts the user RECENTLY interacted with
-    const interactedPosts = posts.filter(post => 
+    const interactedPosts = visiblePosts.filter(post =>
       (post.likes || []).some(id => String(id) === currentUserId) ||
       (post.comments || []).some(c => String(c.user) === currentUserId)
     ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 15);
@@ -323,11 +336,11 @@ router.get('/feed', auth, async (req, res) => {
     const activeTopicTags = new Set(interactedPosts.flatMap(p => p.tags || []));
 
     // 3. Score calculation
-    const maxLikes = Math.max(...posts.map(p => (p.likes || []).length), 1);
-    const maxComments = Math.max(...posts.map(p => (p.comments || []).length), 1);
+    const maxLikes = Math.max(...visiblePosts.map(p => (p.likes || []).length), 1);
+    const maxComments = Math.max(...visiblePosts.map(p => (p.comments || []).length), 1);
     const now = new Date();
 
-    const scoredPosts = posts.map(post => {
+    const scoredPosts = visiblePosts.map(post => {
       const postTags = post.tags || [];
       const authorId = String(post.user?._id || post.user);
 
@@ -363,6 +376,13 @@ router.get('/feed', auth, async (req, res) => {
       // This stops liked posts from teleporting to the top.
       return {
         ...post,
+        postedAt: post.createdAt,
+        communityMeta: post.community
+          ? {
+              id: String(post.community._id || post.community),
+              name: post.community.name || 'Community'
+            }
+          : null,
         feedScore: Number(feedScore.toFixed(4)),
         debug: {
           interestTagSim: Number(interestTagSim.toFixed(4)),
