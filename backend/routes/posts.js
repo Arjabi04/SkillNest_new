@@ -10,7 +10,7 @@ const storage = memoryStorage();
 const upload = multer({ storage });
 
 // CREATE POST
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", upload.array("images", 6), async (req, res) => {
   try {
     const { userId, text, tags } = req.body || {};
     if (!userId || !String(text || "").trim()) return res.status(400).json({ msg: "Missing user or text" });
@@ -30,28 +30,31 @@ router.post("/", upload.single("image"), async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    let imageUrl = "";
+    let imageUrls = [];
 
-    if (req.file) {
-      // Upload to Cloudinary
-      const uploadPromise = new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          { folder: "skillnest_posts" },
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result.secure_url);
-          }
-        );
-        createReadStream(req.file.buffer).pipe(uploadStream);
+    if (req.files && req.files.length > 0) {
+      // Upload all images to Cloudinary
+      const uploadPromises = req.files.map((file) => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { folder: "skillnest_posts" },
+            (err, result) => {
+              if (err) reject(err);
+              else resolve(result.secure_url);
+            }
+          );
+          createReadStream(file.buffer).pipe(uploadStream);
+        });
       });
 
-      imageUrl = await uploadPromise;
+      imageUrls = await Promise.all(uploadPromises);
     }
 
     const post = new Post({
-      user: user._id, // matches your schema
+      user: user._id,
       text: String(text).trim(),
-      image: imageUrl,
+      images: imageUrls,
+      ...(imageUrls.length > 0 && { image: imageUrls[0] }), // Set first image as primary for backward compatibility
       tags: tagArray,
     });
 

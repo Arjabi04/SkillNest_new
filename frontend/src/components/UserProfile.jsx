@@ -42,8 +42,8 @@ function UserProfile() {
   // --- Posts ---
   const [posts, setPosts] = useState([]);
   const [newPostText, setNewPostText] = useState("");
-  const [newPostFile, setNewPostFile] = useState(null);
-  const [newPostPreview, setNewPostPreview] = useState(null);
+  const [newPostFiles, setNewPostFiles] = useState([]);
+  const [newPostPreviews, setNewPostPreviews] = useState([]);
   const [newPostTags, setNewPostTags] = useState([]);
   const [newTagInput, setNewTagInput] = useState("");
   const [posting, setPosting] = useState(false);
@@ -69,13 +69,16 @@ function UserProfile() {
     return () => URL.revokeObjectURL(objectUrl);
   }, [headerFile]);
 
-  // --- Preview for new post image ---
+  // --- Preview for new post images ---
   useEffect(() => {
-    if (!newPostFile) return setNewPostPreview(null);
-    const objectUrl = URL.createObjectURL(newPostFile);
-    setNewPostPreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [newPostFile]);
+    if (newPostFiles.length === 0) {
+      setNewPostPreviews([]);
+      return;
+    }
+    const previews = newPostFiles.map((file) => URL.createObjectURL(file));
+    setNewPostPreviews(previews);
+    return () => previews.forEach((url) => URL.revokeObjectURL(url));
+  }, [newPostFiles]);
 
   // --- Fetch user and posts ---
   useEffect(() => {
@@ -201,11 +204,12 @@ function UserProfile() {
     setEditingInterests(false);
   };
 
-  // --- Handle image selection for post ---
+  // --- Handle image selection for post (up to 6 images) ---
   const handlePostImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewPostFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const selected = files.slice(0, 6); // Limit to 6 images
+      setNewPostFiles(selected);
     }
   };
 
@@ -233,16 +237,16 @@ function UserProfile() {
     setNewPostTags((prev) => prev.filter((t) => t !== tag));
   };
 
-  // --- Remove image from post ---
-  const handleRemovePostImage = () => {
-    setNewPostFile(null);
-    setNewPostPreview(null);
+  // --- Remove image(s) from post ---
+  const handleRemovePostImage = (index) => {
+    setNewPostFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewPostPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   // --- New Post ---
   const handleNewPost = async () => {
-    if (!newPostText.trim() && !newPostFile) {
-      alert("Please add some text or an image");
+    if (!newPostText.trim() && newPostFiles.length === 0) {
+      alert("Please add some text or at least one image");
       return;
     }
     setPosting(true);
@@ -250,7 +254,7 @@ function UserProfile() {
     const formData = new FormData();
     formData.append("userId", userId);
     formData.append("text", newPostText || "");
-    if (newPostFile) formData.append("image", newPostFile);
+    newPostFiles.forEach((file) => formData.append("images", file));
     if (newPostTags.length) {
       formData.append("tags", JSON.stringify(newPostTags));
     }
@@ -267,8 +271,8 @@ function UserProfile() {
         );
         setPosts(await resPosts.json());
         setNewPostText("");
-        setNewPostFile(null);
-        setNewPostPreview(null);
+        setNewPostFiles([]);
+        setNewPostPreviews([]);
         setNewPostTags([]);
         setNewTagInput("");
       } else {
@@ -628,23 +632,31 @@ function UserProfile() {
             </div>
           </div>
 
-          {/* Image Preview */}
-          {newPostPreview && (
-            <div className="relative mb-4 rounded-lg overflow-hidden border border-gray-200">
-              <img
-                src={newPostPreview}
-                alt="Post Preview"
-                className="w-full max-h-64 object-contain"
-              />
-              <button
-                onClick={handleRemovePostImage}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                title="Remove image"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+          {/* Image Previews */}
+          {newPostPreviews.length > 0 && (
+            <div className="mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {newPostPreviews.map((preview, idx) => (
+                  <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200">
+                    <img
+                      src={preview}
+                      alt={`Preview ${idx + 1}`}
+                      className="w-full h-32 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePostImage(idx)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                      title="Remove image"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">{newPostPreviews.length}/6 images selected</p>
             </div>
           )}
 
@@ -682,9 +694,10 @@ function UserProfile() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="text-sm font-medium">Photo</span>
+                <span className="text-sm font-medium">Photo (up to 6)</span>
                 <input 
                   type="file" 
+                  multiple
                   accept="image/*"
                   onChange={handlePostImageSelect} 
                   className="hidden" 
@@ -693,7 +706,7 @@ function UserProfile() {
             </div>
             <button 
               onClick={handleNewPost} 
-              disabled={posting || (!newPostText.trim() && !newPostFile)}
+              disabled={posting || (!newPostText.trim() && newPostFiles.length === 0)}
               className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
             >
               {posting ? (
@@ -840,12 +853,25 @@ function UserProfile() {
                   {post.text && (
                     <p className="text-gray-800 mb-4 leading-relaxed whitespace-pre-wrap">{post.text}</p>
                   )}
-                  {post.image && (
-                    <div className="rounded-lg  mb-2 border border-gray-200">
+                  
+                  {post.images && Array.isArray(post.images) && post.images.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                      {post.images.map((img, idx) => (
+                        <div key={idx} className="rounded-lg overflow-hidden border border-gray-200">
+                          <img 
+                            src={img} 
+                            alt={`Post image ${idx + 1}`} 
+                            className="w-full h-32 object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : post.image && (
+                    <div className="rounded-lg mb-4 border border-gray-200">
                       <img 
                         src={post.image} 
                         alt="Post" 
-                        className="w-full max-h-100 object-contain"
+                        className="w-full max-h-96 object-contain"
                       />
                     </div>
                   )}

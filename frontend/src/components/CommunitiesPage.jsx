@@ -97,9 +97,9 @@ const CommunitiesPage = () => {
   const [communityMembers, setCommunityMembers] = useState({ members: [], admins: [], moderators: [], bannedUsers: [] });
   const [communityPosts, setCommunityPosts] = useState([]);
   const [newPostText, setNewPostText] = useState('');
-  const [newPostImage, setNewPostImage] = useState(null);
+  const [newPostImages, setNewPostImages] = useState([]);
   const [newPostTags, setNewPostTags] = useState([]);
-  const [newPostPreview, setNewPostPreview] = useState(null);
+  const [newPostPreviews, setNewPostPreviews] = useState([]);
   const [communityInterests, setCommunityInterests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -210,11 +210,14 @@ const CommunitiesPage = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!newPostImage) return setNewPostPreview(null);
-    const objectUrl = URL.createObjectURL(newPostImage);
-    setNewPostPreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [newPostImage]);
+    if (newPostImages.length === 0) {
+      setNewPostPreviews([]);
+      return;
+    }
+    const previews = newPostImages.map((file) => URL.createObjectURL(file));
+    setNewPostPreviews(previews);
+    return () => previews.forEach((url) => URL.revokeObjectURL(url));
+  }, [newPostImages]);
 
   useEffect(() => {
     if (!selectedCommunity) {
@@ -519,13 +522,11 @@ const CommunitiesPage = () => {
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!newPostText.trim() && !newPostImage) return;
+    if (!newPostText.trim() && newPostImages.length === 0) return;
     const formData = new FormData();
     formData.append('userId', userId);
     formData.append('text', newPostText);
-    if (newPostImage) {
-      formData.append('image', newPostImage);
-    }
+    newPostImages.forEach((file) => formData.append('images', file));
     if (newPostTags.length) {
       formData.append('tags', JSON.stringify(newPostTags));
     }
@@ -536,8 +537,8 @@ const CommunitiesPage = () => {
       });
       if (res.ok) {
         setNewPostText('');
-        setNewPostImage(null);
-        setNewPostPreview(null);
+        setNewPostImages([]);
+        setNewPostPreviews([]);
         setNewPostTags([]);
         loadCommunityPosts(selectedCommunity._id);
       } else {

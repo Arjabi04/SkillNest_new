@@ -249,6 +249,9 @@ function ExplorePage() {
                     const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
                     return String(id) === String(userId);
                   });
+                  const postImages = Array.isArray(post.images) && post.images.length > 0
+                    ? post.images
+                    : (post.image ? [post.image] : []);
                   return (
                 <article
                   key={post._id}
@@ -301,13 +304,17 @@ function ExplorePage() {
                       </div>
                     )}
 
-                    {post.image && (
-                      <div className="mt-4 rounded-xl overflow-hidden bg-slate-100">
-                        <img
-                          src={post.image}
-                          alt="Post content"
-                          className="w-full h-auto object-cover"
-                        />
+                    {postImages.length > 0 && (
+                      <div className={`mt-4 grid gap-2 rounded-xl overflow-hidden ${postImages.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                        {postImages.slice(0, 6).map((img, idx) => (
+                          <div key={`${post._id}-img-${idx}`} className="bg-slate-100">
+                            <img
+                              src={img}
+                              alt={`Post content ${idx + 1}`}
+                              className={`w-full object-cover ${postImages.length === 1 ? "max-h-[420px]" : "h-48"}`}
+                            />
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
