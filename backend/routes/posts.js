@@ -65,9 +65,10 @@ router.post("/", upload.single("image"), async (req, res) => {
 });
 
 // GET POSTS BY USER
+// Community posts are excluded from profile pages
 router.get("/:userId", async (req, res) => {
   try {
-    const posts = await Post.find({ user: req.params.userId })
+    const posts = await Post.find({ user: req.params.userId, community: { $exists: false } })
       .populate("user", "username profileImage")
       .populate("comments.user", "username profileImage")
       .sort({ createdAt: -1 });
