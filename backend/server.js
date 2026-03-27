@@ -14,17 +14,57 @@ import notificationsRoute from './routes/notifications.js';
 import recommendationsRoute from './routes/recommendations.js';
 import marketplaceRoute from './routes/marketplace.js';
 import cors from 'cors';
+import Stripe from 'stripe';
+import Product from './models/Product.js';
 
 const app = express();
+const getStripeClient = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3002'], 
+  origin: ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:5173'], 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token'],
   preflightContinue: false,
   optionsSuccessStatus: 200
 }));
+
+// Stripe webhook requires raw body for signature verification.
+app.post('/api/marketplace/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const signature = req.headers['stripe-signature'];
+
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(500).send('Stripe webhook is not configured');
+  }
+
+  let event;
+  try {
+    const stripe = getStripeClient();
+    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const productId = session?.metadata?.productId;
+
+      if (productId) {
+        await Product.findOneAndUpdate(
+          { _id: productId, isActive: true },
+          { $set: { isActive: false } }
+        );
+      }
+    }
+
+    return res.json({ received: true });
+  } catch (err) {
+    console.error('Webhook processing error:', err);
+    return res.status(500).json({ msg: 'Webhook processing failed' });
+  }
+});
 
 app.use(express.json());
 

@@ -5,6 +5,9 @@ import { createReadStream } from "streamifier";
 import cloudinary from "../config/cloudinary.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import Stripe from "stripe";
+
+const getStripeClient = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const storage = memoryStorage();
 const upload = multer({ storage, limits: { files: 8, fileSize: 8 * 1024 * 1024 } });
@@ -93,6 +96,69 @@ router.get("/", async (req, res) => {
     res.json({ products });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Create Stripe Checkout session for one-time product purchase.
+router.post("/checkout/session", async (req, res) => {
+  try {
+    const { productId, buyerId } = req.body || {};
+
+    if (!productId || !buyerId) {
+      return res.status(400).json({ msg: "productId and buyerId are required" });
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ msg: "Stripe is not configured" });
+    }
+
+    const stripe = getStripeClient();
+
+    const product = await Product.findById(productId).populate("seller", "_id username");
+    if (!product || !product.isActive) {
+      return res.status(404).json({ msg: "Product not available" });
+    }
+
+    if (String(product.seller?._id || "") === String(buyerId)) {
+      return res.status(400).json({ msg: "You cannot buy your own listing" });
+    }
+
+    const unitAmount = Math.round(Number(product.price) * 100);
+    if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
+      return res.status(400).json({ msg: "Invalid product price" });
+    }
+
+    const requestOrigin = typeof req.headers.origin === "string" ? req.headers.origin : "";
+    const frontendUrl = process.env.FRONTEND_URL || requestOrigin || "http://localhost:3000";
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: unitAmount,
+            product_data: {
+              name: product.title,
+              images: Array.isArray(product.images) ? product.images.slice(0, 1) : [],
+            },
+          },
+        },
+      ],
+      success_url: `${frontendUrl}/marketplace?payment=success`,
+      cancel_url: `${frontendUrl}/marketplace?payment=cancel`,
+      metadata: {
+        productId: String(product._id),
+        buyerId: String(buyerId),
+        sellerId: String(product.seller?._id || ""),
+      },
+    });
+
+    res.json({ sessionId: session.id, checkoutUrl: session.url || null });
+  } catch (err) {
+    console.error("Create checkout session error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });

@@ -63,6 +63,7 @@ function MarketplacePage() {
   const [reportDrafts, setReportDrafts] = useState({});
   const [reportOpenByProduct, setReportOpenByProduct] = useState({});
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [paymentPopup, setPaymentPopup] = useState(null);
 
   const availableCategories = useMemo(() => {
     const merged = [...defaultCategories, ...categories];
@@ -131,6 +132,32 @@ function MarketplacePage() {
     const stillExists = products.some((product) => product._id === selectedProductId);
     if (!stillExists) setSelectedProductId(null);
   }, [products, selectedProductId]);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const paymentStatus = query.get("payment");
+
+    if (paymentStatus === "success") {
+      setPaymentPopup({
+        type: "success",
+        title: "Payment Successful",
+        message: "Payment was successful. Continue browsing.",
+      });
+    } else if (paymentStatus === "cancel") {
+      setPaymentPopup({
+        type: "cancel",
+        title: "Payment Cancelled",
+        message: "Payment was cancelled.",
+      });
+    } else {
+      return;
+    }
+
+    query.delete("payment");
+    const nextQuery = query.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, []);
 
   const handleApplyFilters = () => {
     setFilters({ ...draftFilters });
@@ -298,6 +325,38 @@ function MarketplacePage() {
       alert("Failed to submit report");
     } finally {
       setReportLoading((prev) => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const handleBuyNow = async (productId) => {
+    if (!userId) {
+      alert("Please log in to continue");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/checkout/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, buyerId: userId }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.msg || "Unable to start checkout");
+        return;
+      }
+
+      if (!data.checkoutUrl) {
+        alert("Checkout URL missing from server response");
+        return;
+      }
+
+      // redirectToCheckout was removed in newer Stripe.js versions.
+      window.location.assign(data.checkoutUrl);
+    } catch (err) {
+      console.error(err);
+      alert("Unable to start checkout");
     }
   };
 
@@ -535,6 +594,37 @@ function MarketplacePage() {
         </div>
       </div>
 
+      {paymentPopup && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{paymentPopup.title}</h3>
+                <p className="mt-1 text-sm text-slate-600">{paymentPopup.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentPopup(null)}
+                className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPaymentPopup(null)}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${
+                  paymentPopup.type === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-700 hover:bg-slate-600"
+                }`}
+              >
+                Continue Browsing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedProduct && (() => {
         const isOwnProduct = String(selectedProduct.seller?._id || "") === String(userId);
         const reviewDraft = reviewDrafts[selectedProduct._id] || { rating: 5, comment: "" };
@@ -584,7 +674,7 @@ function MarketplacePage() {
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => alert("Buy flow coming soon")}
+                      onClick={() => handleBuyNow(selectedProduct._id)}
                       className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                     >
                       Buy Now
