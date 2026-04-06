@@ -1,24 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday, isSameDay } from 'date-fns';
 import EventCard from './EventCard';
-
-const ChevronLeft = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-  </svg>
-);
-
-const ChevronRight = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-);
-
-const Calendar = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-  </svg>
-);
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 
 const EventCalendar = ({ 
   events = [], 
@@ -148,13 +131,13 @@ const EventCalendar = ({
   const renderUpcomingEvents = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-        <Calendar className="w-5 h-5" />
+        <CalendarIcon className="w-5 h-5" />
         Upcoming Events
       </h3>
       
       {events.length === 0 ? (
         <div className="text-center py-8 bg-white rounded-xl border border-slate-200">
-          <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+          <CalendarIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
           <p className="text-slate-500">No upcoming events</p>
         </div>
       ) : (
