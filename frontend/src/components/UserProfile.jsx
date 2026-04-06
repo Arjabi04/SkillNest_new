@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from './Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
@@ -11,6 +11,7 @@ import { clearAuth } from "../utils/tokenUtils";
 function UserProfile() {
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId");
+  const headerInputRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
@@ -53,6 +54,14 @@ function UserProfile() {
   const [editingPost, setEditingPost] = useState(null);
   const [editPostText, setEditPostText] = useState('');
   const [editPostTags, setEditPostTags] = useState([]);
+
+  const resolveAvatarSrc = (image) => (typeof image === "string" && image.trim() ? image : defaultAvatar);
+
+  const handleAvatarError = (e) => {
+    if (e.currentTarget.src !== defaultAvatar) {
+      e.currentTarget.src = defaultAvatar;
+    }
+  };
 
   // --- Previews for avatar/header ---
   useEffect(() => {
@@ -447,10 +456,11 @@ function UserProfile() {
             alt="Header"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
-          <label 
-            htmlFor="headerInput" 
-            className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm text-gray-700 rounded-xl px-3 py-2 cursor-pointer hover:bg-white transition-all shadow-md flex items-center gap-2 text-sm font-medium"
+          <div className="absolute inset-0 pointer-events-none bg-linear-to-t from-black/20 to-transparent" />
+          <button
+            type="button"
+            onClick={() => headerInputRef.current?.click()}
+            className="absolute z-10 bottom-4 right-4 bg-white/90 backdrop-blur-sm text-gray-700 rounded-xl px-3 py-2 hover:bg-white transition-all shadow-md inline-flex items-center gap-2 text-sm font-medium"
             title="Change header"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,8 +468,9 @@ function UserProfile() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Change cover
-          </label>
+          </button>
           <input
+            ref={headerInputRef}
             id="headerInput"
             type="file"
             accept="image/*"
@@ -478,8 +489,9 @@ function UserProfile() {
         <div className="relative -mt-12 mb-4">
           <div className="relative inline-block">
           <img
-        src={preview || profileImage || defaultAvatar}
+        src={resolveAvatarSrc(preview || profileImage)}
         alt="Avatar"
+        onError={handleAvatarError}
         className="w-28 h-28 rounded-full border-4 border-white object-cover shadow-xl ring-2 ring-slate-100"
       />
             <label 
@@ -617,8 +629,9 @@ function UserProfile() {
         <div className="p-4">
           <div className="flex gap-3 mb-3">
           <img
-            src={profileImage || defaultAvatar}
+            src={resolveAvatarSrc(profileImage)}
             alt="Avatar"
+            onError={handleAvatarError}
             className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
           />
             <div className="flex-1">
@@ -741,8 +754,9 @@ function UserProfile() {
             <div key={post._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-200">
               <div className="flex items-center gap-2 mb-3">
                 <img 
-                  src={profileImage || "/default-avatar.png"} 
+                  src={resolveAvatarSrc(profileImage)} 
                   alt="Avatar" 
+                  onError={handleAvatarError}
                   className="w-10 h-10 rounded-full object-cover border-2 border-blue-100" 
                 />
                 <div className="flex-1">
@@ -935,7 +949,7 @@ function UserProfile() {
                       return (
                         <div key={idx} className="bg-gray-50 p-3 rounded-lg relative">
                           <div className="flex items-start gap-3 mb-2">
-                            <img src={comment.user?.profileImage || defaultAvatar} className="w-8 h-8 rounded-full" alt="" />
+                            <img src={resolveAvatarSrc(comment.user?.profileImage)} className="w-8 h-8 rounded-full" alt="" onError={handleAvatarError} />
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-semibold text-sm">{comment.user?.username}</span>
