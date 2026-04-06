@@ -35,6 +35,7 @@ const productSchema = new Schema(
     description: { type: String, required: true, trim: true, maxlength: 2000 },
     category: { type: String, required: true, trim: true, index: true },
     price: { type: Number, required: true, min: 0, index: true },
+    arrivalTime: { type: String, required: true, trim: true, maxlength: 120 },
     images: { type: [String], default: [] },
     isActive: { type: Boolean, default: true, index: true },
     ratingAverage: { type: Number, default: 0, min: 0, max: 5 },

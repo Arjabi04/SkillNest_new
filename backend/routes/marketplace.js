@@ -147,7 +147,7 @@ router.post("/checkout/session", async (req, res) => {
           },
         },
       ],
-      success_url: `${frontendUrl}/marketplace?payment=success`,
+      success_url: `${frontendUrl}/marketplace?payment=success&arrivalTime=${encodeURIComponent(product.arrivalTime || "To be confirmed")}`,
       cancel_url: `${frontendUrl}/marketplace?payment=cancel`,
       metadata: {
         productId: String(product._id),
@@ -170,10 +170,16 @@ router.post("/", upload.array("images", 6), async (req, res) => {
     const title = String(req.body?.title || "").trim();
     const description = String(req.body?.description || "").trim();
     const category = String(req.body?.category || "").trim();
+    const arrivalTime = String(req.body?.arrivalTime || "").trim();
     const price = Number(req.body?.price);
 
-    if (!userId || !title || !description || !category || Number.isNaN(price)) {
-      return res.status(400).json({ msg: "userId, title, description, category and price are required" });
+    if (!userId || !title || !description || !category || !arrivalTime || Number.isNaN(price)) {
+      return res.status(400).json({ msg: "userId, title, description, category, arrival time and price are required" });
+    }
+
+    const parsedArrival = new Date(`${arrivalTime}T00:00:00`);
+    if (Number.isNaN(parsedArrival.getTime())) {
+      return res.status(400).json({ msg: "Invalid arrival date" });
     }
 
     if (price < 0) {
@@ -196,6 +202,7 @@ router.post("/", upload.array("images", 6), async (req, res) => {
       title,
       description,
       category,
+      arrivalTime,
       price,
       images: imageUrls,
     });

@@ -15,10 +15,54 @@ import recommendationsRoute from './routes/recommendations.js';
 import marketplaceRoute from './routes/marketplace.js';
 import cors from 'cors';
 import Stripe from 'stripe';
+import { createTransport } from 'nodemailer';
 import Product from './models/Product.js';
+import User from './models/User.js';
+import Notification from './models/Notification.js';
 
 const app = express();
 const getStripeClient = () => new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const sendMarketplacePurchaseEmails = async ({ buyerEmail, sellerEmail, productTitle, arrivalTime }) => {
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    return;
+  }
+
+  const transporter = createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+
+  const emailJobs = [];
+
+  if (buyerEmail) {
+    emailJobs.push(
+      transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: buyerEmail,
+        subject: `Purchase confirmed: ${productTitle}`,
+        html: `<p>Your payment was successful for <strong>${productTitle}</strong>.</p><p>Estimated arrival date: <strong>${arrivalTime}</strong>.</p><p>You can continue browsing more listings in SkillNest Marketplace.</p>`,
+      })
+    );
+  }
+
+  if (sellerEmail) {
+    emailJobs.push(
+      transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: sellerEmail,
+        subject: `Item sold: ${productTitle}`,
+        html: `<p>Your listing <strong>${productTitle}</strong> has been purchased.</p><p>Estimated arrival date shared with buyer: <strong>${arrivalTime}</strong>.</p>`,
+      })
+    );
+  }
+
+  await Promise.all(emailJobs);
+};
 
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:5173'], 
@@ -50,12 +94,62 @@ app.post('/api/marketplace/webhook', express.raw({ type: 'application/json' }), 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const productId = session?.metadata?.productId;
+      const buyerId = session?.metadata?.buyerId;
+      const sellerId = session?.metadata?.sellerId;
 
       if (productId) {
-        await Product.findOneAndUpdate(
+        const purchasedProduct = await Product.findOneAndUpdate(
           { _id: productId, isActive: true },
-          { $set: { isActive: false } }
+          { $set: { isActive: false } },
+          { new: true }
         );
+
+        if (purchasedProduct && buyerId && sellerId) {
+          const arrivalTime = purchasedProduct.arrivalTime || 'To be confirmed';
+
+          await Promise.all([
+            Notification.createNotification({
+              recipient: buyerId,
+              sender: sellerId,
+              type: 'system',
+              title: 'Payment Successful',
+              message: `Your payment was successful. Estimated arrival date: ${arrivalTime}.`,
+              actionUrl: '/marketplace',
+              metadata: {
+                productId: String(purchasedProduct._id),
+                arrivalTime,
+              },
+            }),
+            Notification.createNotification({
+              recipient: sellerId,
+              sender: buyerId,
+              type: 'system',
+              title: 'Item Sold',
+              message: `${purchasedProduct.title} has been purchased.`,
+              actionUrl: '/marketplace',
+              metadata: {
+                productId: String(purchasedProduct._id),
+                buyerId: String(buyerId),
+              },
+            }),
+          ]);
+
+          try {
+            const [buyer, seller] = await Promise.all([
+              User.findById(buyerId).select('email'),
+              User.findById(sellerId).select('email'),
+            ]);
+
+            await sendMarketplacePurchaseEmails({
+              buyerEmail: buyer?.email,
+              sellerEmail: seller?.email,
+              productTitle: purchasedProduct.title,
+              arrivalTime,
+            });
+          } catch (emailErr) {
+            console.error('Purchase email send error:', emailErr);
+          }
+        }
       }
     }
 

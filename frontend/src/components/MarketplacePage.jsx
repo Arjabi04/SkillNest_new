@@ -18,6 +18,19 @@ const defaultCategories = [
   "Other",
 ];
 
+const formatArrivalDate = (value) => {
+  if (!value) return "To be confirmed";
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 function MarketplacePage() {
   const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
@@ -55,6 +68,7 @@ function MarketplacePage() {
     title: "",
     description: "",
     category: defaultCategories[0],
+    arrivalTime: "",
     price: "",
     images: [],
   });
@@ -64,6 +78,15 @@ function MarketplacePage() {
   const [reportOpenByProduct, setReportOpenByProduct] = useState({});
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [paymentPopup, setPaymentPopup] = useState(null);
+  const [listingPreviewUrls, setListingPreviewUrls] = useState([]);
+
+  const todayDate = useMemo(() => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
 
   const availableCategories = useMemo(() => {
     const merged = [...defaultCategories, ...categories];
@@ -136,12 +159,15 @@ function MarketplacePage() {
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const paymentStatus = query.get("payment");
+    const arrivalTime = query.get("arrivalTime") || "To be confirmed";
+    const formattedArrivalDate = formatArrivalDate(arrivalTime);
 
     if (paymentStatus === "success") {
       setPaymentPopup({
         type: "success",
         title: "Payment Successful",
-        message: "Payment was successful. Continue browsing.",
+        message: "Payment was successful.",
+        arrivalDate: formattedArrivalDate,
       });
     } else if (paymentStatus === "cancel") {
       setPaymentPopup({
@@ -154,10 +180,20 @@ function MarketplacePage() {
     }
 
     query.delete("payment");
+    query.delete("arrivalTime");
     const nextQuery = query.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
     window.history.replaceState({}, "", nextUrl);
   }, []);
+
+  useEffect(() => {
+    const urls = listingForm.images.map((imageFile) => URL.createObjectURL(imageFile));
+    setListingPreviewUrls(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [listingForm.images]);
 
   const handleApplyFilters = () => {
     setFilters({ ...draftFilters });
@@ -177,10 +213,11 @@ function MarketplacePage() {
 
     const title = listingForm.title.trim();
     const description = listingForm.description.trim();
+    const arrivalTime = listingForm.arrivalTime.trim();
     const price = Number(listingForm.price);
 
-    if (!title || !description || !listingForm.category || Number.isNaN(price)) {
-      alert("Title, description, category and price are required");
+    if (!title || !description || !listingForm.category || !arrivalTime || Number.isNaN(price)) {
+      alert("Title, description, category, arrival date and price are required");
       return;
     }
 
@@ -196,6 +233,7 @@ function MarketplacePage() {
       formData.append("title", title);
       formData.append("description", description);
       formData.append("category", listingForm.category);
+      formData.append("arrivalTime", arrivalTime);
       formData.append("price", String(price));
 
       listingForm.images.forEach((imageFile) => {
@@ -218,6 +256,7 @@ function MarketplacePage() {
         title: "",
         description: "",
         category: availableCategories[0] || defaultCategories[0],
+        arrivalTime: "",
         price: "",
         images: [],
       });
@@ -535,6 +574,15 @@ function MarketplacePage() {
               </div>
 
               <input
+                type="date"
+                value={listingForm.arrivalTime}
+                onChange={(e) => handleListingChange("arrivalTime", e.target.value)}
+                min={todayDate}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                required
+              />
+
+              <input
                 type="file"
                 accept="image/*"
                 multiple
@@ -545,6 +593,26 @@ function MarketplacePage() {
               {listingForm.images.length > 0 && (
                 <p className="text-xs text-slate-600">{listingForm.images.length} image(s) selected</p>
               )}
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-semibold text-slate-800">Image Preview</p>
+                {listingPreviewUrls.length > 0 ? (
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {listingPreviewUrls.map((url, idx) => (
+                      <img
+                        key={`${url}-${idx}`}
+                        src={url}
+                        alt={`Selected ${idx + 1}`}
+                        className="h-20 w-full rounded-lg border border-slate-200 object-cover"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 h-24 w-full rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-sm text-slate-500">
+                    Selected images will appear here
+                  </div>
+                )}
+              </div>
 
               <button
                 type="submit"
@@ -601,6 +669,11 @@ function MarketplacePage() {
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">{paymentPopup.title}</h3>
                 <p className="mt-1 text-sm text-slate-600">{paymentPopup.message}</p>
+                {paymentPopup.arrivalDate && (
+                  <p className="mt-1 text-sm text-slate-700">
+                    Estimated arrival date: <span className="font-semibold text-slate-900">{paymentPopup.arrivalDate}</span>
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -653,6 +726,9 @@ function MarketplacePage() {
 
                 <div>
                   <p className="text-2xl font-bold text-slate-900">${Number(selectedProduct.price || 0).toFixed(2)}</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Estimated arrival date: <span className="font-semibold text-slate-800">{formatArrivalDate(selectedProduct.arrivalTime)}</span>
+                  </p>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{selectedProduct.description}</p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">

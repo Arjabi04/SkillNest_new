@@ -1182,25 +1182,32 @@ const CommunitiesPage = () => {
                        </div>
                      </div>
 
-                     {newPostPreview && (
-                       <div className="relative mb-4 rounded-lg overflow-hidden border border-gray-200">
-                         <img
-                           src={newPostPreview}
-                           alt="Post Preview"
-                           className="w-full max-h-96 object-cover"
-                         />
-                         <button
-                           onClick={() => {
-                             setNewPostImage(null);
-                             setNewPostPreview(null);
-                           }}
-                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                           title="Remove image"
-                         >
-                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                           </svg>
-                         </button>
+                     {newPostPreviews.length > 0 && (
+                       <div className="mb-4">
+                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                           {newPostPreviews.map((preview, idx) => (
+                             <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200">
+                               <img
+                                 src={preview}
+                                 alt={`Post Preview ${idx + 1}`}
+                                 className="w-full h-32 object-cover"
+                               />
+                               <button
+                                 onClick={() => {
+                                   setNewPostImages((prev) => prev.filter((_, i) => i !== idx));
+                                   setNewPostPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                 }}
+                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                                 title="Remove image"
+                               >
+                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                 </svg>
+                               </button>
+                             </div>
+                           ))}
+                         </div>
+                         <p className="text-xs text-gray-500 mt-2">{newPostPreviews.length}/6 images selected</p>
                        </div>
                      )}
 
@@ -1231,15 +1238,19 @@ const CommunitiesPage = () => {
                            <span className="text-sm font-medium">Photo</span>
                            <input 
                              type="file" 
+                             multiple
                              accept="image/*"
-                             onChange={(e) => setNewPostImage(e.target.files[0])} 
+                             onChange={(e) => {
+                               const files = Array.from(e.target.files || []);
+                               setNewPostImages(files.slice(0, 6));
+                             }} 
                              className="hidden" 
                            />
                          </label>
                        </div>
                        <button 
                          onClick={handleCreatePost}
-                         disabled={!newPostText.trim() && !newPostImage}
+                         disabled={!newPostText.trim() && newPostImages.length === 0}
                          className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                        >
                          Post
