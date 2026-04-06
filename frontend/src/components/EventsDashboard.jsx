@@ -26,78 +26,7 @@ const List = ({ className }) => (
   </svg>
 );
 
-// Placeholder events for demonstration
-const placeholderEvents = [
-  {
-    _id: '1',
-    title: 'Web Development Workshop',
-    description: 'Learn modern web development with React and Node.js. Perfect for beginners and intermediate developers.',
-    eventType: 'online',
-    category: 'workshop',
-    startDate: new Date(Date.now() + 86400000), // Tomorrow
-    endDate: new Date(Date.now() + 90000000),
-    organizer: { _id: '1', username: 'DevMaster', profileImage: null },
-    community: { _id: '1', name: 'Web Dev Community', coverImage: null },
-    attendees: [
-      { user: '1', status: 'going' },
-      { user: '2', status: 'going' },
-      { user: '3', status: 'maybe' }
-    ],
-    tags: ['react', 'javascript', 'webdev'],
-    price: 0,
-    capacity: 50,
-    allowRegistration: true,
-    onlineDetails: { platform: 'Zoom', meetingLink: 'https://zoom.us/j/123456789' },
-    coverImage: null
-  },
-  {
-    _id: '2',
-    title: 'AI/ML Networking Event',
-    description: 'Connect with AI and ML professionals. Share experiences, learn about opportunities, and expand your network.',
-    eventType: 'offline',
-    category: 'networking',
-    startDate: new Date(Date.now() + 172800000), // Day after tomorrow
-    endDate: new Date(Date.now() + 176400000),
-    organizer: { _id: '2', username: 'AIExpert', profileImage: null },
-    community: { _id: '2', name: 'AI/ML Hub', coverImage: null },
-    attendees: [
-      { user: '2', status: 'going' },
-      { user: '3', status: 'going' }
-    ],
-    tags: ['ai', 'machine-learning', 'networking'],
-    price: 25,
-    capacity: 30,
-    allowRegistration: true,
-    location: { 
-      venue: 'Tech Innovation Center', 
-      address: '123 Tech Street, Silicon Valley, CA',
-      city: 'Palo Alto',
-      country: 'USA'
-    },
-    coverImage: null
-  },
-  {
-    _id: '3',
-    title: 'Design Systems Masterclass',
-    description: 'Deep dive into building scalable design systems. Learn best practices from industry experts.',
-    eventType: 'hybrid',
-    category: 'seminar',
-    startDate: new Date(Date.now() + 259200000), // 3 days from now
-    endDate: new Date(Date.now() + 266400000),
-    organizer: { _id: '3', username: 'DesignGuru', profileImage: null },
-    community: { _id: '3', name: 'UX/UI Designers', coverImage: null },
-    attendees: [
-      { user: '1', status: 'going' }
-    ],
-    tags: ['design', 'ui', 'ux', 'systems'],
-    price: 49,
-    capacity: 100,
-    allowRegistration: true,
-    location: { venue: 'Design Studio Downtown' },
-    onlineDetails: { platform: 'Microsoft Teams' },
-    coverImage: null
-  }
-];
+
 
 const EventsDashboard = ({ 
   communityId = null, 

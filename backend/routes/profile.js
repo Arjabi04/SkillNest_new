@@ -4,10 +4,32 @@ import multer, { memoryStorage } from "multer";
 import cloudinary from "../config/cloudinary.js";
 import User from '../models/User.js';
 import { createReadStream } from "streamifier"; 
+import auth from '../middleware/auth.js';
 
 // Multer memory storage
 const storage = memoryStorage();
 const upload = multer({ storage });
+
+// GET /api/profile/me
+router.get("/me", auth, async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      bio: user.bio || "",
+      profileImage: user.profileImage || "",
+      headerImage: user.headerImage || "",
+      interests: Array.isArray(user.interests) ? user.interests : [],
+      notificationsEnabled: user.notificationsEnabled !== false,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
 
 // GET /api/profile/:userId
 router.get("/:userId", async (req, res) => {
@@ -20,11 +42,10 @@ router.get("/:userId", async (req, res) => {
 
     res.json({
       username: user.username,
-      bio: user.bio || "",       // we will add bio field
+      bio: user.bio || "",
       profileImage: user.profileImage || "",
       headerImage: user.headerImage || "",
       interests: Array.isArray(user.interests) ? user.interests : []
-      
     });
   } catch (err) {
     console.error(err);
@@ -113,6 +134,84 @@ router.post("/bio", async (req, res) => {
     await user.save();
 
     res.json({ msg: "Bio updated", bio: user.bio });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// PUT /api/profile/me
+router.put("/me", auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const {
+      username,
+      email,
+      bio,
+      notificationsEnabled,
+    } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    const nextUsername = typeof username === 'string' ? username.trim() : user.username;
+    const nextEmail = typeof email === 'string' ? email.trim().toLowerCase() : user.email;
+
+    if (!nextUsername) {
+      return res.status(400).json({ msg: "Username is required" });
+    }
+
+    if (!nextEmail) {
+      return res.status(400).json({ msg: "Email is required" });
+    }
+
+    const duplicateUser = await User.findOne({
+      _id: { $ne: userId },
+      $or: [
+        { username: nextUsername },
+        { email: nextEmail }
+      ]
+    });
+
+    if (duplicateUser) {
+      if (duplicateUser.username === nextUsername && duplicateUser.email === nextEmail) {
+        return res.status(400).json({ msg: "Username and email already exist" });
+      }
+      if (duplicateUser.username === nextUsername) {
+        return res.status(400).json({ msg: "Username already exists" });
+      }
+      if (duplicateUser.email === nextEmail) {
+        return res.status(400).json({ msg: "Email already exists" });
+      }
+    }
+
+    user.username = nextUsername;
+    user.email = nextEmail;
+
+    if (typeof bio === 'string') {
+      user.bio = bio;
+    }
+
+    if (typeof notificationsEnabled === 'boolean') {
+      user.notificationsEnabled = notificationsEnabled;
+    }
+
+    await user.save();
+
+    res.json({
+      msg: "Settings updated successfully",
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        bio: user.bio,
+        profileImage: user.profileImage,
+        headerImage: user.headerImage,
+        notificationsEnabled: user.notificationsEnabled,
+      }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });

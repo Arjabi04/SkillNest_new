@@ -9,7 +9,8 @@ const userSchema = new Schema({
   resetPasswordExpires: { type: Date },
   profileImage: { type: String, default: "" },
   headerImage: { type: String, default: "" },
-  bio: { type: String, default: "" }  // <-- new field
+  bio: { type: String, default: "" },
+  notificationsEnabled: { type: Boolean, default: true }
 }, { timestamps: true });
 
 

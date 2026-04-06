@@ -10,6 +10,7 @@ import CommunitiesPage from "./components/CommunitiesPage";
 import MarketplacePage from "./components/MarketplacePage";
 import EventsPage from "./components/EventsPage";
 import NotificationsPage from "./components/NotificationsPage";
+import SettingsPage from "./components/SettingsPage";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
 import ToastContainer from "./components/ToastContainer";
@@ -58,23 +59,23 @@ function AppRoutes() {
     <div>
       <ToastContainer />
       <Routes>
-
-          {/* Home route shows the main explore feed */}
-          <Route path="/" element={<ExplorePage />} />
-
-          <Route path="/signup" element={<SignupForm />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          <Route path="/choose-interests" element={<ChooseInterests />} />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/explore" element={<ExplorePage />} />
-          <Route path="/communities" element={<CommunitiesPage />} />
-            <Route path="/marketplace" element={<MarketplacePage />} />
-          <Route path="/events" element={<EventsPage />} />          <Route path="/notifications" element={<NotificationsPage />} />        </Routes>
+        {/* Home route shows the main explore feed */}
+        <Route path="/" element={<ExplorePage />} />
+        <Route path="/signup" element={<SignupForm />} />
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/choose-interests" element={<ChooseInterests />} />
+        <Route path="/profile" element={<UserProfile />} />
+        <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/communities" element={<CommunitiesPage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Routes>
       </div>
     );
 }

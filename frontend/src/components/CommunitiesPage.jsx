@@ -2,10 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import CommunityCard from './CommunityCard';
-import TagInput from './TagInput';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultHeader from '../assets/default-header.jpeg';
 import defaultAvatar from '../assets/default-avatar.jpg';
+import CreateCommunityModal from './community/CreateCommunityModal';
+import AdminDashboardModal from './community/AdminDashboardModal';
+import {
+  Users,
+  Plus,
+  Check,
+  X,
+  Shield,
+  Crown,
+  Settings,
+  Ban,
+  UserMinus,
+  AlertCircle,
+  Heart,
+  MessageCircle,
+  Flag,
+} from './community/CommunityIcons';
 import { clearAuth } from '../utils/tokenUtils';
 import {
   getCommunityStatus,
@@ -17,74 +33,6 @@ import {
   getRoleColor,
   categorizeCommunitiesByStatus
 } from '../utils/communityUtils';
-
-// SVG Icon Components
-const Users = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-);
-const Plus = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-);
-const Check = ({ className }) => ( 
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
-const X = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
-const Shield = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-  </svg>
-);
-const Crown = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l7 7 7-7M5 21h14M5 21l2-6m12 6l-2-6" />
-  </svg>
-);
-const Settings = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-const Ban = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-  </svg>
-);
-const UserMinus = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
-  </svg>
-);
-const AlertCircle = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-const Heart = ({ className, filled = false }) => (
-  <svg className={className} fill={filled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-  </svg>
-);
-const MessageCircle = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-  </svg>
-);
-const Flag = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5v14M5 5c5 0 5 2 10 2 1.667 0 2.5-.222 4-1v8c-1.5.778-2.333 1-4 1-5 0-5-2-10-2" />
-  </svg>
-);
 
 const CommunitiesPage = () => {
   const [communities, setCommunities] = useState([]);
@@ -2198,87 +2146,24 @@ const CommunitiesPage = () => {
         </div>
       </main>
 
-      {/* Create Community Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex justify-center items-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-          <div className="relative bg-white p-6 rounded-2xl w-full max-w-md">
-            <h3 className="font-bold text-lg mb-4">Create Community</h3>
-            <form onSubmit={handleCreateCommunity} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input name="name" required className="w-full p-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea name="description" required className="w-full p-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Interests</label>
-                <TagInput 
-                  tags={communityInterests}
-                  setTags={setCommunityInterests}
-                  placeholder="Type interest and press Enter..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cover Image</label>
-                <input name="coverImage" type="file" className="w-full p-2 border rounded" />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateCommunityModal
+        show={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateCommunity}
+        communityInterests={communityInterests}
+        setCommunityInterests={setCommunityInterests}
+        loading={loading}
+      />
 
-      {/* Admin Dashboard Modal */}
-      {showAdminDashboard && (
-        <div className="fixed inset-0 z-50 flex justify-center items-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAdminDashboard(false)} />
-          <div className="relative bg-white p-6 rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-            <h3 className="font-bold text-lg mb-4">Admin Dashboard</h3>
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-bold mb-2">Pending Community Creations</h4>
-                <div className="space-y-2">
-                  {pendingRequests.pendingCreations.map(community => (
-                    <div key={community._id} className="flex justify-between items-center p-4 bg-gray-50 rounded">
-                      <div>
-                        <p className="font-bold">{community.name}</p>
-                        <p className="text-sm text-gray-600">{community.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleApproveCommunity(community._id)} className="px-4 py-2 bg-green-600 text-white rounded">Approve</button>
-                        <button onClick={() => handleRejectCommunity(community._id)} className="px-4 py-2 bg-red-600 text-white rounded">Reject</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-bold mb-2">Pending Deletions</h4>
-                <div className="space-y-2">
-                  {pendingRequests.pendingDeletions.map(community => (
-                    <div key={community._id} className="flex justify-between items-center p-4 bg-gray-50 rounded">
-                      <div>
-                        <p className="font-bold">{community.name}</p>
-                        <p className="text-sm text-gray-600">Requested by: {community.deletionRequestedBy?.username}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleApproveDeletion(community._id)} className="px-4 py-2 bg-green-600 text-white rounded">Approve</button>
-                        <button onClick={() => handleRejectDeletion(community._id)} className="px-4 py-2 bg-red-600 text-white rounded">Reject</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminDashboardModal
+        show={showAdminDashboard}
+        onClose={() => setShowAdminDashboard(false)}
+        pendingRequests={pendingRequests}
+        onApproveCommunity={handleApproveCommunity}
+        onRejectCommunity={handleRejectCommunity}
+        onApproveDeletion={handleApproveDeletion}
+        onRejectDeletion={handleRejectDeletion}
+      />
 
     </div>
   );
