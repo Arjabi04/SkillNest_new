@@ -70,6 +70,11 @@ notificationSchema.index({ createdAt: 1 }); // For cleanup of old notifications
 
 // Static method to create notification
 notificationSchema.statics.createNotification = async function(data) {
+  const recipient = await mongoose.model('User').findById(data.recipient).select('notificationsEnabled');
+  if (recipient && recipient.notificationsEnabled === false) {
+    return null;
+  }
+
   return await this.create({
     recipient: data.recipient,
     sender: data.sender,
