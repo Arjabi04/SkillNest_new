@@ -1082,8 +1082,8 @@ const CommunitiesPage = () => {
               <div className="p-8">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-3xl font-black text-gray-900">{selectedCommunity.name}</h1>
-                    <p className="text-gray-500 mt-2">{selectedCommunity.description}</p>
+                    <h1 className="text-4xl font-black text-slate-950">{selectedCommunity.name}</h1>
+                    <p className="mt-2 text-slate-600">{selectedCommunity.description}</p>
                     {selectedCommunity.rules && (
                       <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-200 max-w-2xl">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Community Rules</p>
@@ -1982,17 +1982,17 @@ const CommunitiesPage = () => {
               <>
                 {/* Header */}
                 <header className="mb-12">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-12 bg-blue-600 rounded-full" />
-                      <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-slate-900">
-                        Explore Communities
-                      </h1>
-                    </div>
-                <p className="text-slate-600 font-medium text-lg max-w-2xl leading-relaxed">
-                  Discover new collaborative spaces and connect with like-minded learners.
-                </p>
-              </div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Communities</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
+                    <h1 className="text-4xl font-black tracking-tight text-slate-950">
+                      Explore Communities
+                    </h1>
+                  </div>
+                  <p className="mt-3 max-w-2xl text-slate-600">
+                    Discover new collaborative spaces and connect with like-minded learners.
+                  </p>
+                </header>
               
               <div className="flex items-center gap-4 mt-8">
                 {isAdmin && (
@@ -2016,13 +2016,8 @@ const CommunitiesPage = () => {
                   <Plus className="w-5 h-5" /> Create Community
                 </button>
               </div>
-            </header>
 
-          
-
-            {/* Explore Communities Grid */}
-            <div className="space-y-12">
-              {/* Discover New Communities */}
+              {/* Explore Communities Grid */}
               {categorizedCommunities.recommended.length > 0 ? (
                 <section>
                   <div className="flex items-center gap-3 mb-8">
@@ -2060,7 +2055,6 @@ const CommunitiesPage = () => {
                   </p>
                 </div>
               )}
-            </div>
               </>
             )}
           </div>

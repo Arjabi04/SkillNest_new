@@ -82,3 +82,61 @@ export const verifyAdmin = async () => {
   if (!res.ok) return { isAdmin: false };
   return await res.json();
 };
+
+export const getProfileSettings = async (token) => {
+  return requestJson(
+    `${API_URL}/profile/me`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+    "Failed to load settings"
+  );
+};
+
+export const updateProfileSettings = async (token, payload) => {
+  return requestJson(
+    `${API_URL}/profile/me`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    "Failed to save settings"
+  );
+};
+
+export const resendEmailVerification = async (token) => {
+  return requestJson(
+    `${API_URL}/profile/me/resend-verification`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+    "Failed to resend verification email"
+  );
+};
+
+export const changePassword = async (token, currentPassword, newPassword, confirmPassword) => {
+  return requestJson(
+    `${API_URL}/profile/change-password`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    },
+    "Failed to change password"
+  );
+};

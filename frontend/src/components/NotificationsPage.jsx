@@ -254,21 +254,25 @@ const NotificationsPage = () => {
       <main className={`flex-1 ${mainContentClass}`}>
         <div className="w-full max-w-300 mx-auto px-6 py-8">
           <div className="max-w-4xl">
-          <div className="flex justify-between items-center mb-7.5 pb-5 border-b-2 border-slate-200 max-md:flex-col max-md:items-start max-md:gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-10 bg-blue-600 rounded-full" />
-              <h1 className="text-slate-800 m-0 text-[2rem] font-black max-md:text-[1.75rem]">Notifications</h1>
+          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Activity</p>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
+                <h1 className="text-4xl font-black tracking-tight text-slate-950">Notifications</h1>
+              </div>
+              <p className="mt-3 max-w-2xl text-slate-600">
+                Stay updated on events, community activities, and user interactions.
+              </p>
             </div>
-            <div className="flex gap-2.5">
-              {unreadCount > 0 && (
-                <button 
-                  onClick={markAllAsRead}
-                  className="bg-blue-600 text-white border-none px-4 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-blue-700"
-                >
-                  Mark All as Read ({unreadCount})
-                </button>
-              )}
-            </div>
+            {unreadCount > 0 && (
+              <button 
+                onClick={markAllAsRead}
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Mark All as Read ({unreadCount})
+              </button>
+            )}
           </div>
 
           <div className="notifications-content">

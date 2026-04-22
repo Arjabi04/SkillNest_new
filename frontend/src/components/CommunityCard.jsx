@@ -148,11 +148,11 @@ const CommunityCard = ({
         <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Member Avatars */}
-            <div className="flex -space-x-2">
+            {/* <div className="flex -space-x-2">
               {[1, 2, 3].map(i => (
                 <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 shadow-sm" />
               ))}
-            </div>
+            </div> */}
             <div className="flex items-center gap-1 text-slate-500">
               <Users className="w-4 h-4" />
               <span className="text-xs font-semibold">{community.members?.length || 0}</span>

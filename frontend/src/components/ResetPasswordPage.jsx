@@ -1,9 +1,10 @@
 // src/components/ResetPasswordPage.jsx
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function ResetPasswordPage() {
   const { token } = useParams(); // get token from URL
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -25,9 +26,19 @@ export default function ResetPasswordPage() {
       });
 
       const data = await res.json();
-      setMessage(data.msg);
+      if (!res.ok) {
+        setMessage(data.msg || "Could not reset password. Please try again.");
+        return;
+      }
+
+      setMessage(data.msg || "Password reset successful. Redirecting to login...");
       setPassword("");
       setConfirmPassword("");
+
+      // Give users a moment to read the success message, then return to login.
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
     } catch (err) {
       console.error(err);
       setMessage("Server error. Please try again.");
