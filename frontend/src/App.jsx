@@ -5,6 +5,7 @@ import ResetPasswordPage from "./components/ResetPasswordPage";
 import ForgotPasswordPage from "./components/ForgotPassword";
 import ChooseInterests from "./components/ChooseInterests";
 import UserProfile from "./components/UserProfile";
+import ProfileViewPage from "./components/ProfileViewPage";
 import ExplorePage from "./components/ExplorePage";
 import CommunitiesPage from "./components/CommunitiesPage";
 import MarketplacePage from "./components/MarketplacePage";
@@ -72,6 +73,7 @@ function AppRoutes() {
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/choose-interests" element={<ChooseInterests />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/profile/view" element={<ProfileViewPage />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/communities" element={<CommunitiesPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />

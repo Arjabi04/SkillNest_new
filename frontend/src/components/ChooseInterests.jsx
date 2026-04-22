@@ -55,9 +55,13 @@ export default function ChooseInterests() {
 
     try {
       setIsLoading(true);
+      const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:4000/api/interests", { // make sure route matches backend
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ userId, interests: selectedInterests })
       });
 

@@ -12,12 +12,19 @@ function ExplorePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [previewProfile, setPreviewProfile] = useState(null);
+  const [previewProfilePosts, setPreviewProfilePosts] = useState([]);
+  const [previewProfileLoading, setPreviewProfileLoading] = useState(false);
+  const [previewExpandedComments, setPreviewExpandedComments] = useState({});
+  const [previewNewComment, setPreviewNewComment] = useState({});
   const [selectedTrendingTag, setSelectedTrendingTag] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
 
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId") || localStorage.getItem("userId") || "";
+  const actingUserId = localStorage.getItem("userId") || userId;
 
   const trendingTopics = Object.entries(
     allPosts.reduce((acc, post) => {
@@ -33,10 +40,10 @@ function ExplorePage() {
     .slice(0, 6);
 
   const peopleYouMayKnow = Object.values(
-    posts.reduce((acc, post) => {
+    allPosts.reduce((acc, post) => {
       const user = post.user;
       const userKey = user?._id || user?.id;
-      if (!user || !userKey || userKey.toString() === userId.toString()) return acc;
+      if (!user || !userKey || userKey.toString() === actingUserId.toString()) return acc;
       if (!acc[userKey]) {
         acc[userKey] = {
           id: userKey,
@@ -64,6 +71,68 @@ function ExplorePage() {
     navigate(`/communities?${query.toString()}`);
   };
 
+  const handleViewProfile = async (profileUserId) => {
+    if (!profileUserId) return;
+
+    setPreviewProfileLoading(true);
+    setPreviewExpandedComments({});
+    setPreviewNewComment({});
+
+    try {
+      const [profileRes, postsRes] = await Promise.all([
+        fetch(`http://localhost:4000/api/profile/${profileUserId}`),
+        fetch(`http://localhost:4000/api/posts/${profileUserId}`),
+      ]);
+
+      const profileData = await profileRes.json();
+      const postsData = await postsRes.json();
+
+      if (!profileRes.ok) {
+        alert(profileData.msg || "Failed to load profile");
+        return;
+      }
+
+      setPreviewProfile({
+        _id: String(profileUserId),
+        username: profileData.username || "Unknown User",
+        bio: profileData.bio || "",
+        profileImage: profileData.profileImage || defaultAvatar,
+        interests: Array.isArray(profileData.interests) ? profileData.interests : [],
+      });
+      setPreviewProfilePosts(Array.isArray(postsData) ? postsData : []);
+    } catch (err) {
+      console.error(err);
+      alert("Error loading profile");
+    } finally {
+      setPreviewProfileLoading(false);
+    }
+  };
+
+  const closeProfilePreview = () => {
+    setPreviewProfile(null);
+    setPreviewProfilePosts([]);
+    setPreviewExpandedComments({});
+    setPreviewNewComment({});
+  };
+
+  const applyFeedFilters = (sourcePosts, tagValue = selectedTrendingTag, queryValue = searchQuery) => {
+    const normalizedTag = String(tagValue || "").trim().toLowerCase();
+    const normalizedQuery = String(queryValue || "").trim().toLowerCase();
+
+    return sourcePosts.filter((post) => {
+      const matchesTag = !normalizedTag
+        || (post.tags || []).some((postTag) => String(postTag || "").trim().toLowerCase() === normalizedTag);
+
+      const username = String(post.user?.username || "").toLowerCase();
+      const tagMatchesSearch = (post.tags || []).some((postTag) =>
+        String(postTag || "").trim().toLowerCase().includes(normalizedQuery)
+      );
+      const matchesSearch = !normalizedQuery || username.includes(normalizedQuery) || tagMatchesSearch;
+
+      return matchesTag && matchesSearch;
+    });
+  };
+
   const loadFeed = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -78,13 +147,13 @@ function ExplorePage() {
         const personalizedData = await personalizedRes.json();
         const nextPosts = personalizedData.posts || [];
         setAllPosts(nextPosts);
-        setPosts(nextPosts);
+        setPosts(applyFeedFilters(nextPosts));
       } else {
         const res = await fetch("http://localhost:4000/api/posts");
         const data = await res.json();
         if (res.ok) {
           setAllPosts(data);
-          setPosts(data);
+          setPosts(applyFeedFilters(data));
         }
       }
     } catch (err) {
@@ -104,20 +173,23 @@ function ExplorePage() {
 
     if (selectedTrendingTag.toLowerCase() === normalized) {
       setSelectedTrendingTag("");
-      setPosts(allPosts);
+      setPosts(applyFeedFilters(allPosts, "", searchQuery));
       return;
     }
 
     setSelectedTrendingTag(tag);
-    const filtered = allPosts.filter((post) =>
-      (post.tags || []).some((postTag) => String(postTag || "").trim().toLowerCase() === normalized)
-    );
-    setPosts(filtered);
+    setPosts(applyFeedFilters(allPosts, tag, searchQuery));
   };
 
   const clearTrendingFilter = () => {
     setSelectedTrendingTag("");
-    setPosts(allPosts);
+    setPosts(applyFeedFilters(allPosts, "", searchQuery));
+  };
+
+  const handleSearchChange = (e) => {
+    const nextQuery = e.target.value;
+    setSearchQuery(nextQuery);
+    setPosts(applyFeedFilters(allPosts, selectedTrendingTag, nextQuery));
   };
 
   // --- Handle post interactions ---
@@ -126,7 +198,7 @@ function ExplorePage() {
       const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: actingUserId }),
       });
 
       if (res.ok) {
@@ -136,7 +208,7 @@ function ExplorePage() {
 
             const isLiked = (post.likes || []).some((likeUserId) => {
               const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
-              return String(id) === String(userId);
+              return String(id) === String(actingUserId);
             });
 
             return {
@@ -144,9 +216,9 @@ function ExplorePage() {
               likes: isLiked
                 ? (post.likes || []).filter((id) => {
                   const likeId = typeof id === "string" ? id : id?._id;
-                  return String(likeId) !== String(userId);
+                    return String(likeId) !== String(actingUserId);
                 })
-                : [...(post.likes || []), userId],
+                : [...(post.likes || []), actingUserId],
             };
           })
         );
@@ -171,7 +243,7 @@ function ExplorePage() {
       const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, text: commentText }),
+        body: JSON.stringify({ userId: actingUserId, text: commentText }),
       });
 
       const data = await res.json();
@@ -197,7 +269,7 @@ function ExplorePage() {
       const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: actingUserId }),
       });
 
       const data = await res.json();
@@ -215,6 +287,96 @@ function ExplorePage() {
     }
   };
 
+  const handlePreviewLikePost = async (postId) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: actingUserId }),
+      });
+
+      if (res.ok) {
+        setPreviewProfilePosts((prev) =>
+          prev.map((post) => {
+            if (post._id !== postId) return post;
+
+            const isLiked = (post.likes || []).some((likeUserId) => {
+              const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
+              return String(id) === String(actingUserId);
+            });
+
+            return {
+              ...post,
+              likes: isLiked
+                ? (post.likes || []).filter((id) => {
+                    const likeId = typeof id === "string" ? id : id?._id;
+                    return String(likeId) !== String(actingUserId);
+                  })
+                : [...(post.likes || []), actingUserId],
+            };
+          })
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const togglePreviewComments = (postId) => {
+    setPreviewExpandedComments((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
+  };
+
+  const handlePreviewAddComment = async (postId) => {
+    const commentText = previewNewComment[postId]?.trim();
+    if (!commentText) return;
+
+    try {
+      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: actingUserId, text: commentText }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setPreviewProfilePosts((prev) =>
+          prev.map((post) =>
+            post._id === postId ? { ...post, comments: data.comments || post.comments } : post
+          )
+        );
+        setPreviewNewComment((prev) => ({ ...prev, [postId]: "" }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePreviewDeleteComment = async (postId, commentIdx) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: actingUserId }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setPreviewProfilePosts((prev) =>
+          prev.map((post) =>
+            post._id === postId ? { ...post, comments: data.comments || post.comments } : post
+          )
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
       <Sidebar />
@@ -224,7 +386,7 @@ function ExplorePage() {
 
         {/* Header */}
         <header className="mb-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Explore Feed</p>
               <div className="flex items-center gap-3">
@@ -234,6 +396,39 @@ function ExplorePage() {
               <p className="mt-3 max-w-2xl text-slate-600">
                 Discover posts and connect with the community.
               </p>
+            </div>
+
+            <div className="sticky top-4 z-30 w-full lg:w-[360px] lg:ml-auto lg:self-start">
+              <div className="relative">
+                <svg
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="search posts that youd like"
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-14 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setPosts(applyFeedFilters(allPosts, selectedTrendingTag, ""));
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -277,7 +472,7 @@ function ExplorePage() {
                 (() => {
                   const isLiked = (post.likes || []).some((likeUserId) => {
                     const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
-                    return String(id) === String(userId);
+                    return String(id) === String(actingUserId);
                   });
                   const postImages = Array.isArray(post.images) && post.images.length > 0
                     ? post.images
@@ -288,15 +483,25 @@ function ExplorePage() {
                       className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
                     >
                       <div className="flex items-center gap-4 mb-4">
-                        <img
-                          src={post.user?.profileImage || defaultAvatar}
-                          alt={post.user?.username || "User"}
-                          className="w-12 h-12 rounded-full border-2 border-slate-100"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => handleViewProfile(post.user?._id || post.user?.id)}
+                          className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        >
+                          <img
+                            src={post.user?.profileImage || defaultAvatar}
+                            alt={post.user?.username || "User"}
+                            className="w-12 h-12 rounded-full border-2 border-slate-100 object-cover"
+                          />
+                        </button>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-slate-900">
+                          <button
+                            type="button"
+                            onClick={() => handleViewProfile(post.user?._id || post.user?.id)}
+                            className="font-semibold text-slate-900 hover:text-blue-600 transition-colors text-left"
+                          >
                             {post.user?.username || "Unknown User"}
-                          </h3>
+                          </button>
                           <p className="text-sm text-slate-500">
                             {new Date(post.postedAt || post.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric',
@@ -439,7 +644,7 @@ function ExplorePage() {
                                         <span className="text-xs text-slate-500">
                                           {new Date(comment.createdAt).toLocaleDateString()}
                                         </span>
-                                        {comment.user?._id === userId && (
+                                        {comment.user?._id === actingUserId && (
                                           <button
                                             onClick={() => handleDeleteComment(post._id, commentIdx)}
                                             className="text-xs text-red-500 hover:text-red-700"
@@ -465,7 +670,7 @@ function ExplorePage() {
           </main>
 
           {/* Right sidebar */}
-          <aside className="hidden lg:block w-80 space-y-5">
+          <aside className="hidden lg:block w-80 space-y-5 self-start sticky top-6 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1">
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <svg className="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
@@ -519,7 +724,12 @@ function ExplorePage() {
               ) : (
                 <div className="space-y-3">
                   {peopleYouMayKnow.map((person) => (
-                    <div key={person.id} className="flex items-center gap-3">
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => handleViewProfile(person.id)}
+                      className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-slate-50"
+                    >
                       <img
                         src={person.profileImage}
                         alt={person.username}
@@ -529,10 +739,10 @@ function ExplorePage() {
                         <p className="font-semibold text-slate-800 text-sm truncate">{person.username}</p>
                         <p className="text-xs text-slate-500">{person.postsCount} post{person.postsCount > 1 ? "s" : ""}</p>
                       </div>
-                      <button className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition-colors border border-slate-200">
+                      <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200">
                         View
-                      </button>
-                    </div>
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -541,6 +751,177 @@ function ExplorePage() {
 
         </div>
       </div>
+
+      {previewProfile && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-slate-200 shadow-xl">
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Profile Preview</h3>
+              <button
+                type="button"
+                onClick={closeProfilePreview}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                Close
+              </button>
+            </div>
+
+            {previewProfileLoading ? (
+              <div className="p-6 text-slate-600">Loading profile...</div>
+            ) : (
+              <>
+                <div className="p-5 border-b border-slate-100">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={previewProfile.profileImage || defaultAvatar}
+                      alt={previewProfile.username}
+                      className="w-16 h-16 rounded-full border border-slate-200 object-cover"
+                    />
+                    <div>
+                      <p className="text-xl font-bold text-slate-900">{previewProfile.username}</p>
+                      <p className="text-sm text-slate-600 mt-1">{previewProfile.bio || "No bio yet."}</p>
+                    </div>
+                  </div>
+                  {previewProfile.interests.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {previewProfile.interests.map((interest) => (
+                        <span key={interest} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                          #{interest}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-5 space-y-4">
+                  {previewProfilePosts.length === 0 ? (
+                    <p className="text-sm text-slate-500">No posts yet.</p>
+                  ) : (
+                    previewProfilePosts.map((post) => {
+                      const isLiked = (post.likes || []).some((likeUserId) => {
+                        const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
+                        return String(id) === String(actingUserId);
+                      });
+
+                      return (
+                        <article key={post._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <img
+                              src={post.user?.profileImage || defaultAvatar}
+                              alt="Avatar"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-blue-100"
+                            />
+                            <div className="flex-1">
+                              <span className="font-semibold text-gray-900 block text-sm">{post.user?.username || previewProfile.username}</span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(post.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {post.text && (
+                            <p className="text-gray-800 mb-4 leading-relaxed whitespace-pre-wrap">{post.text}</p>
+                          )}
+
+                          {Array.isArray(post.tags) && post.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {post.tags.map((tag) => (
+                                <span key={tag} className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex gap-4 mt-4 pt-4 border-t border-gray-100">
+                            <button
+                              onClick={() => handlePreviewLikePost(post._id)}
+                              className={`flex items-center gap-2 text-sm transition-colors ${
+                                isLiked
+                                  ? 'text-red-600'
+                                  : 'text-gray-600 hover:text-red-600'
+                              }`}
+                            >
+                              <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              {post.likes?.length || 0}
+                            </button>
+
+                            <button
+                              onClick={() => togglePreviewComments(post._id)}
+                              className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              {post.comments?.length || 0}
+                            </button>
+                          </div>
+
+                          {previewExpandedComments[post._id] && (
+                            <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {post.comments?.map((comment, idx) => {
+                                  const commentUserId = typeof comment.user === 'string' ? comment.user : comment.user?._id;
+                                  const isCommentOwner = String(commentUserId) === String(actingUserId);
+
+                                  return (
+                                    <div key={comment._id || `${post._id}-comment-${idx}`} className="bg-gray-50 p-3 rounded-lg relative">
+                                      <div className="flex items-start gap-3 mb-2">
+                                        <img src={comment.user?.profileImage || defaultAvatar} className="w-8 h-8 rounded-full object-cover" alt="" />
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-semibold text-sm">{comment.user?.username || 'User'}</span>
+                                            {isCommentOwner && (
+                                              <button
+                                                onClick={() => handlePreviewDeleteComment(post._id, idx)}
+                                                className="ml-auto text-gray-400 hover:text-red-600 text-xs font-medium"
+                                              >
+                                                Delete
+                                              </button>
+                                            )}
+                                          </div>
+                                          <p className="text-sm text-gray-700">{comment.text}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={previewNewComment[post._id] || ''}
+                                  onChange={(e) => setPreviewNewComment((prev) => ({ ...prev, [post._id]: e.target.value }))}
+                                  placeholder="Add a comment..."
+                                  className="flex-1 px-3 py-2 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                  onClick={() => handlePreviewAddComment(post._id)}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                                >
+                                  Post
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Logout confirmation modal */}
       {showLogoutConfirm && (

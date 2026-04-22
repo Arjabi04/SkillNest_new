@@ -11,10 +11,12 @@ import { clearAuth } from "../utils/tokenUtils";
 function UserProfile() {
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId");
+  const currentUserId = localStorage.getItem("userId") || "";
   const headerInputRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
+  const isOwnProfile = Boolean(userId && currentUserId && String(userId) === String(currentUserId));
   
   const handleLogout = () => {
     clearAuth();
@@ -129,10 +131,12 @@ function UserProfile() {
   // --- Upload avatar or header immediately ---
   const handleFileSelect = async (file, type) => {
     if (!file || !userId) return;
+    if (!isOwnProfile) return;
 
     const formData = new FormData();
     formData.append(type === "avatar" ? "profileImage" : "headerImage", file);
     formData.append("userId", userId);
+    const token = localStorage.getItem("token");
 
     setUploading(true);
     setMessage("");
@@ -141,6 +145,7 @@ function UserProfile() {
       const endpoint = type === "avatar" ? "upload" : "upload-header";
       const res = await fetch(`http://localhost:4000/api/profile/${endpoint}`, {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
       const data = await res.json();
@@ -164,10 +169,15 @@ function UserProfile() {
   // --- Update bio ---
   const handleBioUpdate = async () => {
     if (!userId) return setBioMessage("User ID missing");
+    if (!isOwnProfile) return;
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch("http://localhost:4000/api/profile/bio", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ userId, bio }),
       });
       const data = await res.json();
@@ -184,11 +194,16 @@ function UserProfile() {
       setInterestsMessage("User ID missing");
       return;
     }
+    if (!isOwnProfile) return;
+    const token = localStorage.getItem("token");
 
     try {
       const res = await fetch("http://localhost:4000/api/interests", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ userId, interests: interestDraft }),
       });
 
@@ -254,6 +269,11 @@ function UserProfile() {
 
   // --- New Post ---
   const handleNewPost = async () => {
+    if (!isOwnProfile) {
+      alert("You can only post from your own profile.");
+      return;
+    }
+
     if (!newPostText.trim() && newPostFiles.length === 0) {
       alert("Please add some text or at least one image");
       return;
@@ -457,6 +477,7 @@ function UserProfile() {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 pointer-events-none bg-linear-to-t from-black/20 to-transparent" />
+          {isOwnProfile && (
           <button
             type="button"
             onClick={() => headerInputRef.current?.click()}
@@ -469,6 +490,8 @@ function UserProfile() {
             </svg>
             Change cover
           </button>
+          )}
+          {isOwnProfile && (
           <input
             ref={headerInputRef}
             id="headerInput"
@@ -481,6 +504,7 @@ function UserProfile() {
               handleFileSelect(file, "header");
             }}
           />
+          )}
         </div>
 
         {/* Edit profile button row (BELOW header, right side) */}
@@ -494,6 +518,7 @@ function UserProfile() {
         onError={handleAvatarError}
         className="w-28 h-28 rounded-full border-4 border-white object-cover shadow-xl ring-2 ring-slate-100"
       />
+            {isOwnProfile && (
             <label 
               htmlFor="avatarInput" 
               className="absolute bottom-1 right-1 bg-blue-600 text-white rounded-full p-1.5 cursor-pointer hover:bg-blue-700 transition-colors shadow-md border-2 border-white"
@@ -504,6 +529,8 @@ function UserProfile() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </label>
+            )}
+            {isOwnProfile && (
             <input
               id="avatarInput"
               type="file"
@@ -515,13 +542,16 @@ function UserProfile() {
                 handleFileSelect(file, "avatar");
               }}
             />
+            )}
           </div>
         </div>
 
         <div className="profile-details">
           <h3 className="text-2xl font-bold text-gray-900 mb-1">{username}</h3>
 
-          {!editingBio ? (
+          {!isOwnProfile ? (
+            <p className="text-gray-500 mb-3 text-sm leading-relaxed">{bio || "No bio yet — tell the community about yourself!"}</p>
+          ) : !editingBio ? (
             <>
               <p className="text-gray-500 mb-3 text-sm leading-relaxed">{bio || "No bio yet — tell the community about yourself!"}</p>
               <button 
@@ -566,7 +596,7 @@ function UserProfile() {
           <div className="mt-5 pt-5 border-t border-gray-100">
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Interests</span>
-              {!editingInterests && (
+              {isOwnProfile && !editingInterests && (
                 <button
                   onClick={() => {
                     setInterestDraft(interests);
@@ -625,6 +655,7 @@ function UserProfile() {
       </div>
 
         {/* New Post Card */}
+        {isOwnProfile && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mx-6 mt-5 mb-3 max-w-2xl">
         <div className="p-4">
           <div className="flex gap-3 mb-3">
@@ -737,6 +768,7 @@ function UserProfile() {
           </div>
         </div>
       </div>
+        )}
 
         {/* Posts List */}
         <div className="flex flex-col gap-3 mx-6 pb-10 max-w-2xl">

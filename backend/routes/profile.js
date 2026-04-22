@@ -240,11 +240,14 @@ router.get("/:userId", async (req, res) => {
 
 
 // POST /api/profile/upload
-router.post("/upload", upload.single("profileImage"), async (req, res) => {
+router.post("/upload", auth, upload.single("profileImage"), async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ msg: "User ID missing" });
     if (!req.file) return res.status(400).json({ msg: "No file uploaded" });
+    if (String(req.user._id) !== String(userId)) {
+      return res.status(403).json({ msg: "You can only update your own profile image" });
+    }
 
     // Find user first
     const user = await User.findById(userId);
@@ -277,11 +280,14 @@ router.post("/upload", upload.single("profileImage"), async (req, res) => {
 });
 
 // POST /api/profile/upload-header
-router.post("/upload-header", upload.single("headerImage"), async (req, res) => {
+router.post("/upload-header", auth, upload.single("headerImage"), async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ msg: "User ID missing" });
     if (!req.file) return res.status(400).json({ msg: "No file uploaded" });
+    if (String(req.user._id) !== String(userId)) {
+      return res.status(403).json({ msg: "You can only update your own header image" });
+    }
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: "User not found" });
@@ -307,10 +313,13 @@ router.post("/upload-header", upload.single("headerImage"), async (req, res) => 
 });
 
 // POST /api/profile/bio
-router.post("/bio", async (req, res) => {
+router.post("/bio", auth, async (req, res) => {
   try {
     const { userId, bio } = req.body;
     if (!userId) return res.status(400).json({ msg: "User ID missing" });
+    if (String(req.user._id) !== String(userId)) {
+      return res.status(403).json({ msg: "You can only update your own bio" });
+    }
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: "User not found" });
