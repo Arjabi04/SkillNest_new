@@ -29,7 +29,7 @@ const Plus = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
   </svg>
 );
-const Check = ({ className }) => ( 
+const Check = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
@@ -125,7 +125,7 @@ const CommunitiesPage = () => {
 
   // const location = useLocation();
   const navigate = useNavigate();
-  
+
   const handleLogout = () => {
     clearAuth();
     navigate("/login");
@@ -173,10 +173,10 @@ const CommunitiesPage = () => {
       console.log('localStorage userId:', localStorage.getItem('userId'));
       return;
     }
-    
+
     checkAdminStatus();
     loadCommunities();
-    
+
     // Check if a community ID is in URL params
     const communityIdParam = new URLSearchParams(window.location.search).get('communityId');
     if (communityIdParam) {
@@ -881,12 +881,12 @@ const CommunitiesPage = () => {
       alert('Please fill in ban details');
       return;
     }
-    
+
     if (!selectedCommunity) {
       alert('No community selected');
       return;
     }
-    
+
     try {
       const requestBody = {
         userId,
@@ -895,15 +895,15 @@ const CommunitiesPage = () => {
         reason: memberBanData.reason || '',
         expiresAt: memberBanData.expiresAt || ''
       };
-      
+
       const res = await fetch(`${API_BASE}/communities/${selectedCommunity._id}/ban-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
         alert('User banned successfully');
         // Clear the ban form for this member
@@ -1053,7 +1053,7 @@ const CommunitiesPage = () => {
       <div className="min-h-screen bg-gray-50 font-sans flex">
         {/* Sidebar */}
         {!showCommunityAdminPanel && (
-          <Sidebar 
+          <Sidebar
             showLogoutConfirm={showLogoutConfirm}
             setShowLogoutConfirm={setShowLogoutConfirm}
             onLogout={handleLogout}
@@ -1063,7 +1063,7 @@ const CommunitiesPage = () => {
         {/* Detail Content */}
         <div className={`flex-1 transition-all duration-300 flex justify-center px-4 py-8 ${showCommunityAdminPanel ? 'lg:ml-0 xl:ml-0' : 'lg:ml-16 xl:ml-64'}`}>
           <div className="w-full max-w-4xl space-y-6">
-            <button 
+            <button
               onClick={() => {
                 setSelectedCommunity(null);
                 window.history.pushState({}, '', `?userId=${userId}`);
@@ -1129,15 +1129,15 @@ const CommunitiesPage = () => {
                           </div>
                         </div>
                       ) : isCommunityMember(selectedCommunity, userId) ? (
-                        <button 
-                          onClick={() => handleLeaveCommunity(selectedCommunity._id)} 
+                        <button
+                          onClick={() => handleLeaveCommunity(selectedCommunity._id)}
                           className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
                         >
                           Leave Community
                         </button>
                       ) : (
-                        <button 
-                          onClick={() => handleJoinCommunity(selectedCommunity._id)} 
+                        <button
+                          onClick={() => handleJoinCommunity(selectedCommunity._id)}
                           className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
                         >
                           Join Community
@@ -1146,7 +1146,7 @@ const CommunitiesPage = () => {
                     </div>
                   </div>
                   {hasAdminOrModeratorAccess(selectedCommunity, userId) && (
-                    <button 
+                    <button
                       onClick={async (e) => {
                         e.stopPropagation();
                         await openCommunityAdminPanel();
@@ -1162,295 +1162,294 @@ const CommunitiesPage = () => {
 
             {/* Post Feed */}
             <div className="space-y-4">
-               {isCommunityMember(selectedCommunity, userId) && (
-                 <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                   <div className="p-4">
-                     <div className="flex gap-3 mb-4">
-                       <img
-                         src={selectedCommunity.currentUserImage || defaultAvatar}
-                         alt="Avatar"
-                         className="w-10 h-10 rounded-full object-cover shrink-0"
-                       />
-                       <div className="flex-1">
-                         <textarea
-                           value={newPostText}
-                           onChange={(e) => setNewPostText(e.target.value)}
-                           placeholder="What's on your mind?"
-                           className="w-full px-4 py-3 rounded-lg border-none resize-none text-base font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
-                           rows="4"
-                         />
-                       </div>
-                     </div>
-
-                     {newPostPreviews.length > 0 && (
-                       <div className="mb-4">
-                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                           {newPostPreviews.map((preview, idx) => (
-                             <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200">
-                               <img
-                                 src={preview}
-                                 alt={`Post Preview ${idx + 1}`}
-                                 className="w-full h-32 object-cover"
-                               />
-                               <button
-                                 onClick={() => {
-                                   setNewPostImages((prev) => prev.filter((_, i) => i !== idx));
-                                   setNewPostPreviews((prev) => prev.filter((_, i) => i !== idx));
-                                 }}
-                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                                 title="Remove image"
-                               >
-                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                 </svg>
-                               </button>
-                             </div>
-                           ))}
-                         </div>
-                         <p className="text-xs text-gray-500 mt-2">{newPostPreviews.length}/6 images selected</p>
-                       </div>
-                     )}
-
-                     <div className="mt-2 mb-3 flex flex-wrap items-center gap-2 px-1">
-                       {newPostTags.map((tag) => (
-                         <span
-                           key={tag}
-                           className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
-                         >
-                           <span>#{tag}</span>
-                           <button
-                             type="button"
-                             onClick={() => removeTag(tag)}
-                             className="text-blue-500 hover:text-blue-700"
-                           >
-                             ×
-                           </button>
-                         </span>
-                       ))}
-                     </div>
-
-                     <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                       <div className="flex items-center gap-4">
-                         <label className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer transition-colors">
-                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                           </svg>
-                           <span className="text-sm font-medium">Photo</span>
-                           <input 
-                             type="file" 
-                             multiple
-                             accept="image/*"
-                             onChange={(e) => {
-                               const files = Array.from(e.target.files || []);
-                               setNewPostImages(files.slice(0, 6));
-                             }} 
-                             className="hidden" 
-                           />
-                         </label>
-                       </div>
-                       <button 
-                         onClick={handleCreatePost}
-                         disabled={!newPostText.trim() && newPostImages.length === 0}
-                         className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
-                       >
-                         Post
-                       </button>
-                     </div>
-                   </div>
-                 </div>
-               )}
-               
-               <div className="space-y-4">
-                 {communityPosts.map(post => (
-                    <div key={post._id} className="bg-white p-6 rounded-3xl border border-gray-200 relative">
-                       <div className="flex items-center gap-3 mb-4">
-                         <img src={post.user?.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
-                         <div className="flex-1">
-                           <span className="font-bold text-sm text-gray-900 block">{post.user?.username || 'Unknown User'}</span>
-                           <span className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</span>
-                         </div>
-                       </div>
-                       {post.text && <p className="text-gray-800 mb-3">{post.text}</p>}
-                       {post.image && (
-                         <div className="rounded-xl overflow-hidden mb-3 border border-gray-200 bg-gray-50 flex items-center justify-center max-h-96">
-                           <img src={post.image} className="w-full h-auto object-contain" alt="" />
-                         </div>
-                       )}
-                       {Array.isArray(post.tags) && post.tags.length > 0 && (
-                         <div className="flex flex-wrap gap-2 mb-3">
-                           {post.tags.map((tag) => (
-                             <span key={tag} className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">
-                               #{tag}
-                             </span>
-                           ))}
-                         </div>
-                       )}
-                       {showReportForm[post._id] && (
-                         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                           <h4 className="text-sm font-bold text-amber-900 mb-3">Report post</h4>
-                           <div className="space-y-3">
-                             <select
-                               value={reportFormData[post._id]?.reason || ''}
-                               onChange={(e) => setReportFormData((prev) => ({
-                                 ...prev,
-                                 [post._id]: { ...prev[post._id], reason: e.target.value },
-                               }))}
-                               className="w-full rounded-lg border border-amber-200 bg-white p-2 text-sm"
-                             >
-                               <option value="">Select reason</option>
-                               <option value="Spam">Spam</option>
-                               <option value="Harassment">Harassment</option>
-                               <option value="Hate speech">Hate speech</option>
-                               <option value="Misinformation">Misinformation</option>
-                               <option value="Rule violation">Rule violation</option>
-                             </select>
-                             <textarea
-                               value={reportFormData[post._id]?.details || ''}
-                               onChange={(e) => setReportFormData((prev) => ({
-                                 ...prev,
-                                 [post._id]: { ...prev[post._id], details: e.target.value },
-                               }))}
-                               rows={3}
-                               placeholder="Add details for the community staff..."
-                               className="w-full rounded-lg border border-amber-200 bg-white p-3 text-sm"
-                             />
-                             <div className="flex justify-end gap-2">
-                               <button
-                                 onClick={() => setShowReportForm((prev) => ({ ...prev, [post._id]: false }))}
-                                 className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-800"
-                               >
-                                 Cancel
-                               </button>
-                               <button
-                                 onClick={() => handleReportPost(post._id)}
-                                 disabled={Boolean(reportActionLoading[post._id])}
-                                 className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
-                               >
-                                 {reportActionLoading[post._id] ? 'Submitting...' : 'Submit report'}
-                               </button>
-                             </div>
-                           </div>
-                         </div>
-                       )}
-                       <div className="flex gap-4 mt-4 pt-4 border-t border-gray-100">
-                         {(() => {
-                           const isLiked = post.likes?.some(likeUserId => {
-                             const id = typeof likeUserId === 'string' ? likeUserId : likeUserId._id;
-                             return id === userId;
-                           });
-                           return (
-                             <button 
-                               onClick={() => handleLikePost(post._id)}
-                               className={`flex items-center gap-2 text-sm transition-colors ${
-                                 isLiked 
-                                   ? 'text-red-600' 
-                                   : 'text-gray-600 hover:text-red-600'
-                               }`}
-                             >
-                               <Heart className="w-5 h-5" filled={isLiked} />
-                               {post.likes?.length || 0}
-                             </button>
-                           );
-                         })()}
-                         <button 
-                           onClick={() => setExpandedComments({ ...expandedComments, [post._id]: !expandedComments[post._id] })}
-                           className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
-                         >
-                           <MessageCircle className="w-5 h-5" />
-                           {post.comments?.length || 0}
-                         </button>
-                       </div>
-                       {expandedComments[post._id] && (
-                         <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
-                           <div className="space-y-2 max-h-48 overflow-y-auto">
-                             {post.comments?.map((comment, idx) => {
-                               const commentUserId = typeof comment.user === 'string' ? comment.user : comment.user._id;
-                               const isCommentOwner = commentUserId === userId;
-                               const isAdmin = isCommunityAdmin(selectedCommunity, userId);
-                               const canDelete = isCommentOwner || isAdmin;
-                               return (
-                                 <div key={idx} className="bg-gray-50 p-3 rounded-lg relative">
-                                   <div className="flex flex-col items-start gap-2 mb-3">
-                                     <img src={comment.user?.profileImage || defaultAvatar} className="w-8 h-8 rounded-full" alt="" />
-                                     <div className="flex items-center gap-2 w-full">
-                                       <span className="font-semibold text-sm">{comment.user?.username}</span>
-                                       {canDelete && (
-                                         <button 
-                                           onClick={() => handleDeleteComment(post._id, idx)}
-                                           className="ml-auto text-gray-400 hover:text-red-600 text-xs font-medium"
-                                         >
-                                           Delete
-                                         </button>
-                                       )}
-                                     </div>
-                                   </div>
-                                   <p className="text-sm text-gray-700">{comment.text}</p>
-                                 </div>
-                               );
-                             })}
-                           </div>
-                           <div className="flex gap-2">
-                             <input 
-                               type="text"
-                               value={newComment[post._id] || ''}
-                               onChange={(e) => setNewComment({ ...newComment, [post._id]: e.target.value })}
-                               placeholder="Add a comment..."
-                               className="flex-1 px-3 py-2 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500"
-                             />
-                             <button 
-                               onClick={() => handleAddComment(post._id)}
-                               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                             >
-                               Post
-                             </button>
-                           </div>
-                         </div>
-                       )}
-                       {(() => {
-                         const postUserId = String(typeof post.user === 'string' ? post.user : post.user?._id || '');
-                         const isPostOwner = postUserId === String(userId || '');
-                         const isAdmin = isCommunityAdmin(selectedCommunity, userId);
-                         const isMod = isCommunityModerator(selectedCommunity, userId);
-                         const canDelete = isPostOwner || isAdmin || isMod;
-                         const canReport = isCommunityMember(selectedCommunity, userId) && !isPostOwner;
-
-                         if (!canDelete && !canReport) {
-                           return null;
-                         }
-
-                         return (
-                           <div className="absolute top-4 right-4 flex items-center gap-2">
-                             {canReport && (
-                               <button
-                                 onClick={() => {
-                                   setShowReportForm((prev) => ({ ...prev, [post._id]: !prev[post._id] }));
-                                   if (!reportFormData[post._id]) {
-                                     setReportFormData((prev) => ({
-                                       ...prev,
-                                       [post._id]: { reason: '', details: '' },
-                                     }));
-                                   }
-                                 }}
-                                 className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100"
-                               >
-                                 <Flag className="w-3.5 h-3.5" />
-                                 Report
-                               </button>
-                             )}
-                             {canDelete && (
-                               <button 
-                                 onClick={() => handleDeletePost(post._id)} 
-                                 className="text-red-600 hover:text-red-800 text-sm font-medium"
-                               >
-                                 Delete
-                               </button>
-                             )}
-                           </div>
-                         );
-                       })()}
+              {isCommunityMember(selectedCommunity, userId) && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <div className="p-4">
+                    <div className="flex gap-3 mb-4">
+                      <img
+                        src={selectedCommunity.currentUserImage || defaultAvatar}
+                        alt="Avatar"
+                        className="w-10 h-10 rounded-full object-cover shrink-0"
+                      />
+                      <div className="flex-1">
+                        <textarea
+                          value={newPostText}
+                          onChange={(e) => setNewPostText(e.target.value)}
+                          placeholder="What's on your mind?"
+                          className="w-full px-4 py-3 rounded-lg border-none resize-none text-base font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
+                          rows="4"
+                        />
+                      </div>
                     </div>
-                 ))}
-               </div>
+
+                    {newPostPreviews.length > 0 && (
+                      <div className="mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {newPostPreviews.map((preview, idx) => (
+                            <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200">
+                              <img
+                                src={preview}
+                                alt={`Post Preview ${idx + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                              <button
+                                onClick={() => {
+                                  setNewPostImages((prev) => prev.filter((_, i) => i !== idx));
+                                  setNewPostPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                                title="Remove image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">{newPostPreviews.length}/6 images selected</p>
+                      </div>
+                    )}
+
+                    <div className="mt-2 mb-3 flex flex-wrap items-center gap-2 px-1">
+                      {newPostTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
+                        >
+                          <span>#{tag}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer transition-colors">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-sm font-medium">Photo</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              setNewPostImages(files.slice(0, 6));
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      <button
+                        onClick={handleCreatePost}
+                        disabled={!newPostText.trim() && newPostImages.length === 0}
+                        className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                      >
+                        Post
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {communityPosts.map(post => (
+                  <div key={post._id} className="bg-white p-6 rounded-3xl border border-gray-200 relative">
+                    <div className="flex items-center gap-3 mb-4">
+                      <img src={post.user?.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
+                      <div className="flex-1">
+                        <span className="font-bold text-sm text-gray-900 block">{post.user?.username || 'Unknown User'}</span>
+                        <span className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    {post.text && <p className="text-gray-800 mb-3">{post.text}</p>}
+                    {post.image && (
+                      <div className="rounded-xl overflow-hidden mb-3 border border-gray-200 bg-gray-50 flex items-center justify-center max-h-96">
+                        <img src={post.image} className="w-full h-auto object-contain" alt="" />
+                      </div>
+                    )}
+                    {Array.isArray(post.tags) && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {post.tags.map((tag) => (
+                          <span key={tag} className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {showReportForm[post._id] && (
+                      <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <h4 className="text-sm font-bold text-amber-900 mb-3">Report post</h4>
+                        <div className="space-y-3">
+                          <select
+                            value={reportFormData[post._id]?.reason || ''}
+                            onChange={(e) => setReportFormData((prev) => ({
+                              ...prev,
+                              [post._id]: { ...prev[post._id], reason: e.target.value },
+                            }))}
+                            className="w-full rounded-lg border border-amber-200 bg-white p-2 text-sm"
+                          >
+                            <option value="">Select reason</option>
+                            <option value="Spam">Spam</option>
+                            <option value="Harassment">Harassment</option>
+                            <option value="Hate speech">Hate speech</option>
+                            <option value="Misinformation">Misinformation</option>
+                            <option value="Rule violation">Rule violation</option>
+                          </select>
+                          <textarea
+                            value={reportFormData[post._id]?.details || ''}
+                            onChange={(e) => setReportFormData((prev) => ({
+                              ...prev,
+                              [post._id]: { ...prev[post._id], details: e.target.value },
+                            }))}
+                            rows={3}
+                            placeholder="Add details for the community staff..."
+                            className="w-full rounded-lg border border-amber-200 bg-white p-3 text-sm"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setShowReportForm((prev) => ({ ...prev, [post._id]: false }))}
+                              className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-800"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleReportPost(post._id)}
+                              disabled={Boolean(reportActionLoading[post._id])}
+                              className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                            >
+                              {reportActionLoading[post._id] ? 'Submitting...' : 'Submit report'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-4 mt-4 pt-4 border-t border-gray-100">
+                      {(() => {
+                        const isLiked = post.likes?.some(likeUserId => {
+                          const id = typeof likeUserId === 'string' ? likeUserId : likeUserId._id;
+                          return id === userId;
+                        });
+                        return (
+                          <button
+                            onClick={() => handleLikePost(post._id)}
+                            className={`flex items-center gap-2 text-sm transition-colors ${isLiked
+                                ? 'text-red-600'
+                                : 'text-gray-600 hover:text-red-600'
+                              }`}
+                          >
+                            <Heart className="w-5 h-5" filled={isLiked} />
+                            {post.likes?.length || 0}
+                          </button>
+                        );
+                      })()}
+                      <button
+                        onClick={() => setExpandedComments({ ...expandedComments, [post._id]: !expandedComments[post._id] })}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        {post.comments?.length || 0}
+                      </button>
+                    </div>
+                    {expandedComments[post._id] && (
+                      <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {post.comments?.map((comment, idx) => {
+                            const commentUserId = typeof comment.user === 'string' ? comment.user : comment.user._id;
+                            const isCommentOwner = commentUserId === userId;
+                            const isAdmin = isCommunityAdmin(selectedCommunity, userId);
+                            const canDelete = isCommentOwner || isAdmin;
+                            return (
+                              <div key={idx} className="bg-gray-50 p-3 rounded-lg relative">
+                                <div className="flex flex-col items-start gap-2 mb-3">
+                                  <img src={comment.user?.profileImage || defaultAvatar} className="w-8 h-8 rounded-full" alt="" />
+                                  <div className="flex items-center gap-2 w-full">
+                                    <span className="font-semibold text-sm">{comment.user?.username}</span>
+                                    {canDelete && (
+                                      <button
+                                        onClick={() => handleDeleteComment(post._id, idx)}
+                                        className="ml-auto text-gray-400 hover:text-red-600 text-xs font-medium"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-700">{comment.text}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newComment[post._id] || ''}
+                            onChange={(e) => setNewComment({ ...newComment, [post._id]: e.target.value })}
+                            placeholder="Add a comment..."
+                            className="flex-1 px-3 py-2 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={() => handleAddComment(post._id)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                          >
+                            Post
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const postUserId = String(typeof post.user === 'string' ? post.user : post.user?._id || '');
+                      const isPostOwner = postUserId === String(userId || '');
+                      const isAdmin = isCommunityAdmin(selectedCommunity, userId);
+                      const isMod = isCommunityModerator(selectedCommunity, userId);
+                      const canDelete = isPostOwner || isAdmin || isMod;
+                      const canReport = isCommunityMember(selectedCommunity, userId) && !isPostOwner;
+
+                      if (!canDelete && !canReport) {
+                        return null;
+                      }
+
+                      return (
+                        <div className="absolute top-4 right-4 flex items-center gap-2">
+                          {canReport && (
+                            <button
+                              onClick={() => {
+                                setShowReportForm((prev) => ({ ...prev, [post._id]: !prev[post._id] }));
+                                if (!reportFormData[post._id]) {
+                                  setReportFormData((prev) => ({
+                                    ...prev,
+                                    [post._id]: { reason: '', details: '' },
+                                  }));
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                            >
+                              <Flag className="w-3.5 h-3.5" />
+                              Report
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeletePost(post._id)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1582,18 +1581,18 @@ const CommunitiesPage = () => {
 
                             {Boolean(reviewData[post._id]?.banAuthor) && (
                               <div className="mt-4">
-                              <label className="mb-1 block text-xs font-medium text-slate-700">Ban Type</label>
-                              <select
-                                value={reviewData[post._id]?.banType || 'permanent'}
-                                onChange={(e) => setReviewData((prev) => ({
-                                  ...prev,
-                                  [post._id]: { ...prev[post._id], banType: e.target.value },
-                                }))}
-                                className="w-full rounded-xl border border-red-200 bg-white p-2 text-sm"
-                              >
-                                <option value="temporary">Temporary</option>
-                                <option value="permanent">Permanent</option>
-                              </select>
+                                <label className="mb-1 block text-xs font-medium text-slate-700">Ban Type</label>
+                                <select
+                                  value={reviewData[post._id]?.banType || 'permanent'}
+                                  onChange={(e) => setReviewData((prev) => ({
+                                    ...prev,
+                                    [post._id]: { ...prev[post._id], banType: e.target.value },
+                                  }))}
+                                  className="w-full rounded-xl border border-red-200 bg-white p-2 text-sm"
+                                >
+                                  <option value="temporary">Temporary</option>
+                                  <option value="permanent">Permanent</option>
+                                </select>
                               </div>
                             )}
 
@@ -1692,248 +1691,247 @@ const CommunitiesPage = () => {
                 </section>
 
                 <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="text-lg font-black text-slate-900">Members</h3>
-                <p className="mt-1 text-sm text-slate-500">Promote, ban, or remove members from the community.</p>
-                {isCommunityAdmin(selectedCommunity, userId) && (
-                  <div className="mb-6 mt-5 p-4 bg-blue-50 rounded-2xl">
-                    <h4 className="text-sm font-bold text-gray-700 mb-3">Add Member</h4>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Enter Username"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        id="addMemberInput"
-                      />
-                      <button
-                        onClick={() => {
-                          const usernameToAdd = document.getElementById('addMemberInput').value.trim();
-                          handleAddMember(usernameToAdd);
-                          document.getElementById('addMemberInput').value = '';
-                        }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-4">
-                  {communityMembers.members?.map(member => (
-                    <div key={member._id} className="bg-gray-50 rounded-2xl overflow-hidden">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center gap-3">
-                          <img src={member.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
-                          <span className="font-bold text-sm text-gray-900">{member.username}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          {isCommunityAdmin(selectedCommunity, userId) && (
-                            <button 
-                              onClick={() => {
-                                const isMod = communityMembers.moderators?.some(mod => {
-                                  const modId = typeof mod === 'string' ? mod : mod._id;
-                                  return modId === member._id;
-                                });
-                                if (isMod) {
-                                  handleDemoteModerator(member._id);
-                                } else {
-                                  handlePromoteModerator(member._id);
-                                }
-                              }} 
-                              className={`p-2 rounded-lg ${ 
-                                communityMembers.moderators?.some(mod => {
-                                  const modId = typeof mod === 'string' ? mod : mod._id;
-                                  return modId === member._id;
-                                }) 
-                                  ? 'hover:bg-yellow-100 text-yellow-600' 
-                                  : 'hover:bg-blue-100 text-blue-600'
-                              }`}
-                              title={communityMembers.moderators?.some(mod => {
-                                const modId = typeof mod === 'string' ? mod : mod._id;
-                                return modId === member._id;
-                              }) ? 'Demote from Moderator' : 'Promote to Moderator'}
-                            >
-                              <Crown className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => {
-                              setShowBanForm({ 
-                                ...showBanForm, 
-                                [member._id]: !showBanForm[member._id] 
-                              });
-                              if (!banData[member._id]) {
-                                setBanData({ 
-                                  ...banData, 
-                                  [member._id]: { banType: 'permanent', reason: '', expiresAt: '' }
-                                });
-                              }
-                            }} 
-                            className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
-                          >
-                            <Ban className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleRemoveMember(member._id)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg"><UserMinus className="w-4 h-4" /></button>
-                        </div>
+                  <h3 className="text-lg font-black text-slate-900">Members</h3>
+                  <p className="mt-1 text-sm text-slate-500">Promote, ban, or remove members from the community.</p>
+                  {isCommunityAdmin(selectedCommunity, userId) && (
+                    <div className="mb-6 mt-5 p-4 bg-blue-50 rounded-2xl">
+                      <h4 className="text-sm font-bold text-gray-700 mb-3">Add Member</h4>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Enter Username"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          id="addMemberInput"
+                        />
+                        <button
+                          onClick={() => {
+                            const usernameToAdd = document.getElementById('addMemberInput').value.trim();
+                            handleAddMember(usernameToAdd);
+                            document.getElementById('addMemberInput').value = '';
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+                        >
+                          Add
+                        </button>
                       </div>
-                      
-                      {/* Inline Ban Form */}
-                      {showBanForm[member._id] && (
-                        <div className="px-4 pb-4 border-t border-gray-200 bg-red-50">
-                          <div className="pt-3 space-y-3">
-                            <h4 className="font-bold text-sm text-red-700">Ban {member.username}</h4>
-                            
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Ban Type</label>
-                              <select 
-                                value={banData[member._id]?.banType || 'permanent'} 
-                                onChange={(e) => setBanData({
-                                  ...banData,
-                                  [member._id]: { ...banData[member._id], banType: e.target.value }
-                                })}
-                                className="w-full p-2 text-sm border border-gray-300 rounded"
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    {communityMembers.members?.map(member => (
+                      <div key={member._id} className="bg-gray-50 rounded-2xl overflow-hidden">
+                        <div className="flex items-center justify-between p-4">
+                          <div className="flex items-center gap-3">
+                            <img src={member.profileImage || defaultAvatar} className="w-10 h-10 rounded-full border" alt="" />
+                            <span className="font-bold text-sm text-gray-900">{member.username}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            {isCommunityAdmin(selectedCommunity, userId) && (
+                              <button
+                                onClick={() => {
+                                  const isMod = communityMembers.moderators?.some(mod => {
+                                    const modId = typeof mod === 'string' ? mod : mod._id;
+                                    return modId === member._id;
+                                  });
+                                  if (isMod) {
+                                    handleDemoteModerator(member._id);
+                                  } else {
+                                    handlePromoteModerator(member._id);
+                                  }
+                                }}
+                                className={`p-2 rounded-lg ${communityMembers.moderators?.some(mod => {
+                                  const modId = typeof mod === 'string' ? mod : mod._id;
+                                  return modId === member._id;
+                                })
+                                    ? 'hover:bg-yellow-100 text-yellow-600'
+                                    : 'hover:bg-blue-100 text-blue-600'
+                                  }`}
+                                title={communityMembers.moderators?.some(mod => {
+                                  const modId = typeof mod === 'string' ? mod : mod._id;
+                                  return modId === member._id;
+                                }) ? 'Demote from Moderator' : 'Promote to Moderator'}
                               >
-                                <option value="temporary">Temporary</option>
-                                <option value="permanent">Permanent</option>
-                              </select>
-                            </div>
-                            
-                            {banData[member._id]?.banType === 'temporary' && (
+                                <Crown className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setShowBanForm({
+                                  ...showBanForm,
+                                  [member._id]: !showBanForm[member._id]
+                                });
+                                if (!banData[member._id]) {
+                                  setBanData({
+                                    ...banData,
+                                    [member._id]: { banType: 'permanent', reason: '', expiresAt: '' }
+                                  });
+                                }
+                              }}
+                              className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleRemoveMember(member._id)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg"><UserMinus className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+
+                        {/* Inline Ban Form */}
+                        {showBanForm[member._id] && (
+                          <div className="px-4 pb-4 border-t border-gray-200 bg-red-50">
+                            <div className="pt-3 space-y-3">
+                              <h4 className="font-bold text-sm text-red-700">Ban {member.username}</h4>
+
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Expires At</label>
-                                <input 
-                                  type="datetime-local" 
-                                  value={banData[member._id]?.expiresAt || ''} 
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Ban Type</label>
+                                <select
+                                  value={banData[member._id]?.banType || 'permanent'}
                                   onChange={(e) => setBanData({
                                     ...banData,
-                                    [member._id]: { ...banData[member._id], expiresAt: e.target.value }
+                                    [member._id]: { ...banData[member._id], banType: e.target.value }
                                   })}
-                                  className="w-full p-2 text-sm border border-gray-300 rounded" 
+                                  className="w-full p-2 text-sm border border-gray-300 rounded"
+                                >
+                                  <option value="temporary">Temporary</option>
+                                  <option value="permanent">Permanent</option>
+                                </select>
+                              </div>
+
+                              {banData[member._id]?.banType === 'temporary' && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Expires At</label>
+                                  <input
+                                    type="datetime-local"
+                                    value={banData[member._id]?.expiresAt || ''}
+                                    onChange={(e) => setBanData({
+                                      ...banData,
+                                      [member._id]: { ...banData[member._id], expiresAt: e.target.value }
+                                    })}
+                                    className="w-full p-2 text-sm border border-gray-300 rounded"
+                                  />
+                                </div>
+                              )}
+
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+                                <textarea
+                                  value={banData[member._id]?.reason || ''}
+                                  onChange={(e) => setBanData({
+                                    ...banData,
+                                    [member._id]: { ...banData[member._id], reason: e.target.value }
+                                  })}
+                                  className="w-full p-2 text-sm border border-gray-300 rounded"
+                                  placeholder="Reason for ban..."
+                                  rows="2"
                                 />
                               </div>
-                            )}
-                            
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Reason</label>
-                              <textarea 
-                                value={banData[member._id]?.reason || ''} 
-                                onChange={(e) => setBanData({
-                                  ...banData,
-                                  [member._id]: { ...banData[member._id], reason: e.target.value }
-                                })}
-                                className="w-full p-2 text-sm border border-gray-300 rounded" 
-                                placeholder="Reason for ban..."
-                                rows="2"
-                              />
-                            </div>
-                            
-                            <div className="flex gap-2 pt-2">
-                              <button 
-                                onClick={() => setShowBanForm({ ...showBanForm, [member._id]: false })} 
-                                className="flex-1 px-3 py-2 bg-gray-400 text-white rounded text-sm font-medium hover:bg-gray-500"
-                              >
-                                Cancel
-                              </button>
-                              <button 
-                                onClick={() => handleBanUser(member._id)} 
-                                className="flex-1 px-3 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700"
-                              >
-                                Ban User
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
 
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900">Ban Appeals</h4>
-                      <p className="mt-1 text-sm text-slate-500">Banned users can plead their case here. Approving an appeal restores them to the community.</p>
-                    </div>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 border border-slate-200">
-                      {pendingAppeals.length} pending
-                    </span>
-                  </div>
-
-                  <div className="mt-4 space-y-4">
-                    {pendingAppeals.length === 0 ? (
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
-                        No pending appeals right now.
-                      </div>
-                    ) : pendingAppeals.map((banEntry) => {
-                      const bannedUser = banEntry.user;
-                      const bannedUserId = typeof bannedUser === 'string' ? bannedUser : bannedUser?._id;
-                      const appealKey = `appeal-${bannedUserId}`;
-                      return (
-                        <div key={bannedUserId} className="rounded-2xl border border-amber-200 bg-white p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <img src={bannedUser?.profileImage || defaultAvatar} className="h-10 w-10 rounded-full border" alt="" />
-                              <div>
-                                <p className="text-sm font-black text-slate-900">{bannedUser?.username || 'Unknown User'}</p>
-                                <p className="text-xs text-slate-500">
-                                  {banEntry.banType === 'temporary' && banEntry.expiresAt
-                                    ? `Temporary ban until ${new Date(banEntry.expiresAt).toLocaleString()}`
-                                    : 'Permanent ban'}
-                                </p>
+                              <div className="flex gap-2 pt-2">
+                                <button
+                                  onClick={() => setShowBanForm({ ...showBanForm, [member._id]: false })}
+                                  className="flex-1 px-3 py-2 bg-gray-400 text-white rounded text-sm font-medium hover:bg-gray-500"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleBanUser(member._id)}
+                                  className="flex-1 px-3 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700"
+                                >
+                                  Ban User
+                                </button>
                               </div>
                             </div>
-                            <button
-                              onClick={() => handleUnbanUser(bannedUserId)}
-                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                            >
-                              Unban directly
-                            </button>
                           </div>
-
-                          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Appeal message</p>
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{banEntry.appealMessage}</p>
-                          </div>
-
-                          <textarea
-                            value={reviewData[appealKey]?.note || ''}
-                            onChange={(e) => setReviewData((prev) => ({
-                              ...prev,
-                              [appealKey]: { ...prev[appealKey], note: e.target.value },
-                            }))}
-                            rows={3}
-                            placeholder="Optional note for the banned user"
-                            className="mt-4 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                          />
-
-                          <div className="mt-4 flex gap-2">
-                            <button
-                              onClick={() => handleReviewBanAppeal(bannedUserId, 'reject')}
-                              disabled={Boolean(appealReviewLoading[bannedUserId])}
-                              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                            >
-                              Reject appeal
-                            </button>
-                            <button
-                              onClick={() => handleReviewBanAppeal(bannedUserId, 'approve')}
-                              disabled={Boolean(appealReviewLoading[bannedUserId])}
-                              className="flex-1 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                            >
-                              {appealReviewLoading[bannedUserId] ? 'Reviewing...' : 'Approve and restore'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        )}
+                      </div>
+                    ))}
                   </div>
-                </div>
-                {isCommunityAdmin(selectedCommunity, userId) && (
-                  <button 
-                    onClick={() => handleRequestDeletion(selectedCommunity._id)} 
-                    className="mt-6 w-full px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
-                  >
-                    Request Community Deletion
-                  </button>
-                )}
+
+                  <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900">Ban Appeals</h4>
+                        <p className="mt-1 text-sm text-slate-500">Banned users can plead their case here. Approving an appeal restores them to the community.</p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 border border-slate-200">
+                        {pendingAppeals.length} pending
+                      </span>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      {pendingAppeals.length === 0 ? (
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+                          No pending appeals right now.
+                        </div>
+                      ) : pendingAppeals.map((banEntry) => {
+                        const bannedUser = banEntry.user;
+                        const bannedUserId = typeof bannedUser === 'string' ? bannedUser : bannedUser?._id;
+                        const appealKey = `appeal-${bannedUserId}`;
+                        return (
+                          <div key={bannedUserId} className="rounded-2xl border border-amber-200 bg-white p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <img src={bannedUser?.profileImage || defaultAvatar} className="h-10 w-10 rounded-full border" alt="" />
+                                <div>
+                                  <p className="text-sm font-black text-slate-900">{bannedUser?.username || 'Unknown User'}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {banEntry.banType === 'temporary' && banEntry.expiresAt
+                                      ? `Temporary ban until ${new Date(banEntry.expiresAt).toLocaleString()}`
+                                      : 'Permanent ban'}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleUnbanUser(bannedUserId)}
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                              >
+                                Unban directly
+                              </button>
+                            </div>
+
+                            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Appeal message</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{banEntry.appealMessage}</p>
+                            </div>
+
+                            <textarea
+                              value={reviewData[appealKey]?.note || ''}
+                              onChange={(e) => setReviewData((prev) => ({
+                                ...prev,
+                                [appealKey]: { ...prev[appealKey], note: e.target.value },
+                              }))}
+                              rows={3}
+                              placeholder="Optional note for the banned user"
+                              className="mt-4 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                            />
+
+                            <div className="mt-4 flex gap-2">
+                              <button
+                                onClick={() => handleReviewBanAppeal(bannedUserId, 'reject')}
+                                disabled={Boolean(appealReviewLoading[bannedUserId])}
+                                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                Reject appeal
+                              </button>
+                              <button
+                                onClick={() => handleReviewBanAppeal(bannedUserId, 'approve')}
+                                disabled={Boolean(appealReviewLoading[bannedUserId])}
+                                className="flex-1 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {appealReviewLoading[bannedUserId] ? 'Reviewing...' : 'Approve and restore'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {isCommunityAdmin(selectedCommunity, userId) && (
+                    <button
+                      onClick={() => handleRequestDeletion(selectedCommunity._id)}
+                      className="mt-6 w-full px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
+                    >
+                      Request Community Deletion
+                    </button>
+                  )}
                 </section>
               </div>
             </div>
@@ -1950,7 +1948,7 @@ const CommunitiesPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
       {/* Left Sidebar */}
-      <Sidebar 
+      <Sidebar
         showLogoutConfirm={showLogoutConfirm}
         setShowLogoutConfirm={setShowLogoutConfirm}
         onLogout={handleLogout}
@@ -1958,8 +1956,8 @@ const CommunitiesPage = () => {
 
       {/* Main Content Area */}
       <main className={`flex-1 ${mainContentClass}`}>
-        <div className="max-w-[1600px] mx-auto w-full px-6 py-8 flex gap-8">
-          
+        <div className="max-w-400 mx-auto w-full px-6 py-8 flex gap-8">
+
           {/* Center Content - Explore Communities */}
           <div className="flex-1 max-w-4xl">
             {loading ? (
@@ -1993,68 +1991,68 @@ const CommunitiesPage = () => {
                     Discover new collaborative spaces and connect with like-minded learners.
                   </p>
                 </header>
-              
-              <div className="flex items-center gap-4 mt-8">
-                {isAdmin && (
-                  <button 
-                    onClick={() => setShowAdminDashboard(true)}
-                    className="px-6 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:shadow-lg hover:border-blue-200 transition-all flex items-center justify-center gap-2 group"
-                  >
-                    <Shield className="w-4 h-4 text-blue-500 group-hover:text-blue-600" /> 
-                    Admin
-                    {pendingRequests.pendingCreations.length > 0 && (
-                      <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold">
-                        {pendingRequests.pendingCreations.length}
-                      </span>
-                    )}
-                  </button>
-                )}
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-5 h-5" /> Create Community
-                </button>
-              </div>
 
-              {/* Explore Communities Grid */}
-              {categorizedCommunities.recommended.length > 0 ? (
-                <section>
-                  <div className="flex items-center gap-3 mb-8">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <h2 className="text-2xl font-bold text-slate-800">Discover New Communities</h2>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {categorizedCommunities.recommended.length}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {categorizedCommunities.recommended.map((community) => (
-                      <CommunityCard
-                        key={community._id}
-                        community={community}
-                        userId={userId}
-                        onViewCommunity={handleViewCommunity}
-                        onJoinCommunity={handleJoinCommunity}
-                        isRecommended={true}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-700 mb-2">No New Communities to Explore</h3>
-                  <p className="text-slate-500 mb-6">
-                    All communities are either joined or pending. Check back later for new ones!
-                  </p>
+                <div className="flex items-center gap-4 mt-8">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowAdminDashboard(true)}
+                      className="px-6 py-3.5 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-white hover:shadow-lg hover:border-blue-200 transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <Shield className="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
+                      Admin
+                      {pendingRequests.pendingCreations.length > 0 && (
+                        <span className="bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold">
+                          {pendingRequests.pendingCreations.length}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-5 h-5" /> Create Community
+                  </button>
                 </div>
-              )}
+
+                {/* Explore Communities Grid */}
+                {categorizedCommunities.recommended.length > 0 ? (
+                  <section>
+                    <div className="flex items-center gap-3 mb-8">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <h2 className="text-2xl font-bold text-slate-800">Discover New Communities</h2>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        {categorizedCommunities.recommended.length}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {categorizedCommunities.recommended.map((community) => (
+                        <CommunityCard
+                          key={community._id}
+                          community={community}
+                          userId={userId}
+                          onViewCommunity={handleViewCommunity}
+                          onJoinCommunity={handleJoinCommunity}
+                          isRecommended={true}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-700 mb-2">No New Communities to Explore</h3>
+                    <p className="text-slate-500 mb-6">
+                      All communities are either joined or pending. Check back later for new ones!
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -2073,15 +2071,15 @@ const CommunitiesPage = () => {
                 </div>
                 <div className="space-y-3">
                   {categorizedCommunities.myCommunitiesOwned.map((community) => (
-                    <div 
+                    <div
                       key={community._id}
                       onClick={() => handleViewCommunity(community)}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 cursor-pointer transition-colors border border-yellow-200"
                     >
-                      <img 
-                        src={community.coverImage || defaultHeader} 
-                        className="w-12 h-12 rounded-lg object-cover border border-yellow-200" 
-                        alt={community.name} 
+                      <img
+                        src={community.coverImage || defaultHeader}
+                        className="w-12 h-12 rounded-lg object-cover border border-yellow-200"
+                        alt={community.name}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm text-slate-900 truncate">
@@ -2109,15 +2107,15 @@ const CommunitiesPage = () => {
                 </div>
                 <div className="space-y-3">
                   {categorizedCommunities.myCommunitiesJoined.map((community) => (
-                    <div 
+                    <div
                       key={community._id}
                       onClick={() => handleViewCommunity(community)}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50 cursor-pointer transition-colors border border-green-200"
                     >
-                      <img 
-                        src={community.coverImage || defaultHeader} 
-                        className="w-12 h-12 rounded-lg object-cover border border-green-200" 
-                        alt={community.name} 
+                      <img
+                        src={community.coverImage || defaultHeader}
+                        className="w-12 h-12 rounded-lg object-cover border border-green-200"
+                        alt={community.name}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm text-slate-900 truncate">
@@ -2145,14 +2143,14 @@ const CommunitiesPage = () => {
                 </div>
                 <div className="space-y-3">
                   {categorizedCommunities.pendingRequests.map((community) => (
-                    <div 
+                    <div
                       key={community._id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-yellow-50 border border-yellow-200"
                     >
-                      <img 
-                        src={community.coverImage || defaultHeader} 
-                        className="w-12 h-12 rounded-lg object-cover opacity-75" 
-                        alt={community.name} 
+                      <img
+                        src={community.coverImage || defaultHeader}
+                        className="w-12 h-12 rounded-lg object-cover opacity-75"
+                        alt={community.name}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm text-slate-900 truncate">
@@ -2169,25 +2167,25 @@ const CommunitiesPage = () => {
             )}
 
             {/* Empty state */}
-            {(categorizedCommunities.myCommunitiesOwned.length === 0 && 
-              categorizedCommunities.myCommunitiesJoined.length === 0 && 
+            {(categorizedCommunities.myCommunitiesOwned.length === 0 &&
+              categorizedCommunities.myCommunitiesJoined.length === 0 &&
               categorizedCommunities.pendingRequests.length === 0) && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-blue-500" />
+                <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-2">No Communities Yet</h3>
+                  <p className="text-slate-500 text-sm mb-6">
+                    Join some communities to see them here!
+                  </p>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Create Community
+                  </button>
                 </div>
-                <h3 className="text-lg font-bold text-slate-700 mb-2">No Communities Yet</h3>
-                <p className="text-slate-500 text-sm mb-6">
-                  Join some communities to see them here!
-                </p>
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Create Community
-                </button>
-              </div>
-            )}
+              )}
           </aside>
         </div>
       </main>
@@ -2209,7 +2207,7 @@ const CommunitiesPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Interests</label>
-                <TagInput 
+                <TagInput
                   tags={communityInterests}
                   setTags={setCommunityInterests}
                   placeholder="Type interest and press Enter..."

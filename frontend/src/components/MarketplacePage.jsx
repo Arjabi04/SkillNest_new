@@ -436,7 +436,7 @@ function MarketplacePage() {
     <div className="min-h-screen bg-slate-50 font-sans flex">
       <Sidebar onLogout={handleLogout} />
 
-      <div className={`flex-1 ${mainContentClass} max-w-[1400px] mx-auto px-6 py-8`}>
+      <div className={`flex-1 ${mainContentClass} max-w-350 mx-auto px-6 py-8`}>
         <header className="mb-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -690,9 +690,8 @@ function MarketplacePage() {
               <button
                 type="button"
                 onClick={() => setPaymentPopup(null)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${
-                  paymentPopup.type === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-700 hover:bg-slate-600"
-                }`}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${paymentPopup.type === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-700 hover:bg-slate-600"
+                  }`}
               >
                 Continue Browsing
               </button>
