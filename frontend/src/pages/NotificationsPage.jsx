@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
-import Sidebar from './Sidebar';
+import Sidebar from '../layouts/Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth } from '../utils/tokenUtils';
 import { useNavigate } from 'react-router-dom';

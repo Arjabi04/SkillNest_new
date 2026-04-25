@@ -1,0 +1,154 @@
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: linear-gradient(to bottom right, var(--color-gray-900), var(--color-gray-800), var(--color-gray-900));
+  padding: 0 1rem;
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 28rem;
+  background-color: var(--color-surface);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+}
+
+@media (min-width: 768px) {
+  .admin-login-card {
+    padding: 3rem;
+  }
+}
+
+.admin-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.admin-login-title {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  margin-bottom: 0.5rem;
+}
+
+.admin-login-subtitle {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.admin-login-description {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-gray-500);
+  margin-top: 0.5rem;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-login-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-login-label {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--color-gray-700);
+}
+
+.admin-login-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-gray-300);
+  outline: none;
+  transition: colors 0.2s;
+}
+
+.admin-login-input:focus {
+  border-color: var(--color-indigo-500);
+  box-shadow: 0 0 0 2px var(--color-indigo-100);
+}
+
+.admin-login-submit {
+  width: 100%;
+  padding: 0.75rem 0;
+  background-color: var(--color-indigo-600);
+  color: white;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: colors 0.2s;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: none;
+  cursor: pointer;
+}
+
+.admin-login-submit:hover:not(:disabled) {
+  background-color: var(--color-indigo-700);
+}
+
+.admin-login-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-login-message {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.admin-login-message-success {
+  color: var(--color-green-600);
+}
+
+.admin-login-message-error {
+  color: var(--color-red-600);
+}
+
+.admin-login-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.admin-login-link {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-indigo-600);
+  text-decoration: none;
+}
+
+.admin-login-link:hover {
+  color: var(--color-indigo-700);
+  text-decoration: underline;
+}
+
+.admin-login-note {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--color-yellow-50);
+  border: 1px solid var(--color-yellow-200);
+  border-radius: 0.5rem;
+}
+
+.admin-login-note-text {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--color-yellow-800);
+  text-align: center;
+  margin: 0;
+}

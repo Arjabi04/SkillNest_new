@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import Sidebar from './Sidebar';
+import Sidebar from '../layouts/Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
-import TagInput from './TagInput';
+import TagInput from '../components/TagInput';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import logo from "../assets/Logo.png";

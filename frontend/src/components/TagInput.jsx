@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './TagInput.css';
 
 const TagInput = ({ tags, setTags, placeholder = "Type and press Enter to add tag..." }) => {
   const [inputValue, setInputValue] = useState('');
@@ -19,18 +20,18 @@ const TagInput = ({ tags, setTags, placeholder = "Type and press Enter to add ta
   };
 
   return (
-    <div>
-      <div className="flex flex-wrap gap-2 mb-2">
+    <div className="tag-input-container">
+      <div className="tag-input-list">
         {tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium"
+            className="tag-badge"
           >
             <span>{tag}</span>
             <button
               type="button"
               onClick={() => removeTag(tag)}
-              className="text-blue-600 hover:text-blue-800 ml-1"
+              className="tag-remove-btn"
             >
               ×
             </button>
@@ -42,10 +43,10 @@ const TagInput = ({ tags, setTags, placeholder = "Type and press Enter to add ta
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyPress={handleKeyPress}
-        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="tag-input-field"
         placeholder={placeholder}
       />
-      <p className="text-xs text-slate-500 mt-1">Press Enter to add tags</p>
+      <p className="tag-input-hint">Press Enter to add tags</p>
     </div>
   );
 };

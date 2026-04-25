@@ -4,6 +4,7 @@ import { login } from "../api/auth";
 import { Link } from "react-router-dom";
 import loginImage from "../assets/login-image.jpg";
 import logo from "../assets/Logo.png";
+import "./LoginForm.css";
 
 const EyeIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -97,30 +98,30 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-screen">
+    <div className="login-page">
       {/* Left side image */}
-      <div className="hidden lg:flex flex-1 h-screen overflow-hidden items-center justify-center">
-        <img src={loginImage} alt="Login illustration" className="w-full h-full object-cover block" />
+      <div className="login-image-container">
+        <img src={loginImage} alt="Login illustration" className="login-image" />
       </div>
 
       {/* Right side form */}
-      <div className="w-full lg:w-150 h-screen flex flex-col items-center p-8 bg-gray-50 shadow-lg">
-        <img src={logo} alt="SkillNest Logo" className="h-30 mb-24" />
+      <div className="login-form-container">
+        <img src={logo} alt="SkillNest Logo" className="login-logo" />
 
         {/* Form wrapper */}
-        <div className="flex flex-col justify-center items-start w-full max-w-md">
-          <h3 className="text-2xl font-medium text-black text-left w-full">Welcome Back!</h3>
-          <h3 className="font-light text-gray-800 text-left w-full mb-8">Enter your email and password</h3>
+        <div className="login-form-wrapper">
+          <h3 className="login-title">Welcome Back!</h3>
+          <h3 className="login-subtitle">Enter your email and password</h3>
 
           {serverError && (
-            <div className="w-full mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            <div className="login-error-alert" role="alert">
               {serverError}
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="flex flex-col w-full max-w-md gap-5" noValidate>
-            <div className="w-full">
-              <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
+            <div className="login-form-group">
+              <label htmlFor="login-email" className="login-label">Email</label>
               <input
                 id="login-email"
                 name="email"
@@ -130,16 +131,14 @@ export default function LoginPage() {
                 onChange={handleChange}
                 autoComplete="email"
                 aria-invalid={Boolean(fieldErrors.email)}
-                className={`w-full px-3 py-3 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
-                  fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
-                }`}
+                className={`login-input ${fieldErrors.email ? "has-error" : ""}`}
               />
-              {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
+              {fieldErrors.email && <p className="login-field-error">{fieldErrors.email}</p>}
             </div>
 
-            <div className="w-full">
-              <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-              <div className="relative">
+            <div className="login-form-group">
+              <label htmlFor="login-password" className="login-label">Password</label>
+              <div className="login-password-wrapper">
                 <input
                   id="login-password"
                   name="password"
@@ -149,24 +148,22 @@ export default function LoginPage() {
                   onChange={handleChange}
                   autoComplete="current-password"
                   aria-invalid={Boolean(fieldErrors.password)}
-                  className={`w-full px-3 py-3 pr-12 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
-                    fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
-                  }`}
+                  className={`login-input login-password-input ${fieldErrors.password ? "has-error" : ""}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600"
+                  className="login-password-toggle"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
-              {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
+              {fieldErrors.password && <p className="login-field-error">{fieldErrors.password}</p>}
             </div>
             
-            <p className="text-center w-full text-sm">
-              <Link to="/forgot-password" className="text-indigo-600 no-underline hover:underline">
+            <p className="login-forgot-password">
+              <Link to="/forgot-password" className="login-link">
                 Forgot password?
               </Link>
             </p>
@@ -174,14 +171,14 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={submitting}
-              className="w-full px-3 py-3 text-base rounded-lg border-none bg-indigo-600 text-white transition-colors duration-300 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="login-submit"
             >
               {submitting ? "Logging in..." : "Login"}
             </button>
           </form>
 
-          <p className="text-center w-full text-sm mt-4">
-            Don't have an account? <Link to="/signup" className="text-indigo-600 no-underline hover:underline">Sign up</Link>
+          <p className="login-signup-text">
+            Don't have an account? <Link to="/signup" className="login-link">Sign up</Link>
           </p>
         </div>
       </div>

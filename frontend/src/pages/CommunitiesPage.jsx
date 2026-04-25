@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import CommunityCard from './CommunityCard';
-import TagInput from './TagInput';
+import Sidebar from '../layouts/Sidebar';
+import CommunityCard from '../components/CommunityCard';
+import TagInput from '../components/TagInput';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultHeader from '../assets/default-header.jpeg';
 import defaultAvatar from '../assets/default-avatar.jpg';

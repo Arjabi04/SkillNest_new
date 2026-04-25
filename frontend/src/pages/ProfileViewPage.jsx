@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "./Sidebar";
+import Sidebar from "../layouts/Sidebar";
 import useSidebarLayout from "../hooks/useSidebarLayout";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import EventCard from './EventCard';
-import EventCalendar from './EventCalendar';
+import EventCard from '../components/EventCard';
+import EventCalendar from '../components/EventCalendar';
 
 const Calendar = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">

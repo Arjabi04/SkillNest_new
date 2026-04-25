@@ -1,0 +1,334 @@
+.notification-center {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-slate-200);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-slate-200);
+}
+
+.notification-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notification-bell-container {
+  position: relative;
+}
+
+.notification-bell-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-slate-700);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: var(--color-red-500);
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: var(--color-slate-900);
+  margin: 0;
+}
+
+.notification-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-slate-500);
+  margin: 0;
+}
+
+.notification-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-mark-read-btn {
+  font-size: 0.875rem;
+  color: var(--color-blue-600);
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notification-mark-read-btn:hover {
+  color: var(--color-blue-700);
+}
+
+.notification-settings-btn {
+  padding: 0.5rem;
+  color: var(--color-slate-500);
+  border-radius: 0.5rem;
+  transition: colors 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-settings-btn:hover {
+  color: var(--color-slate-700);
+  background-color: var(--color-slate-100);
+}
+
+.notification-settings-panel {
+  padding: 1rem;
+  background-color: var(--color-slate-50);
+  border-bottom: 1px solid var(--color-slate-200);
+}
+
+.notification-settings-title {
+  font-weight: 500;
+  color: var(--color-slate-900);
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.notification-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-setting-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.notification-setting-checkbox {
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-slate-300);
+}
+
+.notification-setting-label {
+  font-size: 0.875rem;
+  color: var(--color-slate-700);
+}
+
+.notification-timing-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-slate-700);
+  margin-bottom: 0.5rem;
+}
+
+.notification-timing-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification-list-container {
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.notification-empty {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.notification-empty-icon {
+  width: 3rem;
+  height: 3rem;
+  color: var(--color-slate-300);
+  margin: 0 auto 0.75rem auto;
+}
+
+.notification-empty-text {
+  color: var(--color-slate-500);
+  margin: 0;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  padding: 1rem;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--color-slate-100);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item:hover {
+  background-color: var(--color-slate-50);
+}
+
+.notification-item.unread {
+  background-color: var(--color-blue-50);
+  border-left: 4px solid var(--color-blue-500);
+}
+
+.notification-item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.notification-item-icon-wrapper {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.notification-item-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.notification-item-icon.blue { color: var(--color-blue-500); }
+.notification-item-icon.green { color: var(--color-green-500); }
+.notification-item-icon.purple { color: var(--color-purple-500); }
+.notification-item-icon.slate { color: var(--color-slate-500); }
+
+.notification-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.notification-item-text {
+  flex: 1;
+}
+
+.notification-item-title {
+  font-weight: 500;
+  color: var(--color-slate-900);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.notification-item-desc {
+  font-size: 0.875rem;
+  color: var(--color-slate-600);
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.notification-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-slate-500);
+}
+
+.notification-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.notification-item-time {
+  font-size: 0.75rem;
+  color: var(--color-slate-400);
+}
+
+.notification-icon-btn {
+  padding: 0.25rem;
+  border-radius: 9999px;
+  transition: background-color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-icon-btn:hover {
+  background-color: var(--color-slate-200);
+}
+
+.notification-icon-btn-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-slate-500);
+}
+
+.notification-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.notification-action-btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: colors 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.notification-action-btn.primary {
+  background-color: var(--color-blue-600);
+  color: white;
+}
+
+.notification-action-btn.primary:hover {
+  background-color: var(--color-blue-700);
+}
+
+.notification-action-btn.secondary {
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-700);
+}
+
+.notification-action-btn.secondary:hover {
+  background-color: var(--color-slate-200);
+}
+
+.notification-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--color-slate-200);
+  background-color: var(--color-slate-50);
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+.notification-footer-text {
+  font-size: 0.75rem;
+  color: var(--color-slate-500);
+  text-align: center;
+  margin: 0;
+}

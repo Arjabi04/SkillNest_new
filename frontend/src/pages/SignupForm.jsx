@@ -3,6 +3,7 @@ import { signup } from "../api/auth";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/Logo.png";
 import signupImage from "../assets/signup_image.jpg";
+import "./SignupForm.css";
 
 function EyeIcon() {
   return (
@@ -116,28 +117,28 @@ export default function SignupForm() {
   };
 
   return (
-    <div className="flex h-screen w-screen font-sans">
+    <div className="signup-page">
       {/* Left side: Image */}
       <div 
-        className="hidden lg:flex flex-1 bg-cover bg-center bg-no-repeat"
+        className="signup-image-container"
         style={{ backgroundImage: `url('${signupImage}')` }}
       ></div>
 
       {/* Right side: Form container */}
-      <div className="w-full lg:w-150 h-screen overflow-y-auto flex flex-col items-center justify-center px-8 py-6 bg-gray-50 shadow-lg rounded-bl-lg">
-        <img src={logo} alt="SkillNest Logo" className="h-28 mb-8" />
-        <h3 className="text-2xl font-medium text-center mb-2">Sign Up</h3>
-        <h3 className="font-light text-gray-600 text-center mb-5">Create your account</h3>
+      <div className="signup-form-container">
+        <img src={logo} alt="SkillNest Logo" className="signup-logo" />
+        <h3 className="signup-title">Sign Up</h3>
+        <h3 className="signup-subtitle">Create your account</h3>
 
         {serverError && (
-          <div className="mb-5 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          <div className="signup-error-alert" role="alert">
             {serverError}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col w-full max-w-xl gap-3 items-center" noValidate>
-          <div className="w-full">
-            <label htmlFor="signup-username" className="mb-1 block text-sm font-medium text-gray-700">Username</label>
+        <form onSubmit={handleSubmit} className="signup-form" noValidate>
+          <div className="signup-form-group">
+            <label htmlFor="signup-username" className="signup-label">Username</label>
             <input 
               id="signup-username"
               name="username" 
@@ -146,15 +147,13 @@ export default function SignupForm() {
               onChange={handleChange}
               autoComplete="username"
               aria-invalid={Boolean(fieldErrors.username)}
-              className={`w-full px-3 py-3 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
-                fieldErrors.username ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
-              }`}
+              className={`signup-input ${fieldErrors.username ? "has-error" : ""}`}
             />
-            {fieldErrors.username && <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>}
+            {fieldErrors.username && <p className="signup-field-error">{fieldErrors.username}</p>}
           </div>
 
-          <div className="w-full">
-            <label htmlFor="signup-email" className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+          <div className="signup-form-group">
+            <label htmlFor="signup-email" className="signup-label">Email</label>
             <input 
               id="signup-email"
               name="email" 
@@ -164,16 +163,14 @@ export default function SignupForm() {
               onChange={handleChange}
               autoComplete="email"
               aria-invalid={Boolean(fieldErrors.email)}
-              className={`w-full px-3 py-3 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
-                fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
-              }`}
+              className={`signup-input ${fieldErrors.email ? "has-error" : ""}`}
             />
-            {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
+            {fieldErrors.email && <p className="signup-field-error">{fieldErrors.email}</p>}
           </div>
 
-          <div className="w-full">
-            <label htmlFor="signup-password" className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-            <div className="relative">
+          <div className="signup-form-group">
+            <label htmlFor="signup-password" className="signup-label">Password</label>
+            <div className="signup-password-wrapper">
               <input 
                 id="signup-password"
                 name="password" 
@@ -184,25 +181,23 @@ export default function SignupForm() {
                 autoComplete="new-password"
                 minLength={8}
                 aria-invalid={Boolean(fieldErrors.password)}
-                className={`w-full px-3 py-3 pr-12 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
-                  fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
-                }`}
+                className={`signup-input signup-password-input ${fieldErrors.password ? "has-error" : ""}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600"
+                className="signup-password-toggle"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
-            {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
+            {fieldErrors.password && <p className="signup-field-error">{fieldErrors.password}</p>}
           </div>
 
-          <div className="w-full">
-            <label htmlFor="signup-confirm-password" className="mb-1 block text-sm font-medium text-gray-700">Confirm Password</label>
-            <div className="relative">
+          <div className="signup-form-group">
+            <label htmlFor="signup-confirm-password" className="signup-label">Confirm Password</label>
+            <div className="signup-password-wrapper">
               <input 
                 id="signup-confirm-password"
                 name="confirmPassword" 
@@ -212,33 +207,31 @@ export default function SignupForm() {
                 onChange={handleChange}
                 autoComplete="new-password"
                 aria-invalid={Boolean(fieldErrors.confirmPassword)}
-                className={`w-full px-3 py-3 pr-12 text-base rounded-lg border transition-colors duration-300 focus:outline-none ${
-                  fieldErrors.confirmPassword ? "border-red-400 focus:border-red-500" : "border-gray-300 focus:border-indigo-600"
-                }`}
+                className={`signup-input signup-password-input ${fieldErrors.confirmPassword ? "has-error" : ""}`}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600"
+                className="signup-password-toggle"
                 aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
               >
                 {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
-            {fieldErrors.confirmPassword && <p className="mt-1 text-sm text-red-600">{fieldErrors.confirmPassword}</p>}
+            {fieldErrors.confirmPassword && <p className="signup-field-error">{fieldErrors.confirmPassword}</p>}
           </div>
 
           <button 
             type="submit"
             disabled={submitting}
-            className="w-full px-3 py-3 text-base rounded-lg border-none bg-indigo-600 text-white transition-colors duration-300 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="signup-submit"
           >
             {submitting ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
-        <p className="text-center w-full mt-4 text-sm">
-          Already have an account? <Link to="/login" className="text-indigo-600 no-underline hover:underline">Log in</Link>
+        <p className="signup-login-text">
+          Already have an account? <Link to="/login" className="signup-link">Log in</Link>
         </p>
       </div>
     </div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import EventCard from './EventCard';
-import TagInput from './TagInput';
+import Sidebar from '../layouts/Sidebar';
+import EventCard from '../components/EventCard';
+import TagInput from '../components/TagInput';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth } from '../utils/tokenUtils';
 

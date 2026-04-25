@@ -1,39 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { format, isToday, isTomorrow, addMinutes, differenceInMinutes } from 'date-fns';
+import './NotificationCenter.css';
 
 // Icon components
-const Bell = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Bell = ({ className, style }) => (
+  <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM21 3l-6 6M9 1l4 8 8-4-4 8h7" />
   </svg>
 );
 
-const Calendar = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Calendar = ({ className, style }) => (
+  <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
   </svg>
 );
 
-const Clock = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Clock = ({ className, style }) => (
+  <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
 
-const X = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const X = ({ className, style }) => (
+  <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
 
-const Check = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Check = ({ className, style }) => (
+  <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
 );
 
-const Settings = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const Settings = ({ className, style }) => (
+  <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
@@ -225,13 +226,13 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
     switch (type) {
       case NOTIFICATION_TYPES.EVENT_REMINDER:
       case NOTIFICATION_TYPES.EVENT_STARTING:
-        return <Clock className="w-5 h-5 text-blue-500" />;
+        return <Clock className="notification-item-icon blue" />;
       case NOTIFICATION_TYPES.EVENT_INVITATION:
-        return <Calendar className="w-5 h-5 text-green-500" />;
+        return <Calendar className="notification-item-icon green" />;
       case NOTIFICATION_TYPES.CALENDAR_SYNC:
-        return <Calendar className="w-5 h-5 text-purple-500" />;
+        return <Calendar className="notification-item-icon purple" />;
       default:
-        return <Bell className="w-5 h-5 text-slate-500" />;
+        return <Bell className="notification-item-icon slate" />;
     }
   };
 
@@ -258,50 +259,50 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className={`bg-white rounded-xl border border-slate-200 shadow-lg ${className}`}>
+    <div className={`notification-center ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Bell className="w-6 h-6 text-slate-700" />
+      <div className="notification-header">
+        <div className="notification-header-left">
+          <div className="notification-bell-container">
+            <Bell className="notification-bell-icon" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+              <span className="notification-badge">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900">Notifications</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className="notification-title">Notifications</h3>
+            <p className="notification-subtitle">
               {unreadCount} unread
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="notification-header-actions">
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="notification-mark-read-btn"
             >
               Mark all read
             </button>
           )}
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            className="notification-settings-btn"
           >
-            <Settings className="w-4 h-4" />
+            <Settings style={{ width: '1rem', height: '1rem' }} />
           </button>
         </div>
       </div>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="p-4 bg-slate-50 border-b border-slate-200">
-          <h4 className="font-medium text-slate-900 mb-3">Notification Settings</h4>
-          <div className="space-y-3">
-            <label className="flex items-center gap-2">
+        <div className="notification-settings-panel">
+          <h4 className="notification-settings-title">Notification Settings</h4>
+          <div className="notification-settings-group">
+            <label className="notification-setting-item">
               <input
                 type="checkbox"
                 checked={notificationSettings.emailReminders}
@@ -309,12 +310,12 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
                   ...prev,
                   emailReminders: e.target.checked
                 }))}
-                className="rounded border-slate-300"
+                className="notification-setting-checkbox"
               />
-              <span className="text-sm text-slate-700">Email reminders</span>
+              <span className="notification-setting-label">Email reminders</span>
             </label>
             
-            <label className="flex items-center gap-2">
+            <label className="notification-setting-item">
               <input
                 type="checkbox"
                 checked={notificationSettings.pushNotifications}
@@ -322,16 +323,16 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
                   ...prev,
                   pushNotifications: e.target.checked
                 }))}
-                className="rounded border-slate-300"
+                className="notification-setting-checkbox"
               />
-              <span className="text-sm text-slate-700">Push notifications</span>
+              <span className="notification-setting-label">Push notifications</span>
             </label>
 
-            <div className="mt-4">
-              <p className="text-sm font-medium text-slate-700 mb-2">Reminder timing:</p>
-              <div className="space-y-2">
+            <div style={{ marginTop: '1rem' }}>
+              <p className="notification-timing-title">Reminder timing:</p>
+              <div className="notification-timing-group">
                 {Object.entries(notificationSettings.reminderTiming).map(([key, enabled]) => (
-                  <label key={key} className="flex items-center gap-2">
+                  <label key={key} className="notification-setting-item">
                     <input
                       type="checkbox"
                       checked={enabled}
@@ -342,9 +343,9 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
                           [key]: e.target.checked
                         }
                       }))}
-                      className="rounded border-slate-300"
+                      className="notification-setting-checkbox"
                     />
-                    <span className="text-sm text-slate-600">
+                    <span className="notification-setting-label">
                       {key.replace('_', ' ')} before
                     </span>
                   </label>
@@ -356,37 +357,37 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
       )}
 
       {/* Notifications List */}
-      <div className="max-h-96 overflow-y-auto">
+      <div className="notification-list-container">
         {notifications.length === 0 ? (
-          <div className="text-center py-8">
-            <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">No notifications</p>
+          <div className="notification-empty">
+            <Bell className="notification-empty-icon" />
+            <p className="notification-empty-text">No notifications</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="notification-list">
             {notifications.map((notification) => (
               <div 
                 key={notification.id}
-                className={`p-4 hover:bg-slate-50 transition-colors ${
-                  !notification.isRead ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                }`}
+                className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
               >
-                <div className="flex items-start gap-3">
-                  {getNotificationIcon(notification.type)}
+                <div className="notification-item-content">
+                  <div className="notification-item-icon-wrapper">
+                    {getNotificationIcon(notification.type)}
+                  </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-slate-900 text-sm">
+                  <div className="notification-item-body">
+                    <div className="notification-item-header">
+                      <div className="notification-item-text">
+                        <h4 className="notification-item-title">
                           {notification.title}
                         </h4>
-                        <p className="text-sm text-slate-600 mt-1">
+                        <p className="notification-item-desc">
                           {notification.message}
                         </p>
                         
                         {notification.eventStartTime && (
-                          <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                            <Clock className="w-3 h-3" />
+                          <div className="notification-item-meta">
+                            <Clock style={{ width: '0.75rem', height: '0.75rem' }} />
                             <span>
                               {getTimeDisplay(notification.eventStartTime)} 
                               {' • '}
@@ -396,30 +397,30 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-400">
+                      <div className="notification-item-actions">
+                        <span className="notification-item-time">
                           {getTimeDisplay(notification.createdAt)}
                         </span>
                         {!notification.isRead && (
                           <button
                             onClick={() => markAsRead(notification.id)}
-                            className="p-1 hover:bg-slate-200 rounded-full transition-colors"
+                            className="notification-icon-btn"
                           >
-                            <Check className="w-3 h-3 text-slate-500" />
+                            <Check className="notification-icon-btn-icon" />
                           </button>
                         )}
                         <button
                           onClick={() => removeNotification(notification.id)}
-                          className="p-1 hover:bg-slate-200 rounded-full transition-colors"
+                          className="notification-icon-btn"
                         >
-                          <X className="w-3 h-3 text-slate-500" />
+                          <X className="notification-icon-btn-icon" />
                         </button>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
                     {notification.actions && notification.actions.length > 0 && (
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="notification-action-buttons">
                         {notification.actions.map((actionBtn, index) => (
                           <button
                             key={index}
@@ -428,11 +429,7 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
                               actionBtn.action, 
                               notification.eventId
                             )}
-                            className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                              actionBtn.primary 
-                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                            }`}
+                            className={`notification-action-btn ${actionBtn.primary ? 'primary' : 'secondary'}`}
                           >
                             {actionBtn.label}
                           </button>
@@ -448,8 +445,8 @@ const NotificationCenter = ({ className = "", onNotificationAction }) => {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-200 bg-slate-50">
-        <p className="text-xs text-slate-500 text-center">
+      <div className="notification-footer">
+        <p className="notification-footer-text">
           💡 <strong>Coming Soon:</strong> Calendar sync, SMS reminders, and advanced notification scheduling
         </p>
       </div>
