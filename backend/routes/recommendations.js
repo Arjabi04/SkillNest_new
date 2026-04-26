@@ -6,6 +6,8 @@ import User from '../models/User.js';
 import Community from '../models/Community.js';
 import Event from '../models/Event.js';
 import Post from '../models/Post.js';
+import Product from '../models/Product.js';
+import Conversation from '../models/Conversation.js';
 
 const toSet = (arr) => 
   new Set(Array.isArray(arr) ? arr.map(s => String(s).trim().toLowerCase()) : []);
@@ -185,10 +187,13 @@ const buildCommunityRecommendations = async (userId, limit = 10) => {
       const score = (0.7 * interestSimilarity) + (0.3 * popularity);
 
       return {
+        _id: community._id,
         communityId: community._id,
         name: community.name,
         description: community.description,
         coverImage: community.coverImage || '',
+        interests: Array.isArray(community.interests) ? community.interests : [],
+        members: Array.isArray(community.members) ? community.members : [],
         memberCount: (community.members || []).length,
         score: Number(score.toFixed(4)),
         explanation: {
@@ -255,12 +260,22 @@ const buildEventRecommendations = async (userId, limit = 10) => {
       const score = (0.6 * interestSimilarity) + (0.2 * communityAffinity) + (0.2 * popularity);
 
       return {
+        _id: event._id,
         eventId: event._id,
         title: event.title,
         description: event.description,
+        eventType: event.eventType,
+        category: event.category,
         startDate: event.startDate,
         endDate: event.endDate,
         coverImage: event.coverImage || '',
+        tags: Array.isArray(event.tags) ? event.tags : [],
+        attendees: Array.isArray(event.attendees) ? event.attendees : [],
+        location: event.location || {},
+        onlineDetails: event.onlineDetails || {},
+        allowRegistration: event.allowRegistration !== false,
+        capacity: event.capacity ?? null,
+        price: event.price ?? 0,
         organizer: event.organizer,
         community: event.community,
         attendeeCount,
@@ -280,6 +295,110 @@ const buildEventRecommendations = async (userId, limit = 10) => {
     strategy: 'content-community-popularity',
     scoring: '0.6*interest + 0.2*community + 0.2*popularity',
     recommendations
+  };
+};
+
+const buildMarketplaceRecommendations = async (userId, limit = 24) => {
+  const currentUser = await User.findById(userId).lean();
+  if (!currentUser) {
+    return { missingUser: true, recommendations: [] };
+  }
+
+  const [products, conversations] = await Promise.all([
+    Product.find({
+      isActive: true,
+      seller: { $ne: userId }
+    })
+      .populate('seller', 'username profileImage')
+      .populate('reviews.user', 'username profileImage')
+      .lean(),
+    Conversation.find({
+      type: 'marketplace',
+      participants: userId,
+      product: { $exists: true, $ne: null }
+    })
+      .select('product')
+      .lean()
+  ]);
+
+  const interactedProductIds = new Set();
+
+  for (const product of products) {
+    const hasReviewed = (product.reviews || []).some(
+      (review) => String(review.user?._id || review.user) === String(userId)
+    );
+    if (hasReviewed) {
+      interactedProductIds.add(String(product._id));
+    }
+  }
+
+  for (const conversation of conversations) {
+    if (conversation.product) {
+      interactedProductIds.add(String(conversation.product));
+    }
+  }
+
+  const interactedProducts = products.filter((product) => interactedProductIds.has(String(product._id)));
+  const interactedProductTokenSets = interactedProducts.map((product) => [
+    product.category || '',
+    ...tokenizeText(product.title),
+    ...tokenizeText(product.description),
+  ]);
+
+  const marketplaceConversationCounts = new Map();
+  for (const conversation of conversations) {
+    const productId = String(conversation.product || '');
+    if (!productId) continue;
+    marketplaceConversationCounts.set(
+      productId,
+      (marketplaceConversationCounts.get(productId) || 0) + 1
+    );
+  }
+
+  const maxRatingCount = Math.max(...products.map((product) => Number(product.ratingCount) || 0), 1);
+  const maxConversationCount = Math.max(...products.map((product) => marketplaceConversationCounts.get(String(product._id)) || 0), 1);
+
+  const recommendations = products
+    .map((product) => {
+      const productTokens = [
+        product.category || '',
+        ...tokenizeText(product.title),
+        ...tokenizeText(product.description),
+      ];
+
+      const interestSimilarity = jaccardSimilarity(currentUser.interests, productTokens);
+      const behaviorScore = buildBehaviorScore(productTokens, interactedProductTokenSets);
+      const conversationCount = marketplaceConversationCounts.get(String(product._id)) || 0;
+      const popularityScore =
+        (0.65 * normalizeByMax(Number(product.ratingCount) || 0, maxRatingCount)) +
+        (0.35 * normalizeByMax(conversationCount, maxConversationCount));
+      const qualityScore = normalizeByMax(Number(product.ratingAverage) || 0, 5);
+
+      const score =
+        (0.5 * interestSimilarity) +
+        (0.25 * behaviorScore) +
+        (0.15 * popularityScore) +
+        (0.1 * qualityScore);
+
+      return {
+        ...product,
+        score: Number(score.toFixed(4)),
+        explanation: {
+          interestMatch: Number((interestSimilarity * 100).toFixed(1)),
+          interactionMatch: Number((behaviorScore * 100).toFixed(1)),
+          popularity: Number((popularityScore * 100).toFixed(1)),
+          quality: Number((qualityScore * 100).toFixed(1)),
+        },
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return {
+    missingUser: false,
+    strategy: 'interest-behavior-popularity-quality',
+    scoring: '0.5*interest + 0.25*behavior + 0.15*popularity + 0.1*quality',
+    recommendations,
   };
 };
 
@@ -431,23 +550,39 @@ router.get('/events', auth, async (req, res) => {
   }
 });
 
+router.get('/marketplace', auth, async (req, res) => {
+  try {
+    const limit = Number.parseInt(req.query.limit, 10) || 24;
+    const result = await buildMarketplaceRecommendations(req.user._id, limit);
+    if (result.missingUser) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('Marketplace recommendations error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
 router.get('/overview', auth, async (req, res) => {
   try {
     const limit = Number.parseInt(req.query.limit, 10) || 5;
-    const [users, communities, events] = await Promise.all([
+    const [users, communities, events, marketplace] = await Promise.all([
       buildUserRecommendations(req.user._id, limit),
       buildCommunityRecommendations(req.user._id, limit),
-      buildEventRecommendations(req.user._id, limit)
+      buildEventRecommendations(req.user._id, limit),
+      buildMarketplaceRecommendations(req.user._id, limit)
     ]);
 
-    if (users.missingUser || communities.missingUser || events.missingUser) {
+    if (users.missingUser || communities.missingUser || events.missingUser || marketplace.missingUser) {
       return res.status(404).json({ msg: 'User not found' });
     }
 
     res.json({
       users: users.recommendations,
       communities: communities.recommendations,
-      events: events.recommendations
+      events: events.recommendations,
+      marketplace: marketplace.recommendations,
     });
   } catch (err) {
     console.error('Recommendations overview error:', err);

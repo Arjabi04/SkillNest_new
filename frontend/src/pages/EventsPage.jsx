@@ -47,6 +47,7 @@ const X = ({ className }) => (
 
 const EventsPage = () => {
   const [events, setEvents] = useState([]);
+  const [recommendedEvents, setRecommendedEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,12 +103,12 @@ const EventsPage = () => {
 
 
   useEffect(() => {
-    loadEvents();
+    Promise.all([loadEvents(), loadRecommendedEvents()]);
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [events, searchTerm, selectedFilters]);
+  }, [events, recommendedEvents, searchTerm, selectedFilters]);
 
   useEffect(() => {
     if (!selectedEvent?._id) return;
@@ -120,7 +121,6 @@ const EventsPage = () => {
 
   async function loadEvents() {
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:4000/api/events', {
         headers: {
@@ -137,17 +137,42 @@ const EventsPage = () => {
         console.error('Failed to load events');
         setEvents([]);
       }
-      setLoading(false);
     } catch (err) {
       console.error('Error loading events:', err);
       setEvents([]);
+    }
+  }
+
+  async function loadRecommendedEvents() {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:4000/api/recommendations/events?limit=24', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedEvents(Array.isArray(data.recommendations) ? data.recommendations : []);
+      } else {
+        console.error('Failed to load recommended events');
+        setRecommendedEvents([]);
+      }
+    } catch (err) {
+      console.error('Error loading recommended events:', err);
+      setRecommendedEvents([]);
+    } finally {
       setLoading(false);
     }
   }
 
   function applyFilters() {
     const now = new Date();
-    let filtered = events.filter((event) => {
+    const sourceEvents = recommendedEvents.length > 0 ? recommendedEvents : events;
+    let filtered = sourceEvents.filter((event) => {
       const eventEndDate = event?.endDate ? new Date(event.endDate) : null;
       const isEnded = eventEndDate ? eventEndDate < now : false;
       return !isEnded || isCurrentUserOrganizer(event);
@@ -209,7 +234,7 @@ const EventsPage = () => {
       });
 
       // Reload events to get updated data
-      loadEvents();
+      await Promise.all([loadEvents(), loadRecommendedEvents()]);
       console.log(`${status} for event ${eventId}`);
     } catch (err) {
       console.error('Error updating registration:', err);
@@ -231,7 +256,7 @@ const EventsPage = () => {
 
       if (response.ok) {
         // Reload events to get updated data
-        loadEvents();
+        await Promise.all([loadEvents(), loadRecommendedEvents()]);
         console.log(`Successfully left event ${eventId}`);
       } else {
         const error = await response.json();
@@ -259,6 +284,7 @@ const EventsPage = () => {
       if (response.ok) {
         // Remove event from local state
         setEvents(prev => prev.filter(event => event._id !== eventId));
+        setRecommendedEvents(prev => prev.filter(event => event._id !== eventId));
         console.log(`Successfully deleted event ${eventId}`);
       } else {
         const error = await response.json();
@@ -419,6 +445,7 @@ const EventsPage = () => {
           city: '',
           country: ''
         });
+        await Promise.all([loadEvents(), loadRecommendedEvents()]);
       } else {
         const error = await response.json();
         alert(error?.msg || 'Failed to create event');

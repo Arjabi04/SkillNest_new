@@ -90,6 +90,7 @@ const Flag = ({ className }) => (
 
 const CommunitiesPage = () => {
   const [communities, setCommunities] = useState([]);
+  const [recommendedCommunities, setRecommendedCommunities] = useState([]);
   const { mainContentClass } = useSidebarLayout();
   const [pendingRequests, setPendingRequests] = useState({ pendingCreations: [], pendingDeletions: [] });
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -283,6 +284,7 @@ const CommunitiesPage = () => {
       console.log('Communities data:', data);
       if (res.ok) {
         setCommunities(data);
+        await loadRecommendedCommunities(data);
       } else {
         console.error('Failed to load communities:', data);
       }
@@ -290,6 +292,38 @@ const CommunitiesPage = () => {
       console.error('Error loading communities:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecommendedCommunities = async (fallbackCommunities = []) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/recommendations/communities?limit=12`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        setRecommendedCommunities([]);
+        return;
+      }
+
+      const data = await res.json();
+      const recommendations = Array.isArray(data?.recommendations) ? data.recommendations : [];
+
+      if (recommendations.length > 0) {
+        setRecommendedCommunities(recommendations);
+        return;
+      }
+
+      const categorized = categorizeCommunitiesByStatus(fallbackCommunities, userId);
+      setRecommendedCommunities(categorized.recommended || []);
+    } catch (err) {
+      console.error('Error loading recommended communities:', err);
+      const categorized = categorizeCommunitiesByStatus(fallbackCommunities, userId);
+      setRecommendedCommunities(categorized.recommended || []);
     }
   };
 
@@ -1939,7 +1973,7 @@ const CommunitiesPage = () => {
                 </div>
 
                 {/* Explore Communities Grid */}
-                {categorizedCommunities.recommended.length > 0 ? (
+                {recommendedCommunities.length > 0 ? (
                   <section>
                     <div className="flex items-center gap-3 mb-8">
                       <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1947,11 +1981,11 @@ const CommunitiesPage = () => {
                       </svg>
                       <h2 className="text-2xl font-bold text-slate-800">Discover New Communities</h2>
                       <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                        {categorizedCommunities.recommended.length}
+                        {recommendedCommunities.length}
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {categorizedCommunities.recommended.map((community) => (
+                      {recommendedCommunities.map((community) => (
                         <CommunityCard
                           key={community._id}
                           community={community}

@@ -43,6 +43,7 @@ function MarketplacePage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [usingRecommendations, setUsingRecommendations] = useState(true);
   const [creatingListing, setCreatingListing] = useState(false);
   const [reviewLoading, setReviewLoading] = useState({});
   const [reportLoading, setReportLoading] = useState({});
@@ -120,6 +121,7 @@ function MarketplacePage() {
   const loadProducts = async () => {
     setLoadingProducts(true);
     try {
+      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (filters.search.trim()) params.set("search", filters.search.trim());
       if (filters.category !== "all") params.set("category", filters.category);
@@ -128,14 +130,56 @@ function MarketplacePage() {
       if (filters.sort) params.set("sort", filters.sort);
       if (filters.myOnly) params.set("sellerId", userId);
 
-      const res = await fetch(`${API_BASE}?${params.toString()}`);
+      const shouldUseRecommendations =
+        !filters.search.trim() &&
+        filters.category === "all" &&
+        filters.minPrice === "" &&
+        filters.maxPrice === "" &&
+        filters.sort === "newest" &&
+        !filters.myOnly;
+
+      const endpoint = shouldUseRecommendations
+        ? "http://localhost:4000/api/recommendations/marketplace?limit=24"
+        : `${API_BASE}?${params.toString()}`;
+
+      const res = await fetch(endpoint, shouldUseRecommendations ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      } : undefined);
       const data = await res.json();
 
       if (res.ok) {
-        setProducts(Array.isArray(data.products) ? data.products : []);
-      } else {
-        alert(data.msg || "Failed to load marketplace listings");
+        if (shouldUseRecommendations) {
+          const recommendedProducts = Array.isArray(data.recommendations) ? data.recommendations : [];
+          if (recommendedProducts.length > 0) {
+            setUsingRecommendations(true);
+            setProducts(recommendedProducts);
+            return;
+          }
+        } else {
+          setUsingRecommendations(false);
+          setProducts(Array.isArray(data.products) ? data.products : []);
+          return;
+        }
       }
+
+      if (shouldUseRecommendations) {
+        const fallbackRes = await fetch(`${API_BASE}?${params.toString()}`);
+        const fallbackData = await fallbackRes.json();
+
+        if (fallbackRes.ok) {
+          setUsingRecommendations(false);
+          setProducts(Array.isArray(fallbackData.products) ? fallbackData.products : []);
+          return;
+        }
+
+        alert(fallbackData.msg || data.msg || "Failed to load marketplace listings");
+        return;
+      }
+
+      alert(data.msg || "Failed to load marketplace listings");
     } catch (err) {
       console.error("Failed to load products:", err);
       alert("Failed to load marketplace listings");
@@ -465,6 +509,12 @@ function MarketplacePage() {
           title="Browse Listings"
           description="Post products, browse listings, review sellers, and report suspicious listings."
         />
+
+        {usingRecommendations && (
+          <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            Showing recommended listings based on your interests and marketplace activity.
+          </div>
+        )}
 
         <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Search and Filter Listings</h2>
