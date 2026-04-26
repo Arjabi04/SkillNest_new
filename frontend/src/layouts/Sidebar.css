@@ -206,7 +206,7 @@
 }
 
 .sidebar-badge {
-  background-color: var(--color-red-500);
+  background-color: var(--color-blue-600);
   color: white;
   font-size: 0.75rem;
   border-radius: 9999px;
@@ -218,11 +218,15 @@
   justify-content: center;
 }
 
+.sidebar-badge-inbox {
+  background-color: var(--color-blue-600);
+}
+
 .sidebar-badge-collapsed {
   position: absolute;
   top: -0.25rem;
   right: -0.25rem;
-  background-color: var(--color-red-500);
+  background-color: var(--color-blue-600);
   color: white;
   font-size: 0.75rem;
   border-radius: 9999px;
@@ -231,6 +235,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.sidebar-badge-collapsed-inbox {
+  background-color: var(--color-blue-600);
 }
 
 .sidebar-footer {

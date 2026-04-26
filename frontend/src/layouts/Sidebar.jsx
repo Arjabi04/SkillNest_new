@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/Logo.png';
 import { clearAuth } from '../utils/tokenUtils';
 import { useNotifications } from '../hooks/useNotifications';
+import { useInbox } from '../hooks/useInbox';
 import './Sidebar.css';
 
 // SVG Icons
@@ -55,6 +56,12 @@ const Bell = ({ className }) => (
   </svg>
 );
 
+const MessageSquare = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h8M8 14h5m-8 6l2.946-2.946A2 2 0 019.414 16H19a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h1.586A2 2 0 018 16.586V20z" />
+  </svg>
+);
+
 const Settings = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -75,6 +82,7 @@ const defaultNavItems = [
   { id: 'communities', label: 'Communities', href: '/communities', icon: Users },
   { id: 'marketplace', label: 'Marketplace', href: '/marketplace', icon: ShoppingBag },
   { id: 'events', label: 'Events', href: '/events', icon: Calendar },
+  { id: 'inbox', label: 'Inbox', href: '/inbox', icon: MessageSquare },
   { id: 'notifications', label: 'Notifications', href: '/notifications', icon: Bell },
   { id: 'settings', label: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -97,6 +105,7 @@ const Sidebar = ({
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
   const { unreadCount = 0 } = useNotifications() || {};
+  const { unreadCount: inboxUnreadCount = 0 } = useInbox() || {};
 
   const isControlledLogoutModal =
     typeof showLogoutConfirm === 'boolean' &&
@@ -247,11 +256,21 @@ const Sidebar = ({
                         {unreadCount > 99 ? '99+' : String(unreadCount)}
                       </span>
                     )}
+                    {item.id === 'inbox' && typeof inboxUnreadCount === 'number' && inboxUnreadCount > 0 && (
+                      <span className="sidebar-badge sidebar-badge-inbox">
+                        {inboxUnreadCount > 99 ? '99+' : String(inboxUnreadCount)}
+                      </span>
+                    )}
                   </div>
                 )}
                 {isCollapsed && item.id === 'notifications' && typeof unreadCount === 'number' && unreadCount > 0 && (
                   <span className="sidebar-badge-collapsed">
                     {unreadCount > 9 ? '9+' : String(unreadCount)}
+                  </span>
+                )}
+                {isCollapsed && item.id === 'inbox' && typeof inboxUnreadCount === 'number' && inboxUnreadCount > 0 && (
+                  <span className="sidebar-badge-collapsed sidebar-badge-collapsed-inbox">
+                    {inboxUnreadCount > 9 ? '9+' : String(inboxUnreadCount)}
                   </span>
                 )}
               </Link>

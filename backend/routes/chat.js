@@ -3,6 +3,7 @@ import auth from '../middleware/auth.js';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import Product from '../models/Product.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -17,6 +18,34 @@ router.get('/conversations', auth, async (req, res) => {
       .sort({ lastMessageAt: -1 });
     
     res.json(conversations);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+router.get('/users', auth, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 8, 1), 20);
+
+    const query = {
+      _id: { $ne: req.user._id },
+    };
+
+    if (search) {
+      query.$or = [
+        { username: { $regex: search, $options: 'i' } },
+        { bio: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const users = await User.find(query)
+      .select('username profileImage bio interests')
+      .sort({ username: 1 })
+      .limit(limit);
+
+    res.json(users);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -133,6 +162,47 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
       .sort({ createdAt: 1 });
 
     res.json(messages);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+router.put('/conversations/:id/read', auth, async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ msg: 'Conversation not found' });
+    }
+
+    const isParticipant = conversation.participants.some(
+      (participantId) => participantId.toString() === req.user.id
+    );
+    if (!isParticipant) {
+      return res.status(403).json({ msg: 'Not authorized' });
+    }
+
+    conversation.unreadCounts.set(req.user.id, 0);
+    await conversation.save();
+
+    await Message.updateMany(
+      {
+        conversationId,
+        'readBy.user': { $ne: req.user._id },
+      },
+      {
+        $push: {
+          readBy: {
+            user: req.user._id,
+            readAt: new Date(),
+          },
+        },
+      }
+    );
+
+    res.json({ ok: true, unreadCount: 0 });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

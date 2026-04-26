@@ -5,6 +5,7 @@ import EventCard from '../components/EventCard';
 import TagInput from '../components/TagInput';
 import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
+import { useInbox } from '../hooks/useInbox';
 import { clearAuth } from '../utils/tokenUtils';
 
 // Icon components
@@ -84,6 +85,7 @@ const EventsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { mainContentClass } = useSidebarLayout();
+  const { createDirectConversation } = useInbox();
 
   const API_BASE = 'http://localhost:4000/api';
   const params = new URLSearchParams(window.location.search);
@@ -431,6 +433,21 @@ const EventsPage = () => {
 
   const handleViewEvent = (event) => {
     setSelectedEvent(event || null);
+  };
+
+  const handleMessageOrganizer = async (event) => {
+    const organizerId = event?.organizer?._id || event?.organizer;
+    if (!organizerId || String(organizerId) === String(userId)) return;
+
+    try {
+      const conversation = await createDirectConversation(String(organizerId));
+      if (conversation?._id) {
+        navigate(`/inbox?conversationId=${conversation._id}`);
+      }
+    } catch (error) {
+      console.error('Error starting organizer conversation:', error);
+      alert('Unable to start a conversation with the organizer right now.');
+    }
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -1090,6 +1107,15 @@ const EventsPage = () => {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
                   >
                     Join Event
+                  </button>
+                )}
+
+                {!selectedIsOrganizer && (
+                  <button
+                    onClick={() => handleMessageOrganizer(selectedEvent)}
+                    className="px-4 py-2 bg-white text-blue-700 rounded-lg text-sm font-medium border border-blue-200 hover:bg-blue-50 transition-colors"
+                  >
+                    Message Organizer
                   </button>
                 )}
 

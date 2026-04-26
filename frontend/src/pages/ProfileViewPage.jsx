@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../layouts/Sidebar";
 import useSidebarLayout from "../hooks/useSidebarLayout";
+import { useInbox } from "../hooks/useInbox";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import PostCard from "../components/PostCard";
@@ -10,6 +11,7 @@ function ProfileViewPage() {
   const params = new URLSearchParams(window.location.search);
   const viewedUserId = params.get("userId") || "";
   const currentUserId = localStorage.getItem("userId") || "";
+  const isOwnProfile = Boolean(viewedUserId && currentUserId && viewedUserId === currentUserId);
   const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
 
@@ -18,6 +20,8 @@ function ProfileViewPage() {
   const [posts, setPosts] = useState([]);
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [startingChat, setStartingChat] = useState(false);
+  const { createDirectConversation } = useInbox();
 
   const token = localStorage.getItem("token");
 
@@ -133,6 +137,23 @@ function ProfileViewPage() {
     }));
   };
 
+  const handleStartChat = async () => {
+    if (!viewedUserId || !currentUserId || viewedUserId === currentUserId) return;
+
+    try {
+      setStartingChat(true);
+      const conversation = await createDirectConversation(viewedUserId);
+      if (conversation?._id) {
+        navigate(`/inbox?conversationId=${conversation._id}`);
+      }
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      window.alert("Unable to start chat right now.");
+    } finally {
+      setStartingChat(false);
+    }
+  };
+
   if (!viewedUserId) {
     return (
       <div className="min-h-screen bg-slate-50 font-sans flex">
@@ -176,6 +197,16 @@ function ProfileViewPage() {
               <p className="text-gray-500 mb-3 text-sm leading-relaxed">
                 {profile.bio || "No bio yet."}
               </p>
+              {!isOwnProfile && (
+                <button
+                  type="button"
+                  onClick={handleStartChat}
+                  disabled={startingChat}
+                  className="inline-flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                >
+                  {startingChat ? "Opening chat..." : "Message"}
+                </button>
+              )}
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {(profile.interests || []).length > 0 ? (
                   profile.interests.map((interest) => (

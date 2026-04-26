@@ -79,10 +79,13 @@ export default function configureChatSockets(io) {
         
         // Broadcast inbox update to all participants
         conversation.participants.forEach(pId => {
+           const participantId = pId.toString();
            io.to(`user:${pId.toString()}`).emit('chat:conversation_updated', {
              conversationId,
+             senderId: socket.user.id,
              lastMessageText: text,
-             lastMessageAt: conversation.lastMessageAt
+             lastMessageAt: conversation.lastMessageAt,
+             unreadCount: conversation.unreadCounts.get(participantId) || 0,
            });
         });
 

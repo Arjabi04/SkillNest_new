@@ -377,12 +377,13 @@ function MarketplacePage() {
         return;
       }
 
-      await api.post(
+      const conversation = await api.post(
         "/chat/conversations/marketplace",
         { productId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      navigate("/inbox");
+      const conversationId = conversation?.data?._id;
+      navigate(conversationId ? `/inbox?conversationId=${conversationId}` : "/inbox");
     } catch (err) {
       console.error(err);
       alert("Failed to start conversation with the seller.", { type: "error" });
