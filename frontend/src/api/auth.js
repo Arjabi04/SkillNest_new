@@ -1,4 +1,7 @@
-const API_URL = "http://localhost:4000/api";
+const RAW_API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = RAW_API_BASE.endsWith("/api")
+  ? RAW_API_BASE
+  : `${RAW_API_BASE.replace(/\/$/, "")}/api`;
 
 const parseErrorResponse = async (res, fallbackMessage) => {
   try {
@@ -140,3 +143,60 @@ export const changePassword = async (token, currentPassword, newPassword, confir
     "Failed to change password"
   );
 };
+
+const api = {
+  get: async (path, config = {}) => {
+    const data = await requestJson(
+      `${API_URL}${path}`,
+      {
+        method: "GET",
+        headers: config?.headers,
+      },
+      "Request failed"
+    );
+    return { data };
+  },
+  post: async (path, body, config = {}) => {
+    const data = await requestJson(
+      `${API_URL}${path}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(config?.headers || {}),
+        },
+        body: JSON.stringify(body ?? {}),
+      },
+      "Request failed"
+    );
+    return { data };
+  },
+  put: async (path, body, config = {}) => {
+    const data = await requestJson(
+      `${API_URL}${path}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(config?.headers || {}),
+        },
+        body: JSON.stringify(body ?? {}),
+      },
+      "Request failed"
+    );
+    return { data };
+  },
+  delete: async (path, config = {}) => {
+    const data = await requestJson(
+      `${API_URL}${path}`,
+      {
+        method: "DELETE",
+        headers: config?.headers,
+      },
+      "Request failed"
+    );
+    return { data };
+  },
+};
+
+export default api;

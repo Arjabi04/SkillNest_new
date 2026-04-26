@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 const cspHeader = [
   "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com",
   "script-src-elem 'self' 'unsafe-inline' https://js.stripe.com",
+  "connect-src 'self' ws://localhost:3000 ws://localhost:4000 http://localhost:4000 https://api.cloudinary.com https://api.stripe.com",
   "object-src 'none'"
 ].join('; ')
 
@@ -22,4 +23,4 @@ export default defineConfig({
       'Content-Security-Policy': cspHeader
     }
   }
-})
+}) 

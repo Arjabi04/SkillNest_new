@@ -4,7 +4,8 @@ import Sidebar from "../layouts/Sidebar";
 import useSidebarLayout from "../hooks/useSidebarLayout";
 import PageHeader from "../components/PageHeader";
 import defaultAvatar from "../assets/default-avatar.jpg";
-import { clearAuth } from "../utils/tokenUtils";
+import api from "../api/auth";
+import { clearAuth, getAuthToken } from "../utils/tokenUtils";
 
 const API_BASE = "http://localhost:4000/api/marketplace";
 
@@ -365,6 +366,26 @@ function MarketplacePage() {
       alert("Failed to submit report");
     } finally {
       setReportLoading((prev) => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const handleMessageSeller = async (productId) => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        alert("Please log in to continue");
+        return;
+      }
+
+      await api.post(
+        "/chat/conversations/marketplace",
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      navigate("/inbox");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start conversation with the seller.", { type: "error" });
     }
   };
 
@@ -749,6 +770,16 @@ function MarketplacePage() {
                     >
                       Buy Now
                     </button>
+
+                    {!isOwnProduct && (
+                      <button
+                        type="button"
+                        onClick={() => handleMessageSeller(selectedProduct._id)}
+                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+                      >
+                        Message Seller
+                      </button>
+                    )}
 
                     {isOwnProduct && (
                       <button

@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 import signupRoute from './routes/signup.js';
 import loginRoute from './routes/login.js';
@@ -13,14 +15,28 @@ import eventsRoute from './routes/events.js';
 import notificationsRoute from './routes/notifications.js';
 import recommendationsRoute from './routes/recommendations.js';
 import marketplaceRoute from './routes/marketplace.js';
+import chatRoute from './routes/chat.js';
 import cors from 'cors';
 import Stripe from 'stripe';
 import { createTransport } from 'nodemailer';
 import Product from './models/Product.js';
 import User from './models/User.js';
 import Notification from './models/Notification.js';
+import configureChatSockets from './socket/chatSocket.js';
 
 const app = express();
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
+    credentials: true
+  }
+});
+
+// Configure chat socket events
+configureChatSockets(io);
+
 const getStripeClient = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const sendMarketplacePurchaseEmails = async ({ buyerEmail, sellerEmail, productTitle, arrivalTime }) => {
@@ -194,9 +210,10 @@ async function startServer() {
   app.use('/api/notifications', notificationsRoute);
   app.use('/api/recommendations', recommendationsRoute);
   app.use('/api/marketplace', marketplaceRoute);
+  app.use('/api/chat', chatRoute);
 
   const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+  httpServer.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 }
 
 startServer();

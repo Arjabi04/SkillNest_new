@@ -12,6 +12,7 @@ import MarketplacePage from "./pages/MarketplacePage";
 import EventsPage from "./pages/EventsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
+import InboxPage from "./pages/InboxPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ToastContainer from "./components/ToastContainer";
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/inbox" element={<InboxPage />} />
       </Routes>
       </div>
     );

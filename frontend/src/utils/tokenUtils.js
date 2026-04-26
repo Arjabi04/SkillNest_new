@@ -44,3 +44,6 @@ export const getValidToken = () => {
   
   return token;
 };
+
+// Backwards-compatible alias used across the app (e.g. socket/auth headers).
+export const getAuthToken = () => getValidToken();
