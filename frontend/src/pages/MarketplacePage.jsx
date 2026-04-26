@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../layouts/Sidebar";
 import useSidebarLayout from "../hooks/useSidebarLayout";
+import PageHeader from "../components/PageHeader";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import { clearAuth } from "../utils/tokenUtils";
 
@@ -437,20 +438,11 @@ function MarketplacePage() {
       <Sidebar onLogout={handleLogout} />
 
       <div className={`flex-1 ${mainContentClass} max-w-350 mx-auto px-6 py-8`}>
-        <header className="mb-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Marketplace</p>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
-                <h1 className="text-4xl font-black tracking-tight text-slate-950">Browse Listings</h1>
-              </div>
-              <p className="mt-3 max-w-2xl text-slate-600">
-                Post products, browse listings, review sellers, and report suspicious listings.
-              </p>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          eyebrow="Marketplace"
+          title="Browse Listings"
+          description="Post products, browse listings, review sellers, and report suspicious listings."
+        />
 
         <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Search and Filter Listings</h2>

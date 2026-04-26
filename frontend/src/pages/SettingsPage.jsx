@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../layouts/Sidebar';
+import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth, getValidToken } from '../utils/tokenUtils';
 import { getProfileSettings, updateProfileSettings, changePassword } from '../api/auth';
@@ -219,19 +220,11 @@ const SettingsPage = () => {
 
       <main className={`flex-1 ${mainContentClass}`}>
         <div className="mx-auto w-full max-w-6xl px-6 py-8">
-          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Account Settings</p>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
-                <h1 className="text-4xl font-black tracking-tight text-slate-950">Manage your profile</h1>
-              </div>
-              <p className="mt-3 max-w-2xl text-slate-600">
-                Change your name and email, then verify the new address through the Mailtrap inbox before it goes live.
-              </p>
-            </div>
-
-          </div>
+          <PageHeader
+            eyebrow="Account Settings"
+            title="Manage your profile"
+            description="Change your name and email, then verify the new address through the Mailtrap inbox before it goes live."
+          />
 
           <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
             <section className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">

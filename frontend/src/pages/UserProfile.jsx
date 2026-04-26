@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Sidebar from '../layouts/Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import TagInput from '../components/TagInput';
+import PostComposer from '../components/PostComposer';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import logo from "../assets/Logo.png";
-import { clearAuth } from "../utils/tokenUtils";
 
 function UserProfile() {
   const params = new URLSearchParams(window.location.search);
@@ -14,14 +14,8 @@ function UserProfile() {
   const currentUserId = localStorage.getItem("userId") || "";
   const headerInputRef = useRef(null);
   const location = useLocation();
-  const navigate = useNavigate();
   const { mainContentClass } = useSidebarLayout();
   const isOwnProfile = Boolean(userId && currentUserId && String(userId) === String(currentUserId));
-  
-  const handleLogout = () => {
-    clearAuth();
-    navigate("/login");
-  };
 
   // --- Profile states ---
   const [profileImage, setProfileImage] = useState("");
@@ -40,7 +34,6 @@ function UserProfile() {
   const [interestsMessage, setInterestsMessage] = useState("");
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // --- Posts ---
   const [posts, setPosts] = useState([]);
@@ -656,118 +649,35 @@ function UserProfile() {
 
         {/* New Post Card */}
         {isOwnProfile && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mx-6 mt-5 mb-3 max-w-2xl">
-        <div className="p-4">
-          <div className="flex gap-3 mb-3">
-          <img
-            src={resolveAvatarSrc(profileImage)}
-            alt="Avatar"
-            onError={handleAvatarError}
-            className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
-          />
-            <div className="flex-1">
-              <textarea
-                value={newPostText}
-                onChange={(e) => setNewPostText(e.target.value)}
-                placeholder="What's on your mind?"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 resize-none text-sm font-sans text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-50 focus:bg-white transition-all"
-                rows="3"
+        <div className="mx-6 mt-5 mb-3 max-w-2xl">
+          <PostComposer
+            avatarSrc={resolveAvatarSrc(profileImage)}
+            avatarAlt="Avatar"
+            onAvatarError={handleAvatarError}
+            text={newPostText}
+            onTextChange={setNewPostText}
+            previews={newPostPreviews}
+            onRemovePreview={handleRemovePostImage}
+            maxImages={6}
+            tags={newPostTags}
+            onRemoveTag={removeTag}
+            tagInput={(
+              <input
+                type="text"
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder="Add tags (press Enter)"
+                className="flex-1 min-w-[160px] px-3 py-1.5 text-xs rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-            </div>
-          </div>
-
-          {/* Image Previews */}
-          {newPostPreviews.length > 0 && (
-            <div className="mb-4">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {newPostPreviews.map((preview, idx) => (
-                  <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={preview}
-                      alt={`Preview ${idx + 1}`}
-                      className="w-full h-32 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePostImage(idx)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
-                      title="Remove image"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">{newPostPreviews.length}/6 images selected</p>
-            </div>
-          )}
-
-          {/* Tags input */}
-          <div className="mt-2 mb-3 flex flex-wrap items-center gap-2 px-1">
-            {newPostTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
-              >
-                <span>#{tag}</span>
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              type="text"
-              value={newTagInput}
-              onChange={(e) => setNewTagInput(e.target.value)}
-              onKeyDown={handleTagKeyDown}
-              placeholder="Add tags (press Enter)"
-              className="flex-1 min-w-[160px] px-3 py-1.5 text-xs rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Post Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm font-medium">Photo (up to 6)</span>
-                <input 
-                  type="file" 
-                  multiple
-                  accept="image/*"
-                  onChange={handlePostImageSelect} 
-                  className="hidden" 
-                />
-              </label>
-            </div>
-            <button 
-              onClick={handleNewPost} 
-              disabled={posting || (!newPostText.trim() && newPostFiles.length === 0)}
-              className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
-            >
-              {posting ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Posting...
-                </span>
-              ) : (
-                "Post"
-              )}
-            </button>
-          </div>
+            )}
+            onImageSelect={handlePostImageSelect}
+            imageLabel="Photo (up to 6)"
+            onSubmit={handleNewPost}
+            submitDisabled={posting || (!newPostText.trim() && newPostFiles.length === 0)}
+            isSubmitting={posting}
+          />
         </div>
-      </div>
         )}
 
         {/* Posts List */}
@@ -1023,21 +933,6 @@ function UserProfile() {
         )}
         </div>
       </div>
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[101] flex justify-center items-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="relative bg-white p-6 rounded-2xl w-full max-w-sm">
-            <h3 className="font-bold text-lg mb-2">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout? Your session will expire.</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300">Cancel</button>
-              <button onClick={handleLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700">Logout</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

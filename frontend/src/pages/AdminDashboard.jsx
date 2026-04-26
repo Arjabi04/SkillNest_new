@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyAdmin } from "../api/auth";
+import "./AdminDashboard.css";
 
 function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -200,10 +201,10 @@ function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verifying admin access...</p>
+      <div className="admin-dashboard-loader">
+        <div className="admin-dashboard-loader-content">
+          <div className="admin-dashboard-spinner"></div>
+          <p className="admin-dashboard-loader-text">Verifying admin access...</p>
         </div>
       </div>
     );
@@ -217,28 +218,28 @@ function AdminDashboard() {
   const totalPending = totalCreationRequests + pendingRequests.pendingDeletions.length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-dashboard-page">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+      <header className="admin-dashboard-header">
+        <div className="admin-dashboard-header-inner">
+          <div className="admin-dashboard-header-flex">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage community requests and platform settings</p>
+              <h1 className="admin-dashboard-title">Admin Dashboard</h1>
+              <p className="admin-dashboard-subtitle">Manage community requests and platform settings</p>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+            <div className="admin-dashboard-actions">
+              <span className="admin-dashboard-badge">
                 Admin Mode
               </span>
               <button
                 onClick={() => navigate("/communities")}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                className="admin-dashboard-nav-btn"
               >
                 View Communities
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                className="admin-dashboard-logout-btn"
               >
                 Logout
               </button>
@@ -248,51 +249,51 @@ function AdminDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="admin-dashboard-main">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+        <div className="admin-dashboard-stats-grid">
+          <div className="admin-dashboard-stat-card">
+            <div className="admin-dashboard-stat-flex">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Creations</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
+                <p className="admin-dashboard-stat-label">Pending Creations</p>
+                <p className="admin-dashboard-stat-value">
                   {totalCreationRequests}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="admin-dashboard-stat-icon-wrapper yellow">
+                <svg className="admin-dashboard-stat-icon yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div className="admin-dashboard-stat-card">
+            <div className="admin-dashboard-stat-flex">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Deletions</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
+                <p className="admin-dashboard-stat-label">Pending Deletions</p>
+                <p className="admin-dashboard-stat-value">
                   {pendingRequests.pendingDeletions.length}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="admin-dashboard-stat-icon-wrapper red">
+                <svg className="admin-dashboard-stat-icon red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
+          <div className="admin-dashboard-stat-card">
+            <div className="admin-dashboard-stat-flex">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Pending</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
+                <p className="admin-dashboard-stat-label">Total Pending</p>
+                <p className="admin-dashboard-stat-value">
                   {totalPending}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="admin-dashboard-stat-icon-wrapper indigo">
+                <svg className="admin-dashboard-stat-icon indigo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
@@ -301,35 +302,29 @@ function AdminDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
+        <div className="admin-dashboard-tabs-container">
+          <div className="admin-dashboard-tabs-nav-wrapper">
+            <nav className="admin-dashboard-tabs-nav">
               <button
                 onClick={() => setActiveTab("community-creations")}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "community-creations"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                className={`admin-dashboard-tab ${
+                  activeTab === "community-creations" ? "active" : "inactive"
                 }`}
               >
                 Community Creations ({pendingRequests.pendingCreations.length})
               </button>
               <button
                 onClick={() => setActiveTab("event-creations")}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "event-creations"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                className={`admin-dashboard-tab ${
+                  activeTab === "event-creations" ? "active" : "inactive"
                 }`}
               >
                 Event Creations ({pendingRequests.pendingEventCreations.length})
               </button>
               <button
                 onClick={() => setActiveTab("deletions")}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "deletions"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                className={`admin-dashboard-tab ${
+                  activeTab === "deletions" ? "active" : "inactive"
                 }`}
               >
                 Pending Deletions ({pendingRequests.pendingDeletions.length})
@@ -338,53 +333,53 @@ function AdminDashboard() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="admin-dashboard-tabs-content">
             {activeTab === "community-creations" && (
               <div>
                 {pendingRequests.pendingCreations.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="admin-dashboard-empty-state">
+                    <svg className="admin-dashboard-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending community creations</h3>
-                    <p className="mt-1 text-sm text-gray-500">All community creation requests have been processed.</p>
+                    <h3 className="admin-dashboard-empty-title">No pending community creations</h3>
+                    <p className="admin-dashboard-empty-desc">All community creation requests have been processed.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="admin-dashboard-list">
                     {pendingRequests.pendingCreations.map((community) => (
                       <div
                         key={community._id}
-                        className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-gray-50"
+                        className="admin-dashboard-item-card"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">{community.name}</h3>
-                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                        <div className="admin-dashboard-item-flex">
+                          <div className="admin-dashboard-item-content">
+                            <div className="admin-dashboard-item-header">
+                              <h3 className="admin-dashboard-item-title">{community.name}</h3>
+                              <span className="admin-dashboard-item-badge yellow">
                                 Pending
                               </span>
                             </div>
-                            <p className="text-gray-600 mb-4">{community.description}</p>
+                            <p className="admin-dashboard-item-desc">{community.description}</p>
                             
                             {community.coverImage && (
                               <img
                                 src={community.coverImage}
                                 alt="Cover"
-                                className="w-full max-w-md h-48 object-cover rounded-lg mb-4"
+                                className="admin-dashboard-item-image"
                               />
                             )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="admin-dashboard-item-meta-grid">
                               <div>
-                                <p className="text-gray-500">Created by:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Created by:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {community.creator?.username || "Unknown"}
                                 </p>
-                                <p className="text-gray-600 text-xs">{community.creator?.email || ""}</p>
+                                <p className="admin-dashboard-meta-subvalue">{community.creator?.email || ""}</p>
                               </div>
                               <div>
-                                <p className="text-gray-500">Requested on:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Requested on:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {new Date(community.createdAt).toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
@@ -397,13 +392,13 @@ function AdminDashboard() {
                             </div>
 
                             {community.interests && community.interests.length > 0 && (
-                              <div className="mt-4">
-                                <p className="text-sm text-gray-500 mb-2">Interests:</p>
-                                <div className="flex flex-wrap gap-2">
+                              <div>
+                                <p className="admin-dashboard-interests-label">Interests:</p>
+                                <div className="admin-dashboard-interests-list">
                                   {community.interests.map((interest, i) => (
                                     <span
                                       key={i}
-                                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                                      className="admin-dashboard-interest-tag"
                                     >
                                       {interest}
                                     </span>
@@ -413,16 +408,16 @@ function AdminDashboard() {
                             )}
                           </div>
 
-                          <div className="ml-6 flex flex-col gap-2">
+                          <div className="admin-dashboard-item-actions">
                             <button
                               onClick={() => handleApproveCreation(community._id)}
-                              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium whitespace-nowrap"
+                              className="admin-dashboard-action-btn approve"
                             >
                               ✓ Approve
                             </button>
                             <button
                               onClick={() => handleRejectCreation(community._id)}
-                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium whitespace-nowrap"
+                              className="admin-dashboard-action-btn reject"
                             >
                               ✗ Reject
                             </button>
@@ -438,39 +433,39 @@ function AdminDashboard() {
             {activeTab === "event-creations" && (
               <div>
                 {pendingRequests.pendingEventCreations.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="admin-dashboard-empty-state">
+                    <svg className="admin-dashboard-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending event creations</h3>
-                    <p className="mt-1 text-sm text-gray-500">All event creation requests have been processed.</p>
+                    <h3 className="admin-dashboard-empty-title">No pending event creations</h3>
+                    <p className="admin-dashboard-empty-desc">All event creation requests have been processed.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="admin-dashboard-list">
                     {pendingRequests.pendingEventCreations.map((event) => (
                       <div
                         key={event._id}
-                        className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-blue-50"
+                        className="admin-dashboard-item-card blue-bg"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                        <div className="admin-dashboard-item-flex">
+                          <div className="admin-dashboard-item-content">
+                            <div className="admin-dashboard-item-header">
+                              <h3 className="admin-dashboard-item-title">{event.title}</h3>
+                              <span className="admin-dashboard-item-badge blue">
                                 Pending
                               </span>
                             </div>
-                            <p className="text-gray-600 mb-4">{event.description}</p>
+                            <p className="admin-dashboard-item-desc">{event.description}</p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="admin-dashboard-item-meta-grid">
                               <div>
-                                <p className="text-gray-500">Created by:</p>
-                                <p className="font-medium text-gray-900">{event.organizer?.username || "Unknown"}</p>
-                                <p className="text-gray-600 text-xs">{event.organizer?.email || ""}</p>
+                                <p className="admin-dashboard-meta-label">Created by:</p>
+                                <p className="admin-dashboard-meta-value">{event.organizer?.username || "Unknown"}</p>
+                                <p className="admin-dashboard-meta-subvalue">{event.organizer?.email || ""}</p>
                               </div>
                               <div>
-                                <p className="text-gray-500">Starts on:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Starts on:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {event.startDate ? new Date(event.startDate).toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
@@ -483,16 +478,16 @@ function AdminDashboard() {
                             </div>
                           </div>
 
-                          <div className="ml-6 flex flex-col gap-2">
+                          <div className="admin-dashboard-item-actions">
                             <button
                               onClick={() => handleApproveEventCreation(event._id)}
-                              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium whitespace-nowrap"
+                              className="admin-dashboard-action-btn approve"
                             >
                               ✓ Approve
                             </button>
                             <button
                               onClick={() => handleRejectEventCreation(event._id)}
-                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium whitespace-nowrap"
+                              className="admin-dashboard-action-btn reject"
                             >
                               ✗ Reject
                             </button>
@@ -508,62 +503,62 @@ function AdminDashboard() {
             {activeTab === "deletions" && (
               <div>
                 {pendingRequests.pendingDeletions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="admin-dashboard-empty-state">
+                    <svg className="admin-dashboard-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No pending deletions</h3>
-                    <p className="mt-1 text-sm text-gray-500">All deletion requests have been processed.</p>
+                    <h3 className="admin-dashboard-empty-title">No pending deletions</h3>
+                    <p className="admin-dashboard-empty-desc">All deletion requests have been processed.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="admin-dashboard-list">
                     {pendingRequests.pendingDeletions.map((community) => (
                       <div
                         key={community._id}
-                        className="border border-red-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-red-50"
+                        className="admin-dashboard-item-card red-border"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">{community.name}</h3>
-                              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                        <div className="admin-dashboard-item-flex">
+                          <div className="admin-dashboard-item-content">
+                            <div className="admin-dashboard-item-header">
+                              <h3 className="admin-dashboard-item-title">{community.name}</h3>
+                              <span className="admin-dashboard-item-badge red">
                                 Deletion Requested
                               </span>
                             </div>
-                            <p className="text-gray-600 mb-4">{community.description}</p>
+                            <p className="admin-dashboard-item-desc">{community.description}</p>
 
-                            <div className="bg-red-100 border border-red-200 rounded-lg p-4 mb-4">
-                              <p className="text-sm font-medium text-red-800 mb-1">
+                            <div className="admin-dashboard-item-warning">
+                              <p className="admin-dashboard-item-warning-title">
                                 ⚠️ Warning: This action is permanent
                               </p>
-                              <p className="text-xs text-red-700">
+                              <p className="admin-dashboard-item-warning-desc">
                                 Approving this deletion will permanently remove the community and all associated posts. This cannot be undone.
                               </p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="admin-dashboard-item-meta-grid">
                               <div>
-                                <p className="text-gray-500">Requested by:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Requested by:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {community.deletionRequestedBy?.username || "Unknown"}
                                 </p>
-                                <p className="text-gray-600 text-xs">{community.deletionRequestedBy?.email || ""}</p>
+                                <p className="admin-dashboard-meta-subvalue">{community.deletionRequestedBy?.email || ""}</p>
                               </div>
                               <div>
-                                <p className="text-gray-500">Original creator:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Original creator:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {community.creator?.username || "Unknown"}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-gray-500">Members:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Members:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {community.members?.length || 0} members
                                 </p>
                               </div>
                               <div>
-                                <p className="text-gray-500">Requested on:</p>
-                                <p className="font-medium text-gray-900">
+                                <p className="admin-dashboard-meta-label">Requested on:</p>
+                                <p className="admin-dashboard-meta-value">
                                   {new Date(community.updatedAt).toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
@@ -576,16 +571,16 @@ function AdminDashboard() {
                             </div>
                           </div>
 
-                          <div className="ml-6 flex flex-col gap-2">
+                          <div className="admin-dashboard-item-actions">
                             <button
                               onClick={() => handleApproveDeletion(community._id)}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium whitespace-nowrap"
+                              className="admin-dashboard-action-btn approve-deletion"
                             >
                               ✓ Approve Deletion
                             </button>
                             <button
                               onClick={() => handleRejectDeletion(community._id)}
-                              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium whitespace-nowrap"
+                              className="admin-dashboard-action-btn reject-deletion"
                             >
                               ✗ Reject Request
                             </button>
@@ -599,28 +594,6 @@ function AdminDashboard() {
             )}
           </div>
         </div>
-
-        {/* Future Admin Sections - Scalable Design */}
-        {/* <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Admin Functions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <h3 className="font-medium text-gray-900 mb-2">User Management</h3>
-              <p className="text-sm text-gray-500">Manage users, roles, and permissions</p>
-              <span className="text-xs text-gray-400 mt-2 block">Coming soon</span>
-            </div>
-            <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <h3 className="font-medium text-gray-900 mb-2">Content Moderation</h3>
-              <p className="text-sm text-gray-500">Review and moderate posts and comments</p>
-              <span className="text-xs text-gray-400 mt-2 block">Coming soon</span>
-            </div>
-            <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <h3 className="font-medium text-gray-900 mb-2">Analytics & Reports</h3>
-              <p className="text-sm text-gray-500">View platform statistics and insights</p>
-              <span className="text-xs text-gray-400 mt-2 block">Coming soon</span>
-            </div>
-          </div>
-        </div> */}
       </main>
     </div>
   );

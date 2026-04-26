@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../layouts/Sidebar';
 import CommunityCard from '../components/CommunityCard';
 import TagInput from '../components/TagInput';
+import PostComposer from '../components/PostComposer';
+import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultHeader from '../assets/default-header.jpeg';
 import defaultAvatar from '../assets/default-avatar.jpg';
@@ -1163,101 +1165,29 @@ const CommunitiesPage = () => {
             {/* Post Feed */}
             <div className="space-y-4">
               {isCommunityMember(selectedCommunity, userId) && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                  <div className="p-4">
-                    <div className="flex gap-3 mb-4">
-                      <img
-                        src={selectedCommunity.currentUserImage || defaultAvatar}
-                        alt="Avatar"
-                        className="w-10 h-10 rounded-full object-cover shrink-0"
-                      />
-                      <div className="flex-1">
-                        <textarea
-                          value={newPostText}
-                          onChange={(e) => setNewPostText(e.target.value)}
-                          placeholder="What's on your mind?"
-                          className="w-full px-4 py-3 rounded-lg border-none resize-none text-base font-sans text-gray-700 placeholder-gray-400 focus:outline-none bg-gray-50 focus:bg-white transition-colors"
-                          rows="4"
-                        />
-                      </div>
-                    </div>
-
-                    {newPostPreviews.length > 0 && (
-                      <div className="mb-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {newPostPreviews.map((preview, idx) => (
-                            <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200">
-                              <img
-                                src={preview}
-                                alt={`Post Preview ${idx + 1}`}
-                                className="w-full h-32 object-cover"
-                              />
-                              <button
-                                onClick={() => {
-                                  setNewPostImages((prev) => prev.filter((_, i) => i !== idx));
-                                  setNewPostPreviews((prev) => prev.filter((_, i) => i !== idx));
-                                }}
-                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                                title="Remove image"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">{newPostPreviews.length}/6 images selected</p>
-                      </div>
-                    )}
-
-                    <div className="mt-2 mb-3 flex flex-wrap items-center gap-2 px-1">
-                      {newPostTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium"
-                        >
-                          <span>#{tag}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer transition-colors">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="text-sm font-medium">Photo</span>
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              setNewPostImages(files.slice(0, 6));
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                      <button
-                        onClick={handleCreatePost}
-                        disabled={!newPostText.trim() && newPostImages.length === 0}
-                        className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
-                      >
-                        Post
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <PostComposer
+                  avatarSrc={selectedCommunity.currentUserImage || defaultAvatar}
+                  avatarAlt="Avatar"
+                  text={newPostText}
+                  onTextChange={setNewPostText}
+                  rows={4}
+                  previews={newPostPreviews}
+                  onRemovePreview={(idx) => {
+                    setNewPostImages((prev) => prev.filter((_, i) => i !== idx));
+                    setNewPostPreviews((prev) => prev.filter((_, i) => i !== idx));
+                  }}
+                  maxImages={6}
+                  tags={newPostTags}
+                  onRemoveTag={removeTag}
+                  onImageSelect={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setNewPostImages(files.slice(0, 6));
+                  }}
+                  imageLabel="Photo"
+                  onSubmit={handleCreatePost}
+                  submitDisabled={!newPostText.trim() && newPostImages.length === 0}
+                  containerClassName="bg-white rounded-xl shadow-sm border border-gray-200"
+                />
               )}
 
               <div className="space-y-4">
@@ -1978,19 +1908,12 @@ const CommunitiesPage = () => {
               </div>
             ) : (
               <>
-                {/* Header */}
-                <header className="mb-12">
-                  <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Communities</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
-                    <h1 className="text-4xl font-black tracking-tight text-slate-950">
-                      Explore Communities
-                    </h1>
-                  </div>
-                  <p className="mt-3 max-w-2xl text-slate-600">
-                    Discover new collaborative spaces and connect with like-minded learners.
-                  </p>
-                </header>
+                <PageHeader
+                  className="mb-12"
+                  eyebrow="Communities"
+                  title="Explore Communities"
+                  description="Discover new collaborative spaces and connect with like-minded learners."
+                />
 
                 <div className="flex items-center gap-4 mt-8">
                   {isAdmin && (

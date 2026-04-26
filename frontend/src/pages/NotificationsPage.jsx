@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import Sidebar from '../layouts/Sidebar';
+import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth } from '../utils/tokenUtils';
 import { useNavigate } from 'react-router-dom';
@@ -254,26 +255,21 @@ const NotificationsPage = () => {
       <main className={`flex-1 ${mainContentClass}`}>
         <div className="w-full max-w-300 mx-auto px-6 py-8">
           <div className="max-w-4xl">
-          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Activity</p>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
-                <h1 className="text-4xl font-black tracking-tight text-slate-950">Notifications</h1>
-              </div>
-              <p className="mt-3 max-w-2xl text-slate-600">
-                Stay updated on events, community activities, and user interactions.
-              </p>
-            </div>
-            {unreadCount > 0 && (
-              <button 
-                onClick={markAllAsRead}
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Mark All as Read ({unreadCount})
-              </button>
-            )}
-          </div>
+          <PageHeader
+            eyebrow="Activity"
+            title="Notifications"
+            description="Stay updated on events, community activities, and user interactions."
+            rightContent={
+              unreadCount > 0 ? (
+                <button
+                  onClick={markAllAsRead}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Mark All as Read ({unreadCount})
+                </button>
+              ) : null
+            }
+          />
 
           <div className="notifications-content">
             {safeNotifications.length === 0 ? (

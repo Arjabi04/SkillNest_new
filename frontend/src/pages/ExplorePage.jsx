@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from '../layouts/Sidebar';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultAvatar from "../assets/default-avatar.jpg";
-import { clearAuth } from "../utils/tokenUtils";
+import PostCard from '../components/PostCard';
+import PageHeader from '../components/PageHeader';
 
 function ExplorePage() {
   const [posts, setPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [expandedComments, setExpandedComments] = useState({});
   const [newComment, setNewComment] = useState({});
   const [previewProfile, setPreviewProfile] = useState(null);
@@ -59,11 +59,6 @@ function ExplorePage() {
   )
     .sort((a, b) => b.postsCount - a.postsCount)
     .slice(0, 4);
-
-  const handleLogout = () => {
-    clearAuth();
-    navigate("/login");
-  };
 
   const handleNavigateToCommunity = (communityId) => {
     if (!communityId) return;
@@ -190,6 +185,13 @@ function ExplorePage() {
     const nextQuery = e.target.value;
     setSearchQuery(nextQuery);
     setPosts(applyFeedFilters(allPosts, selectedTrendingTag, nextQuery));
+  };
+
+  const handleCommentDraftChange = (postId, value) => {
+    setNewComment((prev) => ({
+      ...prev,
+      [postId]: value,
+    }));
   };
 
   // --- Handle post interactions ---
@@ -384,20 +386,13 @@ function ExplorePage() {
       {/* Main content */}
       <div className={`flex-1 ${mainContentClass} max-w-300 mx-auto px-6 py-8`}>
 
-        {/* Header */}
-        <header className="mb-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Explore Feed</p>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
-                <h1 className="text-4xl font-black tracking-tight text-slate-950">Discover Posts</h1>
-              </div>
-              <p className="mt-3 max-w-2xl text-slate-600">
-                Discover posts and connect with the community.
-              </p>
-            </div>
-
+        <PageHeader
+          className="mb-8"
+          layoutClassName="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+          eyebrow="Explore Feed"
+          title="Discover Posts"
+          description="Discover posts and connect with the community."
+          rightContent={(
             <div className="sticky top-4 z-30 w-full lg:w-90 lg:ml-auto lg:self-start">
               <div className="relative">
                 <svg
@@ -430,8 +425,8 @@ function ExplorePage() {
                 )}
               </div>
             </div>
-          </div>
-        </header>
+          )}
+        />
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main feed */}
@@ -469,202 +464,23 @@ function ExplorePage() {
               </div>
             ) : (
               posts.map((post) => (
-                (() => {
-                  const isLiked = (post.likes || []).some((likeUserId) => {
-                    const id = typeof likeUserId === "string" ? likeUserId : likeUserId?._id;
-                    return String(id) === String(actingUserId);
-                  });
-                  const postImages = Array.isArray(post.images) && post.images.length > 0
-                    ? post.images
-                    : (post.image ? [post.image] : []);
-                  return (
-                    <article
-                      key={post._id}
-                      className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
-                    >
-                      <div className="flex items-center gap-4 mb-4">
-                        <button
-                          type="button"
-                          onClick={() => handleViewProfile(post.user?._id || post.user?.id)}
-                          className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-200"
-                        >
-                          <img
-                            src={post.user?.profileImage || defaultAvatar}
-                            alt={post.user?.username || "User"}
-                            className="w-12 h-12 rounded-full border-2 border-slate-100 object-cover"
-                          />
-                        </button>
-                        <div className="flex-1">
-                          <button
-                            type="button"
-                            onClick={() => handleViewProfile(post.user?._id || post.user?.id)}
-                            className="font-semibold text-slate-900 hover:text-blue-600 transition-colors text-left"
-                          >
-                            {post.user?.username || "Unknown User"}
-                          </button>
-                          <p className="text-sm text-slate-500">
-                            {new Date(post.postedAt || post.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                          {post.communityMeta?.id && (
-                            <button
-                              onClick={() => handleNavigateToCommunity(post.communityMeta.id)}
-                              className="mt-1 inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                            >
-                              from {post.communityMeta.name || "Community"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Post content */}
-                      <div className="mb-4">
-                        <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">
-                          {post.text}
-                        </p>
-
-                        {post.tags && post.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {post.tags.map((tag) => (
-                              <button
-                                type="button"
-                                key={tag}
-                                onClick={() => handleTrendingTopicClick(tag)}
-                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${selectedTrendingTag.toLowerCase() === String(tag).toLowerCase()
-                                  ? "bg-blue-600 text-white"
-                                  : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                  }`}
-                              >
-                                #{tag}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {postImages.length > 0 && (
-                          <div className={`mt-4 grid gap-2 rounded-xl overflow-hidden ${postImages.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-                            {postImages.slice(0, 6).map((img, idx) => (
-                              <div key={`${post._id}-img-${idx}`} className="bg-slate-100">
-                                <img
-                                  src={img}
-                                  alt={`Post content ${idx + 1}`}
-                                  className={`w-full object-cover ${postImages.length === 1 ? "max-h-105" : "h-48"}`}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Post actions */}
-                      <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
-                        <button
-                          onClick={() => handleLikePost(post._id)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-all ${isLiked
-                            ? "bg-red-50 text-red-600 hover:bg-red-100"
-                            : "text-slate-600 hover:bg-slate-100"
-                            }`}
-                        >
-                          <svg
-                            className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`}
-                            fill={isLiked ? "currentColor" : "none"}
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                          {post.likes?.length || 0}
-                        </button>
-
-                        <button
-                          onClick={() => toggleComments(post._id)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm text-slate-600 hover:bg-slate-100 transition-all"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                          {post.comments?.length || 0}
-                        </button>
-                      </div>
-
-                      {/* Comments section */}
-                      {expandedComments[post._id] && (
-                        <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
-                          {/* Add comment */}
-                          <div className="flex gap-3">
-                            <img
-                              src={defaultAvatar}
-                              alt="Your avatar"
-                              className="w-8 h-8 rounded-full border border-slate-200"
-                            />
-                            <div className="flex-1 flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Add a comment..."
-                                value={newComment[post._id] || ""}
-                                onChange={(e) => setNewComment(prev => ({
-                                  ...prev,
-                                  [post._id]: e.target.value
-                                }))}
-                                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleAddComment(post._id);
-                                  }
-                                }}
-                              />
-                              <button
-                                onClick={() => handleAddComment(post._id)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                              >
-                                Post
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Comments list */}
-                          {post.comments && post.comments.length > 0 && (
-                            <div className="space-y-3">
-                              {post.comments.map((comment, commentIdx) => (
-                                <div key={comment._id} className="flex gap-3">
-                                  <img
-                                    src={comment.user?.profileImage || defaultAvatar}
-                                    alt={comment.user?.username}
-                                    className="w-8 h-8 rounded-full border border-slate-200"
-                                  />
-                                  <div className="flex-1 bg-slate-50 rounded-lg px-4 py-2">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="font-medium text-sm text-slate-900">
-                                        {comment.user?.username || "Unknown User"}
-                                      </span>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs text-slate-500">
-                                          {new Date(comment.createdAt).toLocaleDateString()}
-                                        </span>
-                                        {comment.user?._id === actingUserId && (
-                                          <button
-                                            onClick={() => handleDeleteComment(post._id, commentIdx)}
-                                            className="text-xs text-red-500 hover:text-red-700"
-                                          >
-                                            Delete
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <p className="text-sm text-slate-700">{comment.text}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </article>
-                  );
-                })()
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  currentUserId={actingUserId}
+                  isExpanded={!!expandedComments[post._id]}
+                  commentDraft={newComment[post._id] || ''}
+                  onCommentDraftChange={handleCommentDraftChange}
+                  onToggleComments={toggleComments}
+                  onLike={handleLikePost}
+                  onAddComment={handleAddComment}
+                  onDeleteComment={handleDeleteComment}
+                  onUserClick={handleViewProfile}
+                  onTagClick={handleTrendingTopicClick}
+                  selectedTag={selectedTrendingTag}
+                  onCommunityClick={handleNavigateToCommunity}
+                  variant="explore"
+                />
               ))
             )}
           </main>
@@ -918,30 +734,6 @@ function ExplorePage() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Logout confirmation modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Logout</h3>
-            <p className="text-slate-600 mb-6">Are you sure you want to log out?</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
           </div>
         </div>
       )}

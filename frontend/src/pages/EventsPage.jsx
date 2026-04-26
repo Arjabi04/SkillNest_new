@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../layouts/Sidebar';
 import EventCard from '../components/EventCard';
 import TagInput from '../components/TagInput';
+import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth } from '../utils/tokenUtils';
 
@@ -497,28 +498,19 @@ const EventsPage = () => {
       <main className={`flex-1 ${mainContentClass}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           
-          {/* Header */}
-          <header className="mb-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="mb-2 text-xs font-black uppercase tracking-[0.3em] text-slate-500">Events</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-10 bg-blue-600 rounded-full" />
-                  <h1 className="text-4xl font-black tracking-tight text-slate-950">Discover Events</h1>
-                </div>
-                <p className="mt-3 max-w-2xl text-slate-600">
-                  Discover upcoming events, workshops, and meetups in your communities.
-                </p>
-              </div>
-              
-              <button 
+          <PageHeader
+            eyebrow="Events"
+            title="Discover Events"
+            description="Discover upcoming events, workshops, and meetups in your communities."
+            rightContent={(
+              <button
                 onClick={() => setShowCreateModal(true)}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 <Plus className="w-5 h-5" /> Create Event
               </button>
-            </div>
-          </header>
+            )}
+          />
 
           {/* Search and Filters */}
           <div className="mb-8 space-y-4">

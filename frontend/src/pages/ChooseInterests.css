@@ -1,0 +1,209 @@
+.choose-interests-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+  background: linear-gradient(to bottom, var(--color-slate-50), var(--color-indigo-50));
+  font-family: sans-serif;
+}
+
+.choose-interests-card {
+  width: 100%;
+  max-width: 64rem;
+  background-color: white;
+  border: 1px solid var(--color-slate-200);
+  border-radius: 26px;
+  padding: 1.5rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .choose-interests-card {
+    padding: 2rem;
+  }
+}
+
+.choose-interests-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+@media (min-width: 768px) {
+  .choose-interests-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.choose-interests-title {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 800;
+  color: var(--color-slate-900);
+  margin: 0;
+}
+
+.choose-interests-subtitle {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: var(--color-slate-500);
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.choose-interests-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(to bottom right, var(--color-blue-50), var(--color-green-50));
+  color: var(--color-slate-900);
+  min-width: 72px;
+  border: 1px solid var(--color-slate-200);
+}
+
+.choose-interests-counter-num {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 800;
+}
+
+.choose-interests-counter-text {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-slate-500);
+}
+
+.choose-interests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.choose-interests-label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-slate-200);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: white;
+  color: var(--color-slate-900);
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.choose-interests-label:hover {
+  border-color: var(--color-blue-400);
+  transform: translateY(-0.125rem);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.15);
+}
+
+.choose-interests-label.selected {
+  border-color: var(--color-blue-600);
+  background: linear-gradient(to bottom right, var(--color-blue-50), var(--color-indigo-50));
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
+}
+
+.choose-interests-checkbox {
+  display: none;
+}
+
+.choose-interests-icon {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.choose-interests-text {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.choose-interests-check {
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: white;
+  background-color: var(--color-blue-600);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s;
+  opacity: 0;
+  transform: scale(0.75);
+}
+
+.choose-interests-check.selected {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.choose-interests-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.choose-interests-submit {
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(to bottom right, var(--color-blue-600), var(--color-blue-500));
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 280px;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
+}
+
+.choose-interests-submit:hover:not(:disabled) {
+  transform: translateY(-0.125rem);
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.3);
+}
+
+.choose-interests-submit:disabled {
+  background: var(--color-slate-400);
+  cursor: not-allowed;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.choose-interests-note {
+  font-size: 0.875rem;
+  color: var(--color-slate-400);
+  margin: 0;
+}
+
+.choose-interests-message {
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--color-slate-900);
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
