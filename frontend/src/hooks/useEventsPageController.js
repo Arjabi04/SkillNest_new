@@ -96,6 +96,7 @@ const useEventsPageController = () => {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log(data);
                 setEvents(data.events || data);
             } else {
                 console.error("Failed to load events");
@@ -259,13 +260,16 @@ const useEventsPageController = () => {
 
             try {
                 const token = localStorage.getItem("token");
-                const response = await fetch(`${API_URL}/events/${eventId}/attend`, {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
+                const response = await fetch(
+                    `${API_URL}/events/${eventId}/attend`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            "Content-Type": "application/json",
+                        },
                     },
-                });
+                );
 
                 if (response.ok) {
                     await reloadEvents();
@@ -301,7 +305,9 @@ const useEventsPageController = () => {
             });
 
             if (response.ok) {
-                setEvents((prev) => prev.filter((event) => event._id !== eventId));
+                setEvents((prev) =>
+                    prev.filter((event) => event._id !== eventId),
+                );
                 setRecommendedEvents((prev) =>
                     prev.filter((event) => event._id !== eventId),
                 );
@@ -331,7 +337,11 @@ const useEventsPageController = () => {
                 }
             }
 
-            if (field === "endDate" && next.startDate && value < next.startDate) {
+            if (
+                field === "endDate" &&
+                next.startDate &&
+                value < next.startDate
+            ) {
                 next.endDate = next.startDate;
             }
 
@@ -512,19 +522,19 @@ const useEventsPageController = () => {
     const selectedCapacity = Number(selectedEvent?.capacity) || null;
     const selectedIsFull = Boolean(
         selectedCapacity &&
-            selectedGoingCount >= selectedCapacity &&
-            !selectedHasJoined,
+        selectedGoingCount >= selectedCapacity &&
+        !selectedHasJoined,
     );
     const selectedIsPast = Boolean(
         selectedEvent?.endDate && new Date(selectedEvent.endDate) < new Date(),
     );
     const selectedCanRegister = Boolean(
         selectedEvent &&
-            selectedEvent.allowRegistration !== false &&
-            !selectedIsOrganizer &&
-            !selectedHasJoined &&
-            !selectedIsPast &&
-            !selectedIsFull,
+        selectedEvent.allowRegistration !== false &&
+        !selectedIsOrganizer &&
+        !selectedHasJoined &&
+        !selectedIsPast &&
+        !selectedIsFull,
     );
 
     return {
