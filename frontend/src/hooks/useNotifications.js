@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_URL } from '../api/auth';
 
 const normalizeNotifications = (rawData) => {
   if (Array.isArray(rawData)) {
@@ -24,7 +25,7 @@ export const useNotifications = () => {
   const fetchNotifications = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/notifications', {
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -54,7 +55,7 @@ export const useNotifications = () => {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/notifications/count', {
+      const response = await fetch(`${API_URL}/notifications/count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -99,7 +100,7 @@ export const useNotifications = () => {
   const markAllAsRead = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/notifications/mark-all-read', {
+      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

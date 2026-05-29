@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { useInbox } from '../hooks/useInbox';
 import { clearAuth } from '../utils/tokenUtils';
+import { API_URL } from '../api/auth';
 
 // Icon components
 const Calendar = ({ className }) => (
@@ -88,7 +89,7 @@ const EventsPage = () => {
   const { mainContentClass } = useSidebarLayout();
   const { createDirectConversation } = useInbox();
 
-  const API_BASE = '${API_URL}';
+  const API_BASE = `${API_URL}`;
   const params = new URLSearchParams(window.location.search);
   const userId = params.get('userId') || localStorage.getItem('userId');
   const todayDate = new Date().toISOString().split('T')[0];
@@ -122,7 +123,7 @@ const EventsPage = () => {
   async function loadEvents() {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/events', {
+      const response = await fetch(`${API_URL}/events`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -147,7 +148,7 @@ const EventsPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/recommendations/events?limit=24', {
+      const response = await fetch(`${API_URL}/recommendations/events?limit=24`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -402,7 +403,7 @@ const EventsPage = () => {
         };
       }
 
-      const response = await fetch('${API_URL}/events', {
+      const response = await fetch(`${API_URL}/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

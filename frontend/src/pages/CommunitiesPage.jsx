@@ -19,6 +19,7 @@ import {
   getRoleColor,
   categorizeCommunitiesByStatus
 } from '../utils/communityUtils';
+import { API_URL } from '../api/auth';
 
 // SVG Icon Components
 const Users = ({ className }) => (
@@ -142,7 +143,7 @@ const CommunitiesPage = () => {
   };
 
   const location = useLocation();
-  const API_BASE = '${API_URL}';
+  const API_BASE = `${API_URL}`;
   const params = new URLSearchParams(window.location.search);
   const userId = params.get('userId') || localStorage.getItem('userId');
   const adminToken = localStorage.getItem('adminToken');

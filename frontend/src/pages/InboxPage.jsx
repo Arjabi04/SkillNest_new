@@ -4,6 +4,7 @@ import Sidebar from '../layouts/Sidebar';
 import { useSidebarLayout } from '../hooks/useSidebarLayout';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { useInbox } from '../hooks/useInbox';
+import { API_URL } from '../api/auth';
 
 const getParticipantLabel = (participant) =>
   participant?.username || participant?.name || 'Unknown user';

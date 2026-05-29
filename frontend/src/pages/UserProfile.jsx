@@ -7,6 +7,7 @@ import PostComposer from '../components/PostComposer';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import logo from "../assets/Logo.png";
+import { API_URL } from "../api/auth";
 
 function UserProfile() {
   const params = new URLSearchParams(window.location.search);

@@ -6,6 +6,7 @@ import { useInbox } from "../hooks/useInbox";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import defaultHeader from "../assets/default-header.jpeg";
 import PostCard from "../components/PostCard";
+import { API_URL } from "../api/auth";
 
 function ProfileViewPage() {
   const params = new URLSearchParams(window.location.search);

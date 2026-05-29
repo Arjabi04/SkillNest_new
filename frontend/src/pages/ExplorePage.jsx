@@ -5,6 +5,7 @@ import useSidebarLayout from '../hooks/useSidebarLayout';
 import defaultAvatar from "../assets/default-avatar.jpg";
 import PostCard from '../components/PostCard';
 import PageHeader from '../components/PageHeader';
+import { API_URL } from "../api/auth";
 
 function ExplorePage() {
   const [posts, setPosts] = useState([]);

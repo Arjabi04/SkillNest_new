@@ -4,7 +4,7 @@ import Sidebar from "../layouts/Sidebar";
 import useSidebarLayout from "../hooks/useSidebarLayout";
 import PageHeader from "../components/PageHeader";
 import defaultAvatar from "../assets/default-avatar.jpg";
-import api from "../api/auth";
+import api, { API_URL } from "../api/auth";
 import { clearAuth, getAuthToken } from "../utils/tokenUtils";
 
 const API_BASE = `${API_URL}/marketplace`;

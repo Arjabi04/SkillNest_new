@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./ResetPassword.css";
+import { API_URL } from "../api/auth";
 
 export default function ResetPasswordPage() {
   const { token } = useParams(); // get token from URL

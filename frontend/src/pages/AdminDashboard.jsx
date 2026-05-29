@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { verifyAdmin } from "../api/auth";
+import { API_URL, verifyAdmin } from "../api/auth";
 import AdminModerationQueue from "../components/AdminModerationQueue";
 import "./AdminDashboard.css";
 

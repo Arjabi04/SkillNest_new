@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { API_URL } from "../api/auth";
 
 export default function ChooseInterests() {
   const location = useLocation();
