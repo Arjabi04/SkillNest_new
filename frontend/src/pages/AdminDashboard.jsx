@@ -40,12 +40,12 @@ function AdminDashboard() {
     try {
       const adminToken = localStorage.getItem("adminToken");
       const [communitiesRes, eventsRes] = await Promise.all([
-        fetch("http://localhost:4000/api/communities/pending/all", {
+        fetch("${API_URL}/communities/pending/all", {
           headers: {
             "x-admin-token": adminToken || "",
           },
         }),
-        fetch("http://localhost:4000/api/events/pending/all", {
+        fetch("${API_URL}/events/pending/all", {
           headers: {
             "x-admin-token": adminToken || "",
           },
@@ -68,7 +68,7 @@ function AdminDashboard() {
   const handleApproveEventCreation = async (eventId) => {
     const adminToken = localStorage.getItem("adminToken");
     try {
-      const res = await fetch(`http://localhost:4000/api/events/${eventId}/approve`, {
+      const res = await fetch(`${API_URL}/events/${eventId}/approve`, {
         method: "POST",
         headers: { "x-admin-token": adminToken || "" },
       });
@@ -92,7 +92,7 @@ function AdminDashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:4000/api/events/${eventId}/reject`, {
+      const res = await fetch(`${API_URL}/events/${eventId}/reject`, {
         method: "POST",
         headers: { "x-admin-token": adminToken || "" },
       });
@@ -112,7 +112,7 @@ function AdminDashboard() {
   const handleApproveCreation = async (communityId) => {
     const adminToken = localStorage.getItem("adminToken");
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/approve`, {
+      const res = await fetch(`${API_URL}/communities/${communityId}/approve`, {
         method: "POST",
         headers: { "x-admin-token": adminToken || "" },
       });
@@ -135,7 +135,7 @@ function AdminDashboard() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/reject`, {
+      const res = await fetch(`${API_URL}/communities/${communityId}/reject`, {
         method: "POST",
         headers: { "x-admin-token": adminToken || "" },
       });
@@ -158,7 +158,7 @@ function AdminDashboard() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/approve-deletion`, {
+      const res = await fetch(`${API_URL}/communities/${communityId}/approve-deletion`, {
         method: "POST",
         headers: { "x-admin-token": adminToken || "" },
       });
@@ -178,7 +178,7 @@ function AdminDashboard() {
   const handleRejectDeletion = async (communityId) => {
     const adminToken = localStorage.getItem("adminToken");
     try {
-      const res = await fetch(`http://localhost:4000/api/communities/${communityId}/reject-deletion`, {
+      const res = await fetch(`${API_URL}/communities/${communityId}/reject-deletion`, {
         method: "POST",
         headers: { "x-admin-token": adminToken || "" },
       });

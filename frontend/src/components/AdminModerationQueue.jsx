@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "../utils/toast";
 
-const RAW_API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const RAW_API_BASE = import.meta.env.VITE_API_URL;
 const API_URL = RAW_API_BASE.endsWith("/api")
   ? RAW_API_BASE
   : `${RAW_API_BASE.replace(/\/$/, "")}/api`;

@@ -90,7 +90,7 @@ function UserProfile() {
 
     const fetchUser = async () => {
       try {
-        const res = await fetch(`http://localhost:4000/api/profile/${userId}`);
+        const res = await fetch(`${API_URL}/profile/${userId}`);
         const data = await res.json();
         if (res.ok) {
           setUsername(data.username);
@@ -108,7 +108,7 @@ function UserProfile() {
 
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        const res = await fetch(`${API_URL}/posts/${userId}`);
         const data = await res.json();
         setPosts(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -136,7 +136,7 @@ function UserProfile() {
 
     try {
       const endpoint = type === "avatar" ? "upload" : "upload-header";
-      const res = await fetch(`http://localhost:4000/api/profile/${endpoint}`, {
+      const res = await fetch(`${API_URL}/profile/${endpoint}`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
@@ -165,7 +165,7 @@ function UserProfile() {
     if (!isOwnProfile) return;
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:4000/api/profile/bio", {
+      const res = await fetch("${API_URL}/profile/bio", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -191,7 +191,7 @@ function UserProfile() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch("http://localhost:4000/api/interests", {
+      const res = await fetch("${API_URL}/interests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -282,14 +282,14 @@ function UserProfile() {
     }
 
     try {
-      const res = await fetch("http://localhost:4000/api/posts", {
+      const res = await fetch("${API_URL}/posts", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
       if (res.ok) {
         const resPosts = await fetch(
-          `http://localhost:4000/api/posts/${userId}`
+          `${API_URL}/posts/${userId}`
         );
         setPosts(await resPosts.json());
         setNewPostText("");
@@ -311,14 +311,14 @@ function UserProfile() {
   // --- Handle post interactions ---
   const handleLikePost = async (postId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
       });
       if (res.ok) {
         // Refresh posts to get updated likes
-        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        const resPosts = await fetch(`${API_URL}/posts/${userId}`);
         setPosts(await resPosts.json());
       }
     } catch (err) {
@@ -330,7 +330,7 @@ function UserProfile() {
     const text = newComment[postId]?.trim();
     if (!text) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, text })
@@ -338,7 +338,7 @@ function UserProfile() {
       if (res.ok) {
         setNewComment({ ...newComment, [postId]: '' });
         // Refresh posts to get updated comments
-        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        const resPosts = await fetch(`${API_URL}/posts/${userId}`);
         setPosts(await resPosts.json());
       } else {
         const data = await res.json();
@@ -353,14 +353,14 @@ function UserProfile() {
   const handleDeleteComment = async (postId, commentIdx) => {
     if (!window.confirm('Delete this comment?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentIdx}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
       });
       if (res.ok) {
         // Refresh posts to get updated comments
-        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        const resPosts = await fetch(`${API_URL}/posts/${userId}`);
         setPosts(await resPosts.json());
       } else {
         const data = await res.json();
@@ -382,7 +382,7 @@ function UserProfile() {
 
   const handleUpdatePost = async (postId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}`, {
+      const res = await fetch(`${API_URL}/posts/${postId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -393,7 +393,7 @@ function UserProfile() {
       });
       if (res.ok) {
         // Refresh posts
-        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        const resPosts = await fetch(`${API_URL}/posts/${userId}`);
         setPosts(await resPosts.json());
         setEditingPost(null);
         setEditPostText('');
@@ -411,14 +411,14 @@ function UserProfile() {
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}`, {
+      const res = await fetch(`${API_URL}/posts/${postId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
       });
       if (res.ok) {
         // Refresh posts
-        const resPosts = await fetch(`http://localhost:4000/api/posts/${userId}`);
+        const resPosts = await fetch(`${API_URL}/posts/${userId}`);
         setPosts(await resPosts.json());
         setShowPostMenu({});
       } else {

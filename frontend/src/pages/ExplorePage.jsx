@@ -75,8 +75,8 @@ function ExplorePage() {
 
     try {
       const [profileRes, postsRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/profile/${profileUserId}`),
-        fetch(`http://localhost:4000/api/posts/${profileUserId}`),
+        fetch(`${API_URL}/profile/${profileUserId}`),
+        fetch(`${API_URL}/posts/${profileUserId}`),
       ]);
 
       const profileData = await profileRes.json();
@@ -132,7 +132,7 @@ function ExplorePage() {
     try {
       const token = localStorage.getItem("token");
       const personalizedRes = await fetch(
-        "http://localhost:4000/api/recommendations/feed?postLimit=50&relevantLimit=35&exploreLimit=15&relevantThreshold=0.25",
+        "${API_URL}/recommendations/feed?postLimit=50&relevantLimit=35&exploreLimit=15&relevantThreshold=0.25",
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -144,7 +144,7 @@ function ExplorePage() {
         setAllPosts(nextPosts);
         setPosts(applyFeedFilters(nextPosts));
       } else {
-        const res = await fetch("http://localhost:4000/api/posts");
+        const res = await fetch("${API_URL}/posts");
         const data = await res.json();
         if (res.ok) {
           setAllPosts(data);
@@ -197,7 +197,7 @@ function ExplorePage() {
   // --- Handle post interactions ---
   const handleLikePost = async (postId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: actingUserId }),
@@ -242,7 +242,7 @@ function ExplorePage() {
     if (!commentText) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: actingUserId, text: commentText }),
@@ -268,7 +268,7 @@ function ExplorePage() {
     if (!confirm('Delete this comment?')) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentIdx}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: actingUserId }),
@@ -291,7 +291,7 @@ function ExplorePage() {
 
   const handlePreviewLikePost = async (postId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: actingUserId }),
@@ -336,7 +336,7 @@ function ExplorePage() {
     if (!commentText) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: actingUserId, text: commentText }),
@@ -359,7 +359,7 @@ function ExplorePage() {
 
   const handlePreviewDeleteComment = async (postId, commentIdx) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentIdx}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: actingUserId }),

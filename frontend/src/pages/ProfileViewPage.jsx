@@ -33,8 +33,8 @@ function ProfileViewPage() {
 
     try {
       const [profileRes, postsRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/profile/${viewedUserId}`),
-        fetch(`http://localhost:4000/api/posts/${viewedUserId}`),
+        fetch(`${API_URL}/profile/${viewedUserId}`),
+        fetch(`${API_URL}/posts/${viewedUserId}`),
       ]);
 
       const profileData = await profileRes.json();
@@ -65,7 +65,7 @@ function ProfileViewPage() {
     if (!currentUserId) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/like`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: currentUserId }),
@@ -84,7 +84,7 @@ function ProfileViewPage() {
     if (!text || !currentUserId) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comment`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +106,7 @@ function ProfileViewPage() {
     if (!currentUserId) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/posts/${postId}/comments/${commentIdx}`, {
+      const res = await fetch(`${API_URL}/posts/${postId}/comments/${commentIdx}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

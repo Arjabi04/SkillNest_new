@@ -88,7 +88,7 @@ const EventsPage = () => {
   const { mainContentClass } = useSidebarLayout();
   const { createDirectConversation } = useInbox();
 
-  const API_BASE = 'http://localhost:4000/api';
+  const API_BASE = '${API_URL}';
   const params = new URLSearchParams(window.location.search);
   const userId = params.get('userId') || localStorage.getItem('userId');
   const todayDate = new Date().toISOString().split('T')[0];
@@ -122,7 +122,7 @@ const EventsPage = () => {
   async function loadEvents() {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/events', {
+      const response = await fetch('${API_URL}/events', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -147,7 +147,7 @@ const EventsPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/recommendations/events?limit=24', {
+      const response = await fetch('${API_URL}/recommendations/events?limit=24', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -224,7 +224,7 @@ const EventsPage = () => {
   const handleRegister = async (eventId, status) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:4000/api/events/${eventId}/attend`, {
+      await fetch(`${API_URL}/events/${eventId}/attend`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -246,7 +246,7 @@ const EventsPage = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/events/${eventId}/attend`, {
+      const response = await fetch(`${API_URL}/events/${eventId}/attend`, {
         method: 'DELETE',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -273,7 +273,7 @@ const EventsPage = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/events/${eventId}`, {
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
         method: 'DELETE',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -402,7 +402,7 @@ const EventsPage = () => {
         };
       }
 
-      const response = await fetch('http://localhost:4000/api/events', {
+      const response = await fetch('${API_URL}/events', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

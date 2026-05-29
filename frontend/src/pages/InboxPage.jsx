@@ -59,7 +59,7 @@ const InboxPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/chat/conversations/${conversation._id}/messages`, {
+      const response = await fetch(`${API_URL}/chat/conversations/${conversation._id}/messages`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

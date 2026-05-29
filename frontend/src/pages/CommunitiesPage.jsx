@@ -142,7 +142,7 @@ const CommunitiesPage = () => {
   };
 
   const location = useLocation();
-  const API_BASE = 'http://localhost:4000/api';
+  const API_BASE = '${API_URL}';
   const params = new URLSearchParams(window.location.search);
   const userId = params.get('userId') || localStorage.getItem('userId');
   const adminToken = localStorage.getItem('adminToken');

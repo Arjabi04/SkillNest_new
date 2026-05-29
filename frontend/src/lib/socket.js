@@ -6,7 +6,7 @@ let socket = null;
 export const initSocket = () => {
     if (!socket) {
         const token = getAuthToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+        const API_URL = import.meta.env.VITE_API_URL;
         
         socket = io(API_URL, {
             auth: { token },
