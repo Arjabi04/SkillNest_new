@@ -40,12 +40,12 @@ function AdminDashboard() {
     try {
       const adminToken = localStorage.getItem("adminToken");
       const [communitiesRes, eventsRes] = await Promise.all([
-        fetch("${API_URL}/communities/pending/all", {
+        fetch(`${API_URL}/communities/pending/all`, {
           headers: {
             "x-admin-token": adminToken || "",
           },
         }),
-        fetch("${API_URL}/events/pending/all", {
+        fetch(`${API_URL}/events/pending/all`, {
           headers: {
             "x-admin-token": adminToken || "",
           },

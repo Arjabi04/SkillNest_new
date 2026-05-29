@@ -165,7 +165,7 @@ function UserProfile() {
     if (!isOwnProfile) return;
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("${API_URL}/profile/bio", {
+      const res = await fetch(`${API_URL}/profile/bio`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -191,7 +191,7 @@ function UserProfile() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch("${API_URL}/interests", {
+      const res = await fetch(`${API_URL}/interests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -282,7 +282,7 @@ function UserProfile() {
     }
 
     try {
-      const res = await fetch("${API_URL}/posts", {
+      const res = await fetch(`${API_URL}/posts`, {
         method: "POST",
         body: formData,
       });

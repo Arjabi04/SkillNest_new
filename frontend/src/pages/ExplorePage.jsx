@@ -132,7 +132,7 @@ function ExplorePage() {
     try {
       const token = localStorage.getItem("token");
       const personalizedRes = await fetch(
-        "${API_URL}/recommendations/feed?postLimit=50&relevantLimit=35&exploreLimit=15&relevantThreshold=0.25",
+        `${API_URL}/recommendations/feed?postLimit=50&relevantLimit=35&exploreLimit=15&relevantThreshold=0.25`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -144,7 +144,7 @@ function ExplorePage() {
         setAllPosts(nextPosts);
         setPosts(applyFeedFilters(nextPosts));
       } else {
-        const res = await fetch("${API_URL}/posts");
+        const res = await fetch(`${API_URL}/posts`);
         const data = await res.json();
         if (res.ok) {
           setAllPosts(data);

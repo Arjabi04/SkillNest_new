@@ -98,6 +98,7 @@ USER_REPORT_RATE_LIMIT=20
 ```
 
 Notes:
+
 - The backend uses **`MONGO_URI`** for DB connectivity.
 - `EMAIL_*`, `CLOUDINARY_*`, and `STRIPE_*` can be left unset if you’re not using those features yet (the app will skip some behaviors or return configuration errors for those endpoints).
 
@@ -181,6 +182,7 @@ npm run dev
 ```
 
 Expected:
+
 - API starts on `http://localhost:4000`
 - `GET /` returns `{ "msg": "Welcome to the app" }`
 
@@ -192,19 +194,20 @@ npm run dev
 ```
 
 Expected:
+
 - UI starts on `http://localhost:3000`
 
 ## 6) Optional: Stripe Webhook (Local)
 
 The backend listens for Stripe webhook events at:
 
-- `POST http://localhost:4000/api/marketplace/webhook`
+- `POST API_URL/marketplace/webhook`
 
 If you want to test webhooks locally with Stripe CLI:
 
 ```bash
 stripe login
-stripe listen --forward-to http://localhost:4000/api/marketplace/webhook
+stripe listen --forward-to API_URL/marketplace/webhook
 ```
 
 Then copy the printed webhook signing secret into `backend/.env` as `STRIPE_WEBHOOK_SECRET`.

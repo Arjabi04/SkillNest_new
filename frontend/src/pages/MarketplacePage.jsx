@@ -7,7 +7,7 @@ import defaultAvatar from "../assets/default-avatar.jpg";
 import api from "../api/auth";
 import { clearAuth, getAuthToken } from "../utils/tokenUtils";
 
-const API_BASE = "${API_URL}/marketplace";
+const API_BASE = `${API_URL}/marketplace`;
 
 const defaultCategories = [
   "Electronics",
@@ -139,7 +139,7 @@ function MarketplacePage() {
         !filters.myOnly;
 
       const endpoint = shouldUseRecommendations
-        ? "${API_URL}/recommendations/marketplace?limit=24"
+        ? `${API_URL}/recommendations/marketplace?limit=24`
         : `${API_BASE}?${params.toString()}`;
 
       const res = await fetch(endpoint, shouldUseRecommendations ? {

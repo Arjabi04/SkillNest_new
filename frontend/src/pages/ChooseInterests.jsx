@@ -56,7 +56,7 @@ export default function ChooseInterests() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/interests", { // make sure route matches backend
+      const res = await fetch(`${API_URL}/interests`, { // make sure route matches backend
         method: "POST",
         headers: {
           "Content-Type": "application/json",
