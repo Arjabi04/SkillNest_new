@@ -1,29 +1,10 @@
 import { useState } from "react";
 import { signup } from "../api/auth";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import logo from "../assets/Logo.png";
 import signupImage from "../assets/signup_image.jpg";
 import "./SignupForm.css";
-
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-      <path d="m3 3 18 18" />
-      <path d="M10.58 10.58a2 2 0 0 0 2.83 2.83" />
-      <path d="M9.88 5.09A9.77 9.77 0 0 1 12 5c7 0 11 7 11 7a18.7 18.7 0 0 1-3.23 4.36" />
-      <path d="M6.61 6.61A18.53 18.53 0 0 0 1 12s4 7 11 7a10.8 10.8 0 0 0 5.39-1.39" />
-    </svg>
-  );
-}
 
 export default function SignupForm() {
   const [form, setForm] = useState({ username: "", email: "", password: "", confirmPassword: "" });
@@ -189,7 +170,7 @@ export default function SignupForm() {
                 className="signup-password-toggle"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {fieldErrors.password && <p className="signup-field-error">{fieldErrors.password}</p>}
@@ -215,7 +196,7 @@ export default function SignupForm() {
                 className="signup-password-toggle"
                 aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
               >
-                {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {fieldErrors.confirmPassword && <p className="signup-field-error">{fieldErrors.confirmPassword}</p>}

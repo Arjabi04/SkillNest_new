@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    useNavigate,
+} from "react-router-dom";
 import SignupForm from "./pages/SignupForm";
 import LoginForm from "./pages/LoginForm";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -21,77 +26,79 @@ import { clearAuth, isTokenValid } from "./utils/tokenUtils";
 import { showToast } from "./utils/toast";
 
 function AppRoutes() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const originalAlert = window.alert;
+    useEffect(() => {
+        const originalAlert = window.alert;
 
-    // Render all legacy alert() calls as non-blocking toasts.
-    window.alert = (message) => {
-      showToast(message || "Notice", { type: "info" });
-    };
+        // Render all legacy alert() calls as non-blocking toasts.
+        window.alert = (message) => {
+            showToast(message || "Notice", { type: "info" });
+        };
 
-    return () => {
-      window.alert = originalAlert;
-    };
-  }, []);
+        return () => {
+            window.alert = originalAlert;
+        };
+    }, []);
 
-  useEffect(() => {
-    // Check token validity on app load and periodically
-    const checkToken = () => {
-      const token = localStorage.getItem("token");
-      
-      if (token && !isTokenValid(token)) {
-        console.log("Token expired, clearing auth");
-        clearAuth();
-        navigate("/login");
-      }
-    };
+    useEffect(() => {
+        // Check token validity on app load and periodically
+        const checkToken = () => {
+            const token = localStorage.getItem("token");
 
-    // Check on mount
-    checkToken();
+            if (token && !isTokenValid(token)) {
+                console.log("Token expired, clearing auth");
+                clearAuth();
+                navigate("/login");
+            }
+        };
 
-    // Check every 30 seconds
-    const interval = setInterval(checkToken, 30000);
-    
-    return () => clearInterval(interval);
-  }, [navigate]);
+        // Check on mount
+        checkToken();
 
-  return (
-    <div>
-      <ToastContainer />
-      <Routes>
-        {/* Home route starts on login */}
-        <Route path="/" element={<ExplorePage />} />
-        <Route path="/login" element={<LoginForm />} />
+        // Check every 30 seconds
+        const interval = setInterval(checkToken, 30000);
 
-        <Route path="/signup" element={<SignupForm />} />
-        {/* <Route path="/login" element={<LoginForm />} /> */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        return () => clearInterval(interval);
+    }, [navigate]);
 
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-        <Route path="/choose-interests" element={<ChooseInterests />} />
-        <Route path="/profile" element={<UserProfile />} />
-        <Route path="/profile/view" element={<ProfileViewPage />} />
-        <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/communities" element={<CommunitiesPage />} />
-        <Route path="/marketplace" element={<MarketplacePage />} />
-        <Route path="/events" element={<EventsPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/inbox" element={<InboxPage />} />
-      </Routes>
-      </div>
+    return (
+        <div>
+            <ToastContainer />
+            <Routes>
+                {/* Home route shows the main explore feed */}
+                <Route path="/" element={<ExplorePage />} />
+                <Route path="/signup" element={<SignupForm />} />
+                <Route path="/login" element={<LoginForm />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route
+                    path="/forgot-password"
+                    element={<ForgotPasswordPage />}
+                />
+                <Route
+                    path="/reset-password/:token"
+                    element={<ResetPasswordPage />}
+                />
+                <Route path="/choose-interests" element={<ChooseInterests />} />
+                <Route path="/profile" element={<UserProfile />} />
+                <Route path="/profile/view" element={<ProfileViewPage />} />
+                <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/communities" element={<CommunitiesPage />} />
+                <Route path="/marketplace" element={<MarketplacePage />} />
+                <Route path="/events" element={<EventsPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+        </div>
     );
 }
 
 function App() {
-  return (
-    <Router>
-      <AppRoutes />
-    </Router>
-  );
+    return (
+        <Router>
+            <AppRoutes />
+        </Router>
+    );
 }
 export default App;
