@@ -29,9 +29,42 @@ import configureChatSockets from './socket/chatSocket.js';
 const app = express();
 const httpServer = createServer(app);
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  'https://skill-nest-new.vercel.app',
+];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  return allowedOrigins.some((allowedOrigin) => {
+    if (!allowedOrigin) return false;
+    return origin === allowedOrigin || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+  });
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200,
+};
+
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
+    origin: allowedOrigins.filter(Boolean).concat(/^https:\/\/[a-z0-9-]+\.vercel\.app$/i),
     credentials: true
   }
 });
@@ -82,14 +115,7 @@ const sendMarketplacePurchaseEmails = async ({ buyerEmail, sellerEmail, productT
   await Promise.all(emailJobs);
 };
 
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173','https://skill-nest-new.vercel.app'], 
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token'],
-  preflightContinue: false,
-  optionsSuccessStatus: 200
-}));
+app.use(cors(corsOptions));
 
 // Stripe webhook requires raw body for signature verification.
 app.post('/api/marketplace/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -179,18 +205,6 @@ app.post('/api/marketplace/webhook', express.raw({ type: 'application/json' }), 
 });
 
 app.use(express.json());
-
-// Handle preflight OPTIONS requests for all routes
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-token');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    return res.status(200).end();
-  }
-  next();
-});
 
 async function startServer() {
   await connectDB(); 
