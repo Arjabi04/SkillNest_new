@@ -89,6 +89,7 @@ function AppRoutes() {
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/inbox" element={<InboxPage />} />
             </Routes>
         </div>
     );
