@@ -13,7 +13,7 @@ router.get('/conversations', auth, async (req, res) => {
     const conversations = await Conversation.find({
       participants: req.user.id
     })
-      .populate('participants', 'name username profilePicture')
+      .populate('participants', 'username profileImage')
       .populate('product', 'title price images')
       .sort({ lastMessageAt: -1 });
     
@@ -68,7 +68,7 @@ router.post('/conversations/direct', auth, async (req, res) => {
     let conversation = await Conversation.findOne({
       type: 'direct',
       participants: { $all: [req.user.id, targetUserId] }
-    }).populate('participants', 'name username profilePicture');
+    }).populate('participants', 'username profileImage');
 
     if (!conversation) {
       conversation = new Conversation({
@@ -80,7 +80,7 @@ router.post('/conversations/direct', auth, async (req, res) => {
         }
       });
       await conversation.save();
-      conversation = await conversation.populate('participants', 'name username profilePicture');
+      conversation = await conversation.populate('participants', 'username profileImage');
     }
 
     res.json(conversation);
@@ -115,7 +115,7 @@ router.post('/conversations/marketplace', auth, async (req, res) => {
       product: productId,
       participants: { $all: [req.user.id, sellerId] }
     })
-    .populate('participants', 'name username profilePicture')
+    .populate('participants', 'username profileImage')
     .populate('product', 'title price images');
 
     if (!conversation) {
@@ -129,7 +129,7 @@ router.post('/conversations/marketplace', auth, async (req, res) => {
         }
       });
       await conversation.save();
-      conversation = await conversation.populate('participants', 'name username profilePicture');
+      conversation = await conversation.populate('participants', 'username profileImage');
       conversation = await conversation.populate('product', 'title price images');
     }
 
@@ -158,7 +158,7 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
     }
 
     const messages = await Message.find({ conversationId })
-      .populate('sender', 'name username profilePicture')
+      .populate('sender', 'username profileImage')
       .sort({ createdAt: 1 });
 
     res.json(messages);

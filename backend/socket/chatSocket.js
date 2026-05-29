@@ -37,9 +37,16 @@ export default function configureChatSockets(io) {
       socket.leave(`conversation:${conversationId}`);
     });
 
-    socket.on('chat:send_message', async (data) => {
+    socket.on('chat:send_message', async (data, ack) => {
       try {
-        const { conversationId, text } = data;
+        const { conversationId, text } = data || {};
+        const messageText = String(text || '').trim();
+
+        if (!conversationId || !messageText) {
+          const payload = { message: 'conversationId and text are required' };
+          if (typeof ack === 'function') ack({ ok: false, ...payload });
+          return socket.emit('chat:error', payload);
+        }
         
         // Verify conversation participation
         const conversation = await Conversation.findById(conversationId);
@@ -47,21 +54,23 @@ export default function configureChatSockets(io) {
           (participantId) => participantId.toString() === socket.user.id
         );
         if (!conversation || !isParticipant) {
-          return socket.emit('chat:error', { message: 'Not authorized for this conversation' });
+          const payload = { message: 'Not authorized for this conversation' };
+          if (typeof ack === 'function') ack({ ok: false, ...payload });
+          return socket.emit('chat:error', payload);
         }
 
         // Save message
         const message = new Message({
           conversationId,
           sender: socket.user.id,
-          text,
+          text: messageText,
           readBy: [{ user: socket.user.id }]
         });
         await message.save();
-        await message.populate('sender', 'name username profilePicture');
+        await message.populate('sender', 'username profileImage');
 
         // Update conversation last message
-        conversation.lastMessageText = text;
+        conversation.lastMessageText = messageText;
         conversation.lastMessageAt = new Date();
         
         // Increment unread count for other participants
@@ -76,6 +85,9 @@ export default function configureChatSockets(io) {
 
         // Broadcast to conversation room
         io.to(`conversation:${conversationId}`).emit('chat:new_message', message);
+        if (typeof ack === 'function') {
+          ack({ ok: true, message });
+        }
         
         // Broadcast inbox update to all participants
         conversation.participants.forEach(pId => {
@@ -83,7 +95,7 @@ export default function configureChatSockets(io) {
            io.to(`user:${pId.toString()}`).emit('chat:conversation_updated', {
              conversationId,
              senderId: socket.user.id,
-             lastMessageText: text,
+             lastMessageText: messageText,
              lastMessageAt: conversation.lastMessageAt,
              unreadCount: conversation.unreadCounts.get(participantId) || 0,
            });
@@ -91,7 +103,9 @@ export default function configureChatSockets(io) {
 
       } catch (error) {
         console.error('Socket send message error:', error);
-        socket.emit('chat:error', { message: 'Failed to send message' });
+        const payload = { message: 'Failed to send message' };
+        if (typeof ack === 'function') ack({ ok: false, ...payload });
+        socket.emit('chat:error', payload);
       }
     });
 

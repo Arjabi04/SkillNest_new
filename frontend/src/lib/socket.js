@@ -3,12 +3,19 @@ import { getAuthToken } from '../utils/tokenUtils';
 
 let socket = null;
 
+const getSocketUrl = () => {
+    const explicitSocketUrl = import.meta.env.VITE_SOCKET_URL;
+    if (explicitSocketUrl) return explicitSocketUrl;
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    return apiUrl.replace(/\/api\/?$/, '');
+};
+
 export const initSocket = () => {
     if (!socket) {
         const token = getAuthToken();
-        const API_URL = import.meta.env.VITE_API_URL;
         
-        socket = io(API_URL, {
+        socket = io(getSocketUrl(), {
             auth: { token },
             autoConnect: false // Connect manually when needed
         });
