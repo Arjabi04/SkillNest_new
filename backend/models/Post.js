@@ -34,7 +34,36 @@ const postSchema = new Schema(
         createdAt: { type: Date, default: Date.now }
       }
     ],
-    reports: { type: [reportSchema], default: [] }
+    reports: { type: [reportSchema], default: [] },
+    moderation: {
+      state: {
+        type: String,
+        enum: ["visible", "hidden", "removed"],
+        default: "visible",
+        index: true,
+      },
+      isHidden: { type: Boolean, default: false, index: true },
+      autoHidden: { type: Boolean, default: false },
+      hiddenAt: { type: Date, default: null },
+      removedAt: { type: Date, default: null },
+      reportCount: { type: Number, default: 0, min: 0 },
+      uniqueReportCount: { type: Number, default: 0, min: 0 },
+      firstReportedAt: { type: Date, default: null },
+      lastReportedAt: { type: Date, default: null },
+      priorityScore: { type: Number, default: 0, min: 0, index: true },
+      priorityLevel: {
+        type: String,
+        enum: ["low", "medium", "high", "critical"],
+        default: "low",
+        index: true,
+      },
+      previousViolations: { type: Number, default: 0, min: 0 },
+      flags: {
+        massReportingSuspected: { type: Boolean, default: false },
+        repeatedOffender: { type: Boolean, default: false },
+      },
+      lastReviewedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

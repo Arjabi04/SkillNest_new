@@ -5,6 +5,7 @@ import { createReadStream } from "streamifier";
 import cloudinary from "../config/cloudinary.js";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import { getPublicPostQuery } from "../utils/moderation.js";
 
 const storage = memoryStorage();
 const upload = multer({ storage });
@@ -71,7 +72,10 @@ router.post("/", upload.array("images", 6), async (req, res) => {
 // Community posts are excluded from profile pages
 router.get("/:userId", async (req, res) => {
   try {
-    const posts = await Post.find({ user: req.params.userId, community: { $exists: false } })
+    const visibilityQuery = getPublicPostQuery();
+    const posts = await Post.find({
+      $and: [{ user: req.params.userId, community: { $exists: false } }, visibilityQuery],
+    })
       .populate("user", "username profileImage")
       .populate("comments.user", "username profileImage")
       .sort({ createdAt: -1 });
@@ -85,7 +89,7 @@ router.get("/:userId", async (req, res) => {
 // GET /api/posts - fetch all posts with user info
 router.get("/", async (req, res) => {
   try {
-    const posts = await Post.find()
+    const posts = await Post.find(getPublicPostQuery())
       .sort({ createdAt: -1 })
       .populate("user", "username profileImage")
       .populate("comments.user", "username profileImage");

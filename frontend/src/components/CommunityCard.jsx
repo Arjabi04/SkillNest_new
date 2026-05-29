@@ -68,7 +68,7 @@ const CommunityCard = ({
     
     return (
       <button 
-        onClick={(e) => { e.stopPropagation(); onJoinCommunity(community._id); }}
+        onClick={(e) => { e.stopPropagation(); onJoinCommunity(community._id, community); }}
         className="community-card-btn-join"
       >
         Join

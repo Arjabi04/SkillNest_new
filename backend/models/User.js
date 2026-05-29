@@ -13,7 +13,16 @@ const userSchema = new Schema({
   resetPasswordExpires: { type: Date },
   profileImage: { type: String, default: "" },
   headerImage: { type: String, default: "" },
-  bio: { type: String, default: "" }  // <-- new field
+  bio: { type: String, default: "" },  // <-- new field
+  trustScore: { type: Number, default: 0.5, min: 0, max: 1 },
+  moderation: {
+    warningCount: { type: Number, default: 0, min: 0 },
+    violationCount: { type: Number, default: 0, min: 0 },
+    suspendedUntil: { type: Date, default: null },
+    isBanned: { type: Boolean, default: false },
+    banReason: { type: String, default: "", trim: true, maxlength: 500 },
+    lastActionAt: { type: Date, default: null },
+  },
 }, { timestamps: true });
 
 

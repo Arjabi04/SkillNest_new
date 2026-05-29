@@ -6,6 +6,10 @@ import jwt from 'jsonwebtoken';
  */
 export const verifyAdmin = (req, res, next) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ msg: "Server misconfigured: JWT_SECRET is missing" });
+    }
+
     // Get token from Authorization header or x-admin-token header
     const token = req.headers.authorization?.split(' ')[1] || req.headers['x-admin-token'];
     

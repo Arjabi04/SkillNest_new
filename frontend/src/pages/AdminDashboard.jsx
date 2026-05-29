@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyAdmin } from "../api/auth";
+import AdminModerationQueue from "../components/AdminModerationQueue";
 import "./AdminDashboard.css";
 
 function AdminDashboard() {
@@ -11,6 +12,7 @@ function AdminDashboard() {
     pendingDeletions: [],
     pendingEventCreations: []
   });
+  const [moderationCounts, setModerationCounts] = useState({ posts: 0, reports: 0 });
   const [activeTab, setActiveTab] = useState("community-creations");
   const navigate = useNavigate();
 
@@ -27,7 +29,7 @@ function AdminDashboard() {
       } else {
         navigate("/admin/login");
       }
-    } catch (err) {
+    } catch {
       navigate("/admin/login");
     } finally {
       setLoading(false);
@@ -225,7 +227,7 @@ function AdminDashboard() {
           <div className="admin-dashboard-header-flex">
             <div>
               <h1 className="admin-dashboard-title">Admin Dashboard</h1>
-              <p className="admin-dashboard-subtitle">Manage community requests and platform settings</p>
+              <p className="admin-dashboard-subtitle">Manage requests and moderate reported content</p>
             </div>
             <div className="admin-dashboard-actions">
               <span className="admin-dashboard-badge">
@@ -328,6 +330,14 @@ function AdminDashboard() {
                 }`}
               >
                 Pending Deletions ({pendingRequests.pendingDeletions.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("moderation")}
+                className={`admin-dashboard-tab ${
+                  activeTab === "moderation" ? "active" : "inactive"
+                }`}
+              >
+                Moderation Queue ({moderationCounts.posts})
               </button>
             </nav>
           </div>
@@ -591,6 +601,13 @@ function AdminDashboard() {
                   </div>
                 )}
               </div>
+            )}
+
+            {activeTab === "moderation" && (
+              <AdminModerationQueue
+                adminToken={localStorage.getItem("adminToken")}
+                onCountsChange={(counts) => setModerationCounts(counts)}
+              />
             )}
           </div>
         </div>

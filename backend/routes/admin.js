@@ -11,6 +11,10 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ msg: "Server misconfigured: JWT_SECRET is missing" });
+    }
+
     // Validate credentials against hardcoded admin
     if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
       return res.status(401).json({ msg: "Invalid admin credentials" });
@@ -44,6 +48,10 @@ router.post('/login', async (req, res) => {
 // Verify admin token (for checking if user is admin)
 router.get('/verify', async (req, res) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ isAdmin: false, msg: "Server misconfigured: JWT_SECRET is missing" });
+    }
+
     const token = req.headers.authorization?.split(' ')[1] || req.headers['x-admin-token'];
     
     if (!token) {

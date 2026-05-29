@@ -1,14 +1,14 @@
 // routes/hobbies.js
 import { Router } from "express";
 const router = Router();
-import { findById } from "../models/User.js";
+import User from "../models/User.js";
 
 // POST /api/hobbies
 router.post("/", async (req, res) => {
   const { userId, interests } = req.body;
 
   try {
-    const user = await findById(userId);
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     user.interests = interests; // update interests array

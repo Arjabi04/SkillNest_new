@@ -1,5 +1,7 @@
 import PostComments from './PostComments';
 import defaultAvatar from '../assets/default-avatar.jpg';
+import { useState } from 'react';
+import ReportPostModal from './ReportPostModal';
 
 const PostCard = ({
   post,
@@ -19,6 +21,9 @@ const PostCard = ({
   showDelete = false,
   variant = 'explore',
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+
   const isLiked = (post.likes || []).some((likeUserId) => {
     const id = typeof likeUserId === 'string' ? likeUserId : likeUserId?._id;
     return String(id) === String(currentUserId);
@@ -30,6 +35,7 @@ const PostCard = ({
 
   const isExplore = variant === 'explore';
   const isGray = variant === 'gray';
+  const isOwnPost = String(post.user?._id || post.user?.id || post.user) === String(currentUserId);
 
   return (
     <article className={isExplore ? 'rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200' : 'bg-white rounded-2xl shadow-sm border border-gray-100 p-5'}>
@@ -69,14 +75,47 @@ const PostCard = ({
             </button>
           )}
         </div>
-        {showDelete && (
-          <button
-            onClick={() => onDelete?.(post._id)}
-            className="text-red-600 hover:text-red-800 text-sm font-medium"
-          >
-            Delete
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {showDelete && (
+            <button
+              onClick={() => onDelete?.(post._id)}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              Delete
+            </button>
+          )}
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="rounded-lg px-2 py-1 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+              aria-label="Post options"
+            >
+              ⋯
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden z-10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setReportOpen(true);
+                  }}
+                  disabled={isOwnPost}
+                  className={`w-full text-left px-3 py-2 text-sm ${
+                    isOwnPost
+                      ? "text-slate-400 cursor-not-allowed"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  Report Post
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {post.text && (
@@ -155,6 +194,13 @@ const PostCard = ({
         onAddComment={onAddComment}
         onDeleteComment={onDeleteComment}
         variant={isGray ? 'gray' : 'slate'}
+      />
+
+      <ReportPostModal
+        open={reportOpen}
+        postId={post._id}
+        onClose={() => setReportOpen(false)}
+        onSubmitted={() => {}}
       />
     </article>
   );

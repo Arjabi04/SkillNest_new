@@ -9,6 +9,7 @@ import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { verifyAdmin } from "../middleware/adminAuth.js";
 import { isCommunityAdmin, isCommunityAdminOrModerator } from "../middleware/communityAuth.js";
+import { getPublicPostQuery } from "../utils/moderation.js";
 
 const storage = memoryStorage();
 const upload = multer({ storage });
@@ -46,6 +47,7 @@ const banUserFromCommunity = async ({
   banType = "permanent",
   reason = "",
   expiresAt = null,
+  sourcePostId = null,
 }) => {
   if (targetUserId === adminId) {
     return { ok: false, status: 400, msg: "You cannot ban yourself" };
@@ -68,6 +70,7 @@ const banUserFromCommunity = async ({
   const banData = {
     user: targetUserId,
     bannedBy: adminId,
+    sourcePostId: sourcePostId || null,
     banType,
     reason: trimmedReason,
     bannedAt: new Date(),
@@ -116,6 +119,7 @@ const banUserFromCommunity = async ({
         reason: trimmedReason,
         banType,
         expiresAt: banData.expiresAt || null,
+        sourcePostId: banData.sourcePostId || null,
       },
     });
   } catch (notificationError) {
@@ -725,7 +729,7 @@ router.post("/:communityId/rules", isCommunityAdminOrModerator, async (req, res)
 // BAN USER (Community Admin or Moderator)
 router.post("/:communityId/ban-user", isCommunityAdminOrModerator, async (req, res) => {
   try {
-    const { targetUserId, banType, reason, expiresAt } = req.body;
+    const { targetUserId, banType, reason, expiresAt, sourcePostId } = req.body;
     const community = req.community;
     const adminId = req.userId;
 
@@ -740,6 +744,7 @@ router.post("/:communityId/ban-user", isCommunityAdminOrModerator, async (req, r
       banType: banType || 'permanent',
       reason: reason || '',
       expiresAt: expiresAt || null,
+      sourcePostId: sourcePostId || null,
     });
 
     if (!result.ok) {
@@ -1002,7 +1007,8 @@ router.get("/:communityId/posts", async (req, res) => {
       return res.status(403).json({ msg: "Community is not yet approved" });
     }
 
-    const posts = await Post.find({ community: req.params.communityId })
+    const visibilityQuery = getPublicPostQuery();
+    const posts = await Post.find({ $and: [{ community: req.params.communityId }, visibilityQuery] })
       .select("-reports")
       .populate("user", "username profileImage")
       .populate("comments.user", "username profileImage")
@@ -1301,6 +1307,7 @@ router.post("/:communityId/posts/:postId/review-report", isCommunityAdminOrModer
       banType: resolvedBanType,
       reason: trimmedReviewNote,
       expiresAt: resolvedBanType === "temporary" ? expiresAt || null : null,
+      sourcePostId: postId,
     });
 
     if (!banResult.ok) {

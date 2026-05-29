@@ -1,0 +1,75 @@
+.button {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sm {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.md {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+.lg {
+  padding: 0.7rem 1.05rem;
+  font-size: 1rem;
+}
+
+.primary {
+  background-color: var(--color-blue-600);
+  color: white;
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--color-blue-700);
+}
+
+.secondary {
+  background-color: white;
+  color: var(--color-slate-800);
+  border-color: var(--color-slate-200);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-slate-50);
+  border-color: var(--color-slate-300);
+}
+
+.danger {
+  background-color: var(--color-red-600);
+  color: white;
+}
+
+.danger:hover:not(:disabled) {
+  background-color: var(--color-red-700);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-slate-700);
+  border-color: transparent;
+}
+
+.ghost:hover:not(:disabled) {
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-900);
+}
+

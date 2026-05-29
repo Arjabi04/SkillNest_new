@@ -9,7 +9,10 @@ const notificationSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: function () {
+      return this.type !== 'system';
+    },
+    default: null
   },
   type: {
     type: String,
@@ -19,6 +22,8 @@ const notificationSchema = new mongoose.Schema({
       'event_invitation',
       'event_reminder',
       'event_starting',
+      'event_new_participant',
+      'event_participant_left',
       'event_updated',
       'event_cancelled',
       'community_join',
@@ -77,7 +82,7 @@ notificationSchema.statics.createNotification = async function(data) {
 
   return await this.create({
     recipient: data.recipient,
-    sender: data.sender,
+    sender: data.sender || null,
     type: data.type,
     title: data.title,
     message: data.message,

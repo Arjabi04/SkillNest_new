@@ -9,6 +9,10 @@ router.post('/', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ msg: "Server misconfigured: JWT_SECRET is missing" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ msg: "Invalid credentials" });
 

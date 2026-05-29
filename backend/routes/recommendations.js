@@ -8,6 +8,7 @@ import Event from '../models/Event.js';
 import Post from '../models/Post.js';
 import Product from '../models/Product.js';
 import Conversation from '../models/Conversation.js';
+import { getPublicPostQuery } from '../utils/moderation.js';
 
 const toSet = (arr) => 
   new Set(Array.isArray(arr) ? arr.map(s => String(s).trim().toLowerCase()) : []);
@@ -92,7 +93,7 @@ const buildUserRecommendations = async (userId, limit = 10) => {
       status: 'published',
       $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false } }]
     }).select('attendees').lean(),
-    Post.find({}).select('likes comments.user').lean()
+    Post.find(getPublicPostQuery()).select('likes comments.user').lean()
   ]);
 
   const currentUserId = String(userId);
@@ -428,7 +429,7 @@ router.get('/feed', auth, async (req, res) => {
     // Self-post similarity is high, but handled by decay later
     similarityByUserId.set(currentUserId, 0.8); 
 
-    const posts = await Post.find({})
+    const posts = await Post.find(getPublicPostQuery())
       .populate('user', 'username profileImage')
       .populate('community', 'name')
       .lean();

@@ -3,6 +3,7 @@ import { Schema, model } from "mongoose";
 const bannedUserSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   bannedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  sourcePostId: { type: Schema.Types.ObjectId, ref: "Post", default: null },
   banType: { type: String, enum: ['temporary', 'permanent'], required: true },
   reason: { type: String, default: "" },
   expiresAt: { type: Date },

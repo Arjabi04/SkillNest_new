@@ -125,6 +125,13 @@ const CommunitiesPage = () => {
   const [appealDraft, setAppealDraft] = useState('');
   const [appealSubmitting, setAppealSubmitting] = useState(false);
   const [appealReviewLoading, setAppealReviewLoading] = useState({});
+  const [banAppealModal, setBanAppealModal] = useState({
+    open: false,
+    community: null,
+    banEntry: null,
+  });
+  const [banAppealDraft, setBanAppealDraft] = useState('');
+  const [banAppealSubmitting, setBanAppealSubmitting] = useState(false);
 
   // const location = useLocation();
   const navigate = useNavigate();
@@ -380,15 +387,94 @@ const CommunitiesPage = () => {
     }
   };
 
-  const loadSingleCommunity = async (communityId) => {
+  const fetchSingleCommunity = async (communityId) => {
     try {
       const res = await fetch(`${API_BASE}/communities/${communityId}?userId=${userId}`);
       const data = await res.json();
       if (res.ok) {
-        setSelectedCommunity(data);
+        return data;
       }
+      return null;
     } catch (err) {
       console.error('Error loading community details:', err);
+      return null;
+    }
+  };
+
+  const loadSingleCommunity = async (communityId) => {
+    const data = await fetchSingleCommunity(communityId);
+    if (data) {
+      setSelectedCommunity(data);
+    }
+    return data;
+  };
+
+  const openBanAppealModal = async ({ communityId, fallbackCommunity }) => {
+    if (!communityId) return;
+
+    setBanAppealDraft('');
+    try {
+      const community = await fetchSingleCommunity(communityId);
+      const resolvedCommunity = community || fallbackCommunity || { _id: communityId, name: 'Community' };
+      const banEntry = community ? getActiveBanEntry(community, userId) : null;
+
+      setBanAppealModal({
+        open: true,
+        community: resolvedCommunity,
+        banEntry,
+      });
+    } catch (err) {
+      console.error('Error opening ban appeal modal:', err);
+      setBanAppealModal({
+        open: true,
+        community: fallbackCommunity || { _id: communityId, name: 'Community' },
+        banEntry: null,
+      });
+    }
+  };
+
+  const closeBanAppealModal = () => {
+    setBanAppealModal({ open: false, community: null, banEntry: null });
+    setBanAppealDraft('');
+    setBanAppealSubmitting(false);
+  };
+
+  const handleSubmitBanAppealFromModal = async () => {
+    const communityId = banAppealModal?.community?._id;
+    if (!communityId) return;
+
+    if (!banAppealDraft.trim()) {
+      alert('Please explain why you should be let back in');
+      return;
+    }
+
+    setBanAppealSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/communities/${communityId}/appeal-ban`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          appealMessage: banAppealDraft,
+        })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(data.msg || 'Appeal submitted');
+        setBanAppealDraft('');
+        setBanAppealModal((prev) => ({
+          ...prev,
+          banEntry: prev?.banEntry ? { ...prev.banEntry, appealStatus: 'pending' } : prev.banEntry,
+        }));
+      } else {
+        alert(data.msg || 'Failed to submit appeal');
+      }
+    } catch (err) {
+      console.error('Error submitting ban appeal:', err);
+      alert('Error submitting appeal');
+    } finally {
+      setBanAppealSubmitting(false);
     }
   };
 
@@ -522,7 +608,7 @@ const CommunitiesPage = () => {
     }
   };
 
-  const handleJoinCommunity = async (communityId) => {
+  const handleJoinCommunity = async (communityId, fallbackCommunity = null) => {
     try {
       const res = await fetch(`${API_BASE}/communities/${communityId}/join`, {
         method: 'POST',
@@ -535,7 +621,12 @@ const CommunitiesPage = () => {
         loadCommunityDetails(communityId);
         loadCommunities();
       } else {
-        alert(data.msg || 'Failed to join');
+        const msg = data?.msg || 'Failed to join';
+        if (res.status === 403 && String(msg).toLowerCase().includes('banned')) {
+          await openBanAppealModal({ communityId, fallbackCommunity: fallbackCommunity || { _id: communityId, name: '' } });
+          return;
+        }
+        alert(msg);
       }
     } catch (err) {
       console.error(err);
@@ -544,14 +635,18 @@ const CommunitiesPage = () => {
   };
 
   const handleViewCommunity = async (community) => {
-    setSelectedCommunity(community);
+    const communityId = community?._id;
+    if (!communityId) return;
+
     // Add community ID to URL params
-    window.history.pushState({}, '', `?communityId=${community._id}&userId=${userId}`);
-    await loadCommunityPosts(community._id);
-    if (hasAdminOrModeratorAccess(community, userId)) {
+    window.history.pushState({}, '', `?communityId=${communityId}&userId=${userId}`);
+    const fullCommunity = await loadSingleCommunity(communityId);
+    await loadCommunityPosts(communityId);
+
+    if (hasAdminOrModeratorAccess(fullCommunity || community, userId)) {
       await Promise.all([
-        loadCommunityDetails(community._id),
-        loadReportedPosts(community._id),
+        loadCommunityDetails(communityId),
+        loadReportedPosts(communityId),
       ]);
     }
   };
@@ -1172,8 +1267,8 @@ const CommunitiesPage = () => {
                           Leave Community
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleJoinCommunity(selectedCommunity._id)}
+                          <button
+                          onClick={() => handleJoinCommunity(selectedCommunity._id, selectedCommunity)}
                           className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
                         >
                           Join Community
@@ -2222,6 +2317,93 @@ const CommunitiesPage = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban Appeal Modal (shown when user is banned and cannot join) */}
+      {banAppealModal.open && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeBanAppealModal} />
+          <div className="relative bg-white p-6 rounded-2xl w-full max-w-lg shadow-xl border border-slate-200">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-black text-lg text-slate-900">Banned from community</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  You are banned from{' '}
+                  <span className="font-bold text-slate-900">
+                    {banAppealModal.community?.name || 'this community'}
+                  </span>
+                  .
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeBanAppealModal}
+                className="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {banAppealModal.banEntry?.sourcePostId && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                  <span className="font-bold">Related post:</span>{' '}
+                  {String(banAppealModal.banEntry.sourcePostId)}
+                </div>
+              )}
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                <span className="font-bold">Reason:</span>{' '}
+                {banAppealModal.banEntry?.reason
+                  ? banAppealModal.banEntry.reason
+                  : 'The community staff removed you from this community.'}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-sm font-bold text-slate-900">Plead your case</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Explain what happened and why you should be allowed back. Community staff will review your appeal.
+                </p>
+                <textarea
+                  value={banAppealDraft}
+                  onChange={(e) => setBanAppealDraft(e.target.value)}
+                  rows={4}
+                  disabled={banAppealSubmitting || banAppealModal.banEntry?.appealStatus === 'pending'}
+                  placeholder="Write your appeal to the community staff..."
+                  className="mt-3 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm disabled:bg-slate-50"
+                />
+
+                {banAppealModal.banEntry?.appealStatus === 'pending' && (
+                  <p className="mt-3 text-sm font-medium text-amber-700">Your appeal is pending review.</p>
+                )}
+
+                {banAppealModal.banEntry?.appealStatus === 'rejected' && banAppealModal.banEntry?.appealReviewNote && (
+                  <p className="mt-3 text-sm text-slate-600">
+                    Last staff note: {banAppealModal.banEntry.appealReviewNote}
+                  </p>
+                )}
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeBanAppealModal}
+                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-800 font-bold hover:bg-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitBanAppealFromModal}
+                    disabled={banAppealSubmitting || banAppealModal.banEntry?.appealStatus === 'pending'}
+                    className="px-4 py-2 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {banAppealSubmitting ? 'Submitting...' : 'Submit appeal'}
+                  </button>
                 </div>
               </div>
             </div>

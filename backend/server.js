@@ -16,6 +16,8 @@ import notificationsRoute from './routes/notifications.js';
 import recommendationsRoute from './routes/recommendations.js';
 import marketplaceRoute from './routes/marketplace.js';
 import chatRoute from './routes/chat.js';
+import reportRoute from './routes/reports.js';
+import moderationRoute from './routes/moderation.js';
 import cors from 'cors';
 import Stripe from 'stripe';
 import { createTransport } from 'nodemailer';
@@ -196,7 +198,9 @@ async function startServer() {
   app.get('/', (req, res) => {
     res.json({ msg: 'Welcome to the app' });
   });
-
+app.get("/health", (_req, res) => {
+    res.status(200).json({ success: true, message: "SkillNest API is healthy" });
+});
   // Routes
   app.use('/api/signup', signupRoute);
   app.use('/api/login', loginRoute);
@@ -211,6 +215,8 @@ async function startServer() {
   app.use('/api/recommendations', recommendationsRoute);
   app.use('/api/marketplace', marketplaceRoute);
   app.use('/api/chat', chatRoute);
+  app.use('/api/reports', reportRoute);
+  app.use('/api/moderation', moderationRoute);
 
   const PORT = process.env.PORT || 4000;
   httpServer.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
