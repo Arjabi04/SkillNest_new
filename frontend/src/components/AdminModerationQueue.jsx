@@ -258,7 +258,7 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
                           <div className="moderation-modal-report-desc muted">No description</div>
                         )}
                         <div className="moderation-modal-report-meta">
-                          reporter: {r.reportedBy?.username || "Unknown"} · trust {Number(r.reportedBy?.trustScore ?? 0.5).toFixed(2)}
+                          reporter: {r.reportedBy?.username || "Unknown"}
                         </div>
                       </div>
                     ))}

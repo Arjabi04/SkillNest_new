@@ -385,4 +385,42 @@ router.post("/users/:userId/ban", verifyAdmin, async (req, res) => {
   }
 });
 
+// Admin: list users for moderation (search + pagination).
+router.get("/users", verifyAdmin, async (req, res) => {
+  try {
+    const search = String(req.query.search || "").trim();
+    const page = Math.max(1, Number.parseInt(req.query.page || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(5, Number.parseInt(req.query.limit || "20", 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select("username email profileImage trustScore createdAt moderation")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(query),
+    ]);
+
+    res.json({
+      users,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
+      total,
+    });
+  } catch (err) {
+    console.error("List users error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 export default router;

@@ -4,6 +4,8 @@ import { API_URL, verifyAdmin } from "../api/auth";
 import AdminModerationQueue from "../components/AdminModerationQueue";
 import AdminMarketplaceReportsQueue from "../components/AdminMarketplaceReportsQueue";
 import AdminEventReportsQueue from "../components/AdminEventReportsQueue";
+import AdminUsersManager from "../components/AdminUsersManager";
+import AdminAdminsManager from "../components/AdminAdminsManager";
 import "./AdminDashboard.css";
 
 function AdminDashboard() {
@@ -25,7 +27,9 @@ function AdminDashboard() {
     activeTab === "marketplace-reports" ||
     activeTab === "event-reports"
       ? "reports"
-      : "requests";
+      : activeTab === "users" || activeTab === "admins"
+        ? "manage"
+        : "requests";
 
   useEffect(() => {
     checkAdminStatus();
@@ -287,12 +291,6 @@ function AdminDashboard() {
                 Admin Mode
               </span>
               <button
-                onClick={() => navigate("/communities")}
-                className="admin-dashboard-nav-btn"
-              >
-                View Communities
-              </button>
-              <button
                 onClick={handleLogout}
                 className="admin-dashboard-logout-btn"
               >
@@ -378,6 +376,15 @@ function AdminDashboard() {
               >
                 Reports
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("users")}
+                className={`admin-dashboard-tab-group-btn ${
+                  activeGroup === "manage" ? "active" : "inactive"
+                }`}
+              >
+                Manage
+              </button>
             </div>
 
             {activeGroup === "requests" ? (
@@ -407,7 +414,7 @@ function AdminDashboard() {
                   Pending Deletions ({pendingRequests.pendingDeletions.length})
                 </button>
               </nav>
-            ) : (
+            ) : activeGroup === "reports" ? (
               <nav className="admin-dashboard-tabs-nav" aria-label="Reports tabs">
                 <button
                   onClick={() => setActiveTab("moderation")}
@@ -432,6 +439,25 @@ function AdminDashboard() {
                   }`}
                 >
                   Events ({eventReportCounts.events})
+                </button>
+              </nav>
+            ) : (
+              <nav className="admin-dashboard-tabs-nav" aria-label="Management tabs">
+                <button
+                  onClick={() => setActiveTab("users")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "users" ? "active" : "inactive"
+                  }`}
+                >
+                  Users
+                </button>
+                <button
+                  onClick={() => setActiveTab("admins")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "admins" ? "active" : "inactive"
+                  }`}
+                >
+                  Admins
                 </button>
               </nav>
             )}
@@ -717,6 +743,14 @@ function AdminDashboard() {
                 adminToken={localStorage.getItem("adminToken")}
                 onCountsChange={(counts) => setEventReportCounts(counts)}
               />
+            )}
+
+            {activeTab === "users" && (
+              <AdminUsersManager adminToken={localStorage.getItem("adminToken")} />
+            )}
+
+            {activeTab === "admins" && (
+              <AdminAdminsManager adminToken={localStorage.getItem("adminToken")} />
             )}
           </div>
         </div>
