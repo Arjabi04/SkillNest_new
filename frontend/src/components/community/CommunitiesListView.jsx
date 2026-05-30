@@ -124,7 +124,7 @@ const CommunitiesListView = ({
                         ) : (
                             <>
                                 <PageHeader
-                                    className="mb-12"
+                                    // className="mb-12"
                                     eyebrow="Communities"
                                     title="Explore Communities"
                                     description="Discover new collaborative spaces and connect with like-minded learners."
@@ -151,7 +151,7 @@ const CommunitiesListView = ({
                                     )}
                                     <button
                                         onClick={onOpenCreateCommunity}
-                                        className="px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2">
+                                        className="px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 mb-8">
                                         <Plus className="w-5 h-5" /> Create
                                         Community
                                     </button>
@@ -298,7 +298,7 @@ const CommunitiesListView = ({
                                 </p>
                                 <button
                                     onClick={onOpenCreateCommunity}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2 mb-8">
                                     <Plus className="w-4 h-4" /> Create Community
                                 </button>
                             </div>

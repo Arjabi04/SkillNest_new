@@ -3,6 +3,7 @@ import {
     Routes,
     Route,
     useNavigate,
+    Navigate,
 } from "react-router-dom";
 import SignupForm from "./pages/SignupForm";
 import LoginForm from "./pages/LoginForm";
@@ -22,8 +23,17 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ToastContainer from "./components/ToastContainer";
 import { useEffect } from "react";
-import { clearAuth, isTokenValid } from "./utils/tokenUtils";
+import { clearAuth, getValidToken, isTokenValid } from "./utils/tokenUtils";
 import { showToast } from "./utils/toast";
+
+function HomeRedirect() {
+    const token = getValidToken();
+    return token ? (
+        <Navigate to="/explore" replace />
+    ) : (
+        <Navigate to="/login" replace />
+    );
+}
 
 function AppRoutes() {
     const navigate = useNavigate();
@@ -66,8 +76,7 @@ function AppRoutes() {
         <div>
             <ToastContainer />
             <Routes>
-                {/* Home route shows the main explore feed */}
-                <Route path="/" element={<ExplorePage />} />
+                <Route path="/" element={<HomeRedirect />} />
                 <Route path="/signup" element={<SignupForm />} />
                 <Route path="/login" element={<LoginForm />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
