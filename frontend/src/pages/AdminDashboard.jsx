@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { API_URL, verifyAdmin } from "../api/auth";
 import AdminModerationQueue from "../components/AdminModerationQueue";
 import AdminMarketplaceReportsQueue from "../components/AdminMarketplaceReportsQueue";
+import AdminEventReportsQueue from "../components/AdminEventReportsQueue";
 import "./AdminDashboard.css";
 
 function AdminDashboard() {
@@ -15,6 +16,7 @@ function AdminDashboard() {
   });
   const [moderationCounts, setModerationCounts] = useState({ posts: 0, reports: 0 });
   const [marketplaceCounts, setMarketplaceCounts] = useState({ products: 0, reports: 0 });
+  const [eventReportCounts, setEventReportCounts] = useState({ events: 0, reports: 0 });
   const [activeTab, setActiveTab] = useState("community-creations");
   const navigate = useNavigate();
 
@@ -29,6 +31,7 @@ function AdminDashboard() {
         setIsAdmin(true);
         fetchPendingRequests();
         fetchMarketplaceReportCounts();
+        fetchEventReportCounts();
       } else {
         navigate("/admin/login");
       }
@@ -51,6 +54,26 @@ function AdminDashboard() {
       if (res.ok) {
         setMarketplaceCounts({
           products: Number(data?.totals?.products || 0),
+          reports: Number(data?.totals?.reports || 0),
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchEventReportCounts = async () => {
+    try {
+      const adminToken = localStorage.getItem("adminToken");
+      const res = await fetch(`${API_URL}/events/reports/queue?status=pending&limit=1`, {
+        headers: {
+          "x-admin-token": adminToken || "",
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setEventReportCounts({
+          events: Number(data?.totals?.events || 0),
           reports: Number(data?.totals?.reports || 0),
         });
       }
@@ -370,6 +393,14 @@ function AdminDashboard() {
               >
                 Marketplace Reports ({marketplaceCounts.products})
               </button>
+              <button
+                onClick={() => setActiveTab("event-reports")}
+                className={`admin-dashboard-tab ${
+                  activeTab === "event-reports" ? "active" : "inactive"
+                }`}
+              >
+                Event Reports ({eventReportCounts.events})
+              </button>
             </nav>
           </div>
 
@@ -645,6 +676,13 @@ function AdminDashboard() {
               <AdminMarketplaceReportsQueue
                 adminToken={localStorage.getItem("adminToken")}
                 onCountsChange={(counts) => setMarketplaceCounts(counts)}
+              />
+            )}
+
+            {activeTab === "event-reports" && (
+              <AdminEventReportsQueue
+                adminToken={localStorage.getItem("adminToken")}
+                onCountsChange={(counts) => setEventReportCounts(counts)}
               />
             )}
           </div>

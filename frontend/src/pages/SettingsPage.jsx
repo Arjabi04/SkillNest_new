@@ -4,7 +4,7 @@ import Sidebar from '../layouts/Sidebar';
 import PageHeader from '../components/PageHeader';
 import useSidebarLayout from '../hooks/useSidebarLayout';
 import { clearAuth, getValidToken } from '../utils/tokenUtils';
-import { getProfileSettings, updateProfileSettings, changePassword } from '../api/auth';
+import { API_URL, getProfileSettings, updateProfileSettings, changePassword } from '../api/auth';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -16,6 +16,11 @@ const SettingsPage = () => {
   const [feedback, setFeedback] = useState({ type: 'info', text: '' });
   const [passwordChanging, setPasswordChanging] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState({ type: 'info', text: '' });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteFeedback, setDeleteFeedback] = useState({ type: 'info', text: '' });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -191,6 +196,53 @@ const SettingsPage = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const token = getValidToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') {
+      setDeleteFeedback({ type: 'error', text: 'Type DELETE to confirm.' });
+      return;
+    }
+
+    if (!deletePassword) {
+      setDeleteFeedback({ type: 'error', text: 'Password is required.' });
+      return;
+    }
+
+    setDeleteBusy(true);
+    setDeleteFeedback({ type: 'info', text: '' });
+
+    try {
+      const res = await fetch(`${API_URL}/profile/me`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeleteFeedback({ type: 'error', text: data?.msg || 'Failed to delete account.' });
+        return;
+      }
+
+      clearAuth();
+      setDeleteModalOpen(false);
+      navigate('/login');
+    } catch (err) {
+      console.error(err);
+      setDeleteFeedback({ type: 'error', text: 'Network error while deleting account.' });
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white font-sans flex">
@@ -348,10 +400,94 @@ const SettingsPage = () => {
                   {passwordChanging ? 'Updating...' : 'Update Password'}
                 </button>
               </form>
+
+              <div className="mt-8 border-t border-slate-200 pt-6">
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-rose-600">Danger zone</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Deleting your account is permanent and cannot be undone.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteFeedback({ type: 'info', text: '' });
+                    setDeletePassword('');
+                    setDeleteConfirmText('');
+                    setDeleteModalOpen(true);
+                  }}
+                  className="mt-4 w-full rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                >
+                  Delete Account
+                </button>
+              </div>
             </section>
           </div>
         </div>
       </main>
+
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-black text-slate-950">Delete account</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  This permanently deletes your account. Type <span className="font-mono">DELETE</span> and enter your password to confirm.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                disabled={deleteBusy}
+                placeholder="Type DELETE"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-blue-500 focus:bg-white"
+              />
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                disabled={deleteBusy}
+                placeholder="Enter your password"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-blue-500 focus:bg-white"
+              />
+
+              {deleteFeedback.text && (
+                <div className={`rounded-2xl border px-4 py-3 text-sm ${deleteFeedback.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-sky-200 bg-sky-50 text-sky-700'}`}>
+                  {deleteFeedback.text}
+                </div>
+              )}
+
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={deleteBusy}
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteBusy}
+                  onClick={handleDeleteAccount}
+                  className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deleteBusy ? 'Deleting...' : 'Delete permanently'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

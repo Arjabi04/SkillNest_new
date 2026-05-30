@@ -11,6 +11,18 @@ import Event from "../models/Event.js";
 import User from "../models/User.js";
 import Community from "../models/Community.js";
 import Notification from "../models/Notification.js";
+import { isValidObjectId } from "mongoose";
+
+const toReasonSummary = (reasons = []) => {
+  const counts = new Map();
+  for (const reason of reasons) {
+    const key = String(reason || "").trim() || "Other";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
+};
 
 const storage = memoryStorage();
 const upload = multer({ storage });
@@ -167,6 +179,217 @@ router.get("/pending/all", verifyAdmin, async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json({ pendingEventCreations });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// ============================================================
+// EVENT REPORTING (User reports + Admin queue)
+// ============================================================
+
+// Report an event (does not auto-hide/remove).
+router.post("/:eventId/report", auth, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const reason = String(req.body?.reason || "").trim();
+    const details = String(req.body?.details || "").trim();
+
+    if (!isValidObjectId(eventId)) return res.status(400).json({ msg: "Invalid eventId" });
+    if (!reason) return res.status(400).json({ msg: "Reason is required" });
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ msg: "Event not found" });
+
+    const reporterId = req.user._id;
+    const existingPending = (event.reports || []).find(
+      (report) => report.reporter?.toString() === reporterId.toString() && report.status === "pending",
+    );
+    if (existingPending) {
+      return res.status(400).json({ msg: "You have already reported this event" });
+    }
+
+    event.reports.push({ reporter: reporterId, reason, details });
+    await event.save();
+
+    res.json({ msg: "Report submitted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: list reported events.
+router.get("/reports/queue", verifyAdmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || "pending");
+    const limit = Math.min(Number.parseInt(req.query.limit || "50", 10) || 50, 200);
+
+    const [grouped, totalReportsAgg, totalEventsAgg] = await Promise.all([
+      Event.aggregate([
+        { $unwind: "$reports" },
+        ...(status === "all" ? [] : [{ $match: { "reports.status": status } }]),
+        {
+          $group: {
+            _id: "$_id",
+            reportCount: { $sum: 1 },
+            uniqueReporters: { $addToSet: "$reports.reporter" },
+            firstReportedAt: { $min: "$reports.createdAt" },
+            lastReportedAt: { $max: "$reports.createdAt" },
+            reasons: { $push: "$reports.reason" },
+            title: { $first: "$title" },
+            startDate: { $first: "$startDate" },
+            endDate: { $first: "$endDate" },
+            coverImage: { $first: "$coverImage" },
+            organizer: { $first: "$organizer" },
+          },
+        },
+        { $addFields: { uniqueReportCount: { $size: "$uniqueReporters" } } },
+        { $sort: { reportCount: -1, lastReportedAt: -1 } },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "users",
+            localField: "organizer",
+            foreignField: "_id",
+            as: "organizerUser",
+          },
+        },
+        { $addFields: { organizerUser: { $arrayElemAt: ["$organizerUser", 0] } } },
+        {
+          $project: {
+            reportCount: 1,
+            uniqueReportCount: 1,
+            firstReportedAt: 1,
+            lastReportedAt: 1,
+            reasons: 1,
+            event: {
+              _id: "$_id",
+              title: "$title",
+              startDate: "$startDate",
+              endDate: "$endDate",
+              coverImage: "$coverImage",
+              organizer: {
+                _id: "$organizer",
+                username: "$organizerUser.username",
+                email: "$organizerUser.email",
+                profileImage: "$organizerUser.profileImage",
+              },
+            },
+          },
+        },
+      ]),
+      status === "all"
+        ? Event.aggregate([{ $unwind: "$reports" }, { $count: "count" }])
+        : Event.aggregate([{ $unwind: "$reports" }, { $match: { "reports.status": status } }, { $count: "count" }]),
+      status === "all"
+        ? Event.aggregate([{ $unwind: "$reports" }, { $group: { _id: "$_id" } }, { $count: "count" }])
+        : Event.aggregate([
+            { $unwind: "$reports" },
+            { $match: { "reports.status": status } },
+            { $group: { _id: "$_id" } },
+            { $count: "count" },
+          ]),
+    ]);
+
+    const totalReportsCount = totalReportsAgg?.[0]?.count || 0;
+    const totalEventsCount = totalEventsAgg?.[0]?.count || 0;
+
+    const items = (grouped || []).map((row) => ({
+      eventId: row.event?._id || row._id,
+      event: row.event,
+      reportCount: row.reportCount,
+      uniqueReportCount: row.uniqueReportCount,
+      firstReportedAt: row.firstReportedAt,
+      lastReportedAt: row.lastReportedAt,
+      reasonsSummary: toReasonSummary(row.reasons || []),
+    }));
+
+    res.json({
+      items,
+      totals: {
+        events: totalEventsCount,
+        reports: totalReportsCount,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: get details for a reported event.
+router.get("/reports/events/:eventId", verifyAdmin, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    if (!isValidObjectId(eventId)) return res.status(400).json({ msg: "Invalid eventId" });
+
+    const event = await Event.findById(eventId)
+      .populate("organizer", "username email profileImage")
+      .populate("reports.reporter", "username email profileImage trustScore")
+      .lean();
+
+    if (!event) return res.status(404).json({ msg: "Event not found" });
+
+    res.json({
+      event: {
+        _id: event._id,
+        title: event.title,
+        description: event.description,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        coverImage: event.coverImage,
+        organizer: event.organizer,
+      },
+      reports: (event.reports || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: dismiss all pending reports for an event.
+router.post("/reports/events/:eventId/dismiss", verifyAdmin, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    if (!isValidObjectId(eventId)) return res.status(400).json({ msg: "Invalid eventId" });
+
+    const note = String(req.body?.note || "").trim();
+    const now = new Date();
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ msg: "Event not found" });
+
+    let updatedCount = 0;
+    for (const report of event.reports || []) {
+      if (report.status === "pending") {
+        report.status = "dismissed";
+        report.reviewedAt = now;
+        report.reviewNote = note;
+        updatedCount += 1;
+      }
+    }
+
+    await event.save();
+    res.json({ msg: `Dismissed ${updatedCount} report(s).` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: delete an event (removes it).
+router.delete("/reports/events/:eventId", verifyAdmin, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    if (!isValidObjectId(eventId)) return res.status(400).json({ msg: "Invalid eventId" });
+
+    const deleted = await Event.findByIdAndDelete(eventId);
+    if (!deleted) return res.status(404).json({ msg: "Event not found" });
+
+    res.json({ msg: "Event deleted." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });

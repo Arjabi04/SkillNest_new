@@ -1,5 +1,7 @@
 import React from "react";
 import { X } from "lucide-react";
+import { API_URL } from "../../api/auth";
+import { getAuthToken } from "../../utils/tokenUtils";
 
 const InfoBox = ({ label, children }) => (
     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -22,6 +24,54 @@ const EventDetailsModal = ({
     onMessageOrganizer,
 }) => {
     if (!event) return null;
+
+    const [reportOpen, setReportOpen] = React.useState(false);
+    const [reportReason, setReportReason] = React.useState("");
+    const [reportDetails, setReportDetails] = React.useState("");
+    const [reportSubmitting, setReportSubmitting] = React.useState(false);
+
+    const submitReport = async () => {
+        const reason = String(reportReason || "").trim();
+        const details = String(reportDetails || "").trim();
+        if (!reason) {
+            alert("Reason is required");
+            return;
+        }
+
+        const token = getAuthToken();
+        if (!token) {
+            alert("Please log in to continue");
+            return;
+        }
+
+        setReportSubmitting(true);
+        try {
+            const res = await fetch(`${API_URL}/events/${event._id}/report`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ reason, details }),
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                alert(data?.msg || "Failed to submit report");
+                return;
+            }
+
+            alert(data?.msg || "Report submitted");
+            setReportOpen(false);
+            setReportReason("");
+            setReportDetails("");
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit report");
+        } finally {
+            setReportSubmitting(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex justify-center items-center p-4">
@@ -143,6 +193,14 @@ const EventDetailsModal = ({
                             </button>
                         )}
 
+                        {!selectedIsOrganizer && (
+                            <button
+                                onClick={() => setReportOpen((prev) => !prev)}
+                                className="px-4 py-2 bg-white text-red-700 rounded-lg text-sm font-medium border border-red-200 hover:bg-red-50 transition-colors">
+                                {reportOpen ? "Cancel Report" : "Report Event"}
+                            </button>
+                        )}
+
                         {!selectedIsOrganizer &&
                             !selectedHasJoined &&
                             !selectedCanRegister && (
@@ -155,6 +213,37 @@ const EventDetailsModal = ({
                                 </span>
                             )}
                     </div>
+
+                    {reportOpen && !selectedIsOrganizer && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">
+                                Report Event
+                            </p>
+                            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                                <input
+                                    value={reportReason}
+                                    onChange={(e) => setReportReason(e.target.value)}
+                                    placeholder="Reason"
+                                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                                />
+                                <input
+                                    value={reportDetails}
+                                    onChange={(e) => setReportDetails(e.target.value)}
+                                    placeholder="Details (optional)"
+                                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                                />
+                            </div>
+                            <div className="mt-3 flex justify-end">
+                                <button
+                                    type="button"
+                                    disabled={reportSubmitting}
+                                    onClick={submitReport}
+                                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70">
+                                    {reportSubmitting ? "Submitting..." : "Submit Report"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

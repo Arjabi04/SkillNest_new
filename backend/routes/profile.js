@@ -6,6 +6,15 @@ import { hash, compare } from "bcryptjs";
 import cloudinary from "../config/cloudinary.js";
 import auth from "../middleware/auth.js";
 import User from "../models/User.js";
+import Post from "../models/Post.js";
+import Community from "../models/Community.js";
+import Event from "../models/Event.js";
+import Product from "../models/Product.js";
+import Notification from "../models/Notification.js";
+import Conversation from "../models/Conversation.js";
+import Message from "../models/Message.js";
+import Report from "../models/Report.js";
+import ModerationLog from "../models/ModerationLog.js";
 import { createReadStream } from "streamifier";
 
 const router = Router();
@@ -438,6 +447,113 @@ router.post("/change-password", auth, async (req, res) => {
         await user.save();
 
         return res.json({ msg: "Password changed successfully" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ msg: "Server error" });
+    }
+});
+
+// DELETE /api/profile/me
+// Permanently deletes the authenticated user's account (requires password confirmation).
+router.delete("/me", auth, async (req, res) => {
+    try {
+        const { password } = req.body || {};
+        if (!password) {
+            return res.status(400).json({ msg: "Password is required" });
+        }
+
+        const userId = req.user._id;
+        const user = await User.findById(userId).select("+password");
+        if (!user) {
+            return res.status(404).json({ msg: "User not found" });
+        }
+
+        const isMatch = await compare(String(password), user.password);
+        if (!isMatch) {
+            return res.status(400).json({ msg: "Password is incorrect" });
+        }
+
+        const conversations = await Conversation.find({ participants: userId })
+            .select("_id")
+            .lean();
+        const conversationIds = conversations.map((c) => c._id);
+
+        await Promise.all([
+            Notification.deleteMany({
+                $or: [{ recipient: userId }, { sender: userId }],
+            }),
+            ModerationLog.deleteMany({ targetUser: userId }),
+            Report.deleteMany({ reportedBy: userId }),
+
+            // Remove user-generated content.
+            Post.deleteMany({ user: userId }),
+            Event.deleteMany({ organizer: userId }),
+            Community.deleteMany({ creator: userId }),
+            Product.deleteMany({ seller: userId }),
+
+            // Remove chat data.
+            Message.deleteMany({
+                $or: [
+                    { sender: userId },
+                    ...(conversationIds.length
+                        ? [{ conversationId: { $in: conversationIds } }]
+                        : []),
+                ],
+            }),
+            Conversation.deleteMany({ participants: userId }),
+
+            // Remove references in remaining docs.
+            Post.updateMany(
+                { $or: [{ likes: userId }, { "comments.user": userId }, { "reports.reporter": userId }] },
+                {
+                    $pull: {
+                        likes: userId,
+                        comments: { user: userId },
+                        reports: { reporter: userId },
+                    },
+                },
+            ),
+            Event.updateMany(
+                {},
+                {
+                    $pull: {
+                        attendees: { user: userId },
+                        invitations: { user: userId },
+                        waitlist: { user: userId },
+                        feedback: { user: userId },
+                        reports: { reporter: userId },
+                    },
+                },
+            ),
+            Community.updateMany(
+                {},
+                {
+                    $pull: {
+                        members: userId,
+                        admins: userId,
+                        moderators: userId,
+                        bannedUsers: { user: userId },
+                    },
+                },
+            ),
+            Product.updateMany(
+                {},
+                {
+                    $pull: {
+                        reviews: { user: userId },
+                        reports: { reporter: userId },
+                    },
+                },
+            ),
+            Product.updateMany(
+                { buyer: userId },
+                { $set: { buyer: null, purchasedAt: null } },
+            ),
+        ]);
+
+        await User.deleteOne({ _id: userId });
+
+        return res.json({ msg: "Account deleted successfully" });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ msg: "Server error" });

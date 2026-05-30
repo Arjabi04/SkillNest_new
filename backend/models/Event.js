@@ -1,5 +1,23 @@
 import mongoose from 'mongoose';
 
+const reportSchema = new mongoose.Schema(
+  {
+    reporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    reason: { type: String, required: true, trim: true, maxlength: 120 },
+    details: { type: String, default: '', trim: true, maxlength: 500 },
+    status: {
+      type: String,
+      enum: ['pending', 'dismissed', 'actioned'],
+      default: 'pending',
+    },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reviewedAt: { type: Date, default: null },
+    reviewNote: { type: String, default: '', trim: true, maxlength: 500 },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true },
+);
+
 const eventSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -220,7 +238,8 @@ const eventSchema = new mongoose.Schema({
     interval: Number, // Every X days/weeks/months/years
     endDate: Date,
     occurrences: Number // Alternative to endDate
-  }
+  },
+  reports: { type: [reportSchema], default: [] },
 }, {
   timestamps: true
 });
@@ -232,6 +251,8 @@ eventSchema.index({ community: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ eventType: 1 });
 eventSchema.index({ tags: 1 });
+eventSchema.index({ 'reports.status': 1 });
+eventSchema.index({ 'reports.createdAt': -1 });
 
 // Virtual for attendee count
 eventSchema.virtual('attendeeCount').get(function() {
