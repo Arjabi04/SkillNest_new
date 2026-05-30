@@ -6,7 +6,7 @@ import PageHeader from "../components/PageHeader";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import api, { API_URL } from "../api/auth";
 import { clearAuth, getAuthToken } from "../utils/tokenUtils";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingBag, ShoppingCart } from "lucide-react";
 
 const API_BASE = `${API_URL}/marketplace`;
 
@@ -53,6 +53,10 @@ function MarketplacePage() {
   const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [purchasesError, setPurchasesError] = useState("");
   const [showPurchases, setShowPurchases] = useState(false);
+  const [myListings, setMyListings] = useState([]);
+  const [loadingMyListings, setLoadingMyListings] = useState(true);
+  const [myListingsError, setMyListingsError] = useState("");
+  const [showMyListings, setShowMyListings] = useState(false);
 
   const [draftFilters, setDraftFilters] = useState({
     search: "",
@@ -252,6 +256,39 @@ function MarketplacePage() {
       setPurchasesError("Failed to load purchases");
     } finally {
       setLoadingPurchases(false);
+    }
+  };
+
+  const loadMyListings = async () => {
+    setLoadingMyListings(true);
+    setMyListingsError("");
+    try {
+      if (!userId) {
+        setMyListings([]);
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.set("sellerId", userId);
+      params.set("status", "all");
+      params.set("sort", "newest");
+
+      const res = await fetch(`${API_BASE}?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setMyListings([]);
+        setMyListingsError(data?.msg || "Failed to load listings");
+        return;
+      }
+
+      setMyListings(Array.isArray(data.products) ? data.products : []);
+    } catch (err) {
+      console.error("Failed to load listings:", err);
+      setMyListings([]);
+      setMyListingsError("Failed to load listings");
+    } finally {
+      setLoadingMyListings(false);
     }
   };
 
@@ -621,18 +658,33 @@ function MarketplacePage() {
           title="Browse Listings"
           description="Post products, browse listings, review sellers, and report suspicious listings."
           rightContent={
-            <button
-              type="button"
-              onClick={() => {
-                setShowPurchases(true);
-                loadPurchases();
-              }}
-              className="relative inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 shadow-sm hover:bg-slate-50"
-              aria-label="View purchases"
-              title="Purchases"
-            >
-              <ShoppingCart className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMyListings(true);
+                  loadMyListings();
+                }}
+                className="relative inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 shadow-sm hover:bg-slate-50"
+                aria-label="View your listings"
+                title="My listings"
+              >
+                <ShoppingBag className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPurchases(true);
+                  loadPurchases();
+                }}
+                className="relative inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 shadow-sm hover:bg-slate-50"
+                aria-label="View purchases"
+                title="Purchases"
+              >
+                <ShoppingCart className="h-5 w-5" />
+              </button>
+            </div>
           }
         />
 
@@ -941,6 +993,80 @@ function MarketplacePage() {
         </div>
       )}
 
+      {showMyListings && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-xl font-semibold text-slate-900">Your Listings</h3>
+              <button
+                type="button"
+                onClick={() => setShowMyListings(false)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {loadingMyListings ? (
+                <div className="text-sm text-slate-500">Loading...</div>
+              ) : myListingsError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                  {myListingsError}
+                </div>
+              ) : myListings.length === 0 ? (
+                <div className="text-sm text-slate-500">No listings yet.</div>
+              ) : (
+                myListings.map((item) => (
+                  <div
+                    key={item._id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                  >
+                    {item.images?.[0] ? (
+                      <img
+                        src={item.images[0]}
+                        alt={item.title}
+                        className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-xs text-slate-500">
+                        No image
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{item.title}</p>
+                      <p className="text-xs text-slate-600">
+                        ${Number(item.price || 0).toFixed(2)} · Purchases: {item.buyer ? 1 : 0}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        item.isActive === false ? "bg-slate-200 text-slate-700" : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {item.isActive === false ? "Sold" : "Active"}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedProductId(item._id);
+                        setShowMyListings(false);
+                      }}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white"
+                    >
+                      View
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {paymentPopup && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
@@ -980,6 +1106,7 @@ function MarketplacePage() {
         const isOwnProduct = String(selectedProduct.seller?._id || "") === String(userId);
         const isAvailable = selectedProduct.isActive !== false;
         const canBuy = !isOwnProduct && isAvailable;
+        const purchaseCount = selectedProduct.buyer ? 1 : 0;
         const reviewDraft = reviewDrafts[selectedProduct._id] || { rating: 5, comment: "" };
         const reportDraft = reportDrafts[selectedProduct._id] || { reason: "", details: "" };
         const reportOpen = Boolean(reportOpenByProduct[selectedProduct._id]);
@@ -1016,6 +1143,10 @@ function MarketplacePage() {
                       <span className="font-semibold text-slate-800">Rating:</span>
                       <span>{Number(selectedProduct.ratingAverage || 0).toFixed(1)} / 5</span>
                       <span>({selectedProduct.ratingCount || 0})</span>
+                    </div>
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1">
+                      <span className="font-semibold text-slate-800">Purchases:</span>
+                      <span>{purchaseCount}</span>
                     </div>
                     <div className="inline-flex items-center gap-2">
                       <img
