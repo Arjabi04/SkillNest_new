@@ -8,6 +8,8 @@ import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import Stripe from "stripe";
 import auth from "../middleware/auth.js";
+import { verifyAdmin } from "../middleware/adminAuth.js";
+import { isValidObjectId } from "mongoose";
 
 const getStripeClient = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -41,12 +43,207 @@ const recalculateRatings = (product) => {
   product.ratingAverage = Number((total / product.ratingCount).toFixed(1));
 };
 
+const toReasonSummary = (reasons = []) => {
+  const counts = new Map();
+  for (const reason of reasons) {
+    const key = String(reason || "").trim() || "Other";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
+};
+
 // Get available categories from existing products.
 router.get("/categories", async (req, res) => {
   try {
     const categories = await Product.distinct("category");
     const sorted = categories.filter(Boolean).sort((a, b) => a.localeCompare(b));
     res.json({ categories: sorted });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: list reported marketplace products.
+router.get("/reports/queue", verifyAdmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || "pending");
+    const limit = Math.min(Number.parseInt(req.query.limit || "50", 10) || 50, 200);
+
+    const [grouped, totalReportsAgg, totalProductsAgg] = await Promise.all([
+      Product.aggregate([
+        { $unwind: "$reports" },
+        ...(status === "all" ? [] : [{ $match: { "reports.status": status } }]),
+        {
+          $group: {
+            _id: "$_id",
+            reportCount: { $sum: 1 },
+            uniqueReporters: { $addToSet: "$reports.reporter" },
+            firstReportedAt: { $min: "$reports.createdAt" },
+            lastReportedAt: { $max: "$reports.createdAt" },
+            reasons: { $push: "$reports.reason" },
+            title: { $first: "$title" },
+            price: { $first: "$price" },
+            category: { $first: "$category" },
+            isActive: { $first: "$isActive" },
+            images: { $first: "$images" },
+            seller: { $first: "$seller" },
+          },
+        },
+        { $addFields: { uniqueReportCount: { $size: "$uniqueReporters" } } },
+        { $sort: { reportCount: -1, lastReportedAt: -1 } },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "users",
+            localField: "seller",
+            foreignField: "_id",
+            as: "sellerUser",
+          },
+        },
+        { $addFields: { sellerUser: { $arrayElemAt: ["$sellerUser", 0] } } },
+        {
+          $project: {
+            reportCount: 1,
+            uniqueReportCount: 1,
+            firstReportedAt: 1,
+            lastReportedAt: 1,
+            reasons: 1,
+            product: {
+              _id: "$_id",
+              title: "$title",
+              price: "$price",
+              category: "$category",
+              isActive: "$isActive",
+              images: "$images",
+              seller: {
+                _id: "$seller",
+                username: "$sellerUser.username",
+                email: "$sellerUser.email",
+                profileImage: "$sellerUser.profileImage",
+              },
+            },
+          },
+        },
+      ]),
+      status === "all"
+        ? Product.aggregate([{ $unwind: "$reports" }, { $count: "count" }])
+        : Product.aggregate([
+            { $unwind: "$reports" },
+            { $match: { "reports.status": status } },
+            { $count: "count" },
+          ]),
+      status === "all"
+        ? Product.aggregate([{ $unwind: "$reports" }, { $group: { _id: "$_id" } }, { $count: "count" }])
+        : Product.aggregate([
+            { $unwind: "$reports" },
+            { $match: { "reports.status": status } },
+            { $group: { _id: "$_id" } },
+            { $count: "count" },
+          ]),
+    ]);
+
+    const totalReportsCount = totalReportsAgg?.[0]?.count || 0;
+    const totalProductsCount = totalProductsAgg?.[0]?.count || 0;
+
+    const items = (grouped || []).map((row) => ({
+      productId: row.product?._id || row._id,
+      product: row.product,
+      reportCount: row.reportCount,
+      uniqueReportCount: row.uniqueReportCount,
+      firstReportedAt: row.firstReportedAt,
+      lastReportedAt: row.lastReportedAt,
+      reasonsSummary: toReasonSummary(row.reasons || []),
+    }));
+
+    res.json({
+      items,
+      totals: {
+        products: totalProductsCount,
+        reports: totalReportsCount,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: get details for a reported marketplace product.
+router.get("/reports/products/:productId", verifyAdmin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    if (!isValidObjectId(productId)) return res.status(400).json({ msg: "Invalid productId" });
+
+    const product = await Product.findById(productId)
+      .populate("seller", "username email profileImage")
+      .populate("reports.reporter", "username email profileImage trustScore")
+      .lean();
+
+    if (!product) return res.status(404).json({ msg: "Product not found" });
+
+    res.json({
+      product: {
+        _id: product._id,
+        title: product.title,
+        description: product.description,
+        category: product.category,
+        price: product.price,
+        images: product.images,
+        isActive: product.isActive,
+        seller: product.seller,
+      },
+      reports: (product.reports || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: dismiss all pending reports for a marketplace product.
+router.post("/reports/products/:productId/dismiss", verifyAdmin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    if (!isValidObjectId(productId)) return res.status(400).json({ msg: "Invalid productId" });
+
+    const note = String(req.body?.note || "").trim();
+    const now = new Date();
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ msg: "Product not found" });
+
+    let updatedCount = 0;
+    for (const report of product.reports || []) {
+      if (report.status === "pending") {
+        report.status = "dismissed";
+        report.reviewedAt = now;
+        report.reviewNote = note;
+        updatedCount += 1;
+      }
+    }
+
+    await product.save();
+
+    res.json({ msg: `Dismissed ${updatedCount} report(s).` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Admin: delete a marketplace product (does not auto-hide; it removes it).
+router.delete("/reports/products/:productId", verifyAdmin, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    if (!isValidObjectId(productId)) return res.status(400).json({ msg: "Invalid productId" });
+
+    const deleted = await Product.findByIdAndDelete(productId);
+    if (!deleted) return res.status(404).json({ msg: "Product not found" });
+
+    res.json({ msg: "Product deleted." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });

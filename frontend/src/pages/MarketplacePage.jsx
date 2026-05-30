@@ -1041,14 +1041,6 @@ function MarketplacePage() {
                       </p>
                     </div>
 
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        item.isActive === false ? "bg-slate-200 text-slate-700" : "bg-emerald-100 text-emerald-800"
-                      }`}
-                    >
-                      {item.isActive === false ? "Sold" : "Active"}
-                    </span>
-
                     <button
                       type="button"
                       onClick={() => {
