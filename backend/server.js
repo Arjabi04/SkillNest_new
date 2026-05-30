@@ -20,11 +20,11 @@ import reportRoute from "./routes/reports.js";
 import moderationRoute from "./routes/moderation.js";
 import cors from "cors";
 import Stripe from "stripe";
-import { createTransport } from "nodemailer";
 import Product from "./models/Product.js";
 import User from "./models/User.js";
 import Notification from "./models/Notification.js";
 import configureChatSockets from "./socket/chatSocket.js";
+import { createMailTransport } from "./utils/email.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -85,23 +85,8 @@ const sendMarketplacePurchaseEmails = async ({
     productTitle,
     arrivalTime,
 }) => {
-    if (
-        !process.env.EMAIL_HOST ||
-        !process.env.EMAIL_PORT ||
-        !process.env.EMAIL_USER ||
-        !process.env.EMAIL_PASSWORD
-    ) {
-        return;
-    }
-
-    const transporter = createTransport({
-        host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-    });
+    const transporter = createMailTransport();
+    if (!transporter) return;
 
     const emailJobs = [];
 

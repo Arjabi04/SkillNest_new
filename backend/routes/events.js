@@ -2,7 +2,6 @@ import { Router } from "express";
 const router = Router();
 import multer, { memoryStorage } from "multer";
 import { createReadStream } from "streamifier";
-import { createTransport } from "nodemailer";
 import cloudinary from "../config/cloudinary.js";
 import auth from "../middleware/auth.js";
 import { verifyAdmin } from "../middleware/adminAuth.js";
@@ -12,6 +11,7 @@ import User from "../models/User.js";
 import Community from "../models/Community.js";
 import Notification from "../models/Notification.js";
 import { isValidObjectId } from "mongoose";
+import { createMailTransport } from "../utils/email.js";
 
 const toReasonSummary = (reasons = []) => {
   const counts = new Map();
@@ -30,20 +30,12 @@ const upload = multer({ storage });
 const sendEventJoinConfirmationEmail = async ({ toEmail, username, event }) => {
   if (!toEmail) return;
 
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.warn('Email configuration missing. Skipping join confirmation email.');
-    return;
-  }
-
   try {
-    const transporter = createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
+    const transporter = createMailTransport();
+    if (!transporter) {
+      console.warn('Email configuration missing. Skipping join confirmation email.');
+      return;
+    }
 
     const startDateText = event?.startDate
       ? new Date(event.startDate).toLocaleString('en-US', {

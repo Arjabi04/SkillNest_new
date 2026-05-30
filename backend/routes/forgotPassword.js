@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
 const router = Router();
-import { createTransport } from 'nodemailer';
 import User from '../models/User.js';
 import { genSalt, hash } from 'bcrypt';
+import { createMailTransport } from '../utils/email.js';
 
 // POST /api/forgot-password
 router.post('/', async (req, res) => {
@@ -26,14 +26,10 @@ router.post('/', async (req, res) => {
     await user.save();
 
     // Send email
-    const transporter = createTransport({
-      host: process.env.EMAIL_HOST,       // Mailtrap host
-      port: process.env.EMAIL_PORT,       // Mailtrap port
-      auth: {
-        user: process.env.EMAIL_USER,     // Mailtrap username
-        pass: process.env.EMAIL_PASSWORD  // Mailtrap password
-      }
-    });
+    const transporter = createMailTransport();
+    if (!transporter) {
+      return res.status(500).json({ msg: 'Email service is not configured.' });
+    }
 
     const resetUrl = `http://localhost:3000/reset-password/${token}`;
 

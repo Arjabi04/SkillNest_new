@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { randomBytes } from "crypto";
 import multer, { memoryStorage } from "multer";
-import { createTransport } from "nodemailer";
 import { hash, compare } from "bcryptjs";
 import cloudinary from "../config/cloudinary.js";
 import auth from "../middleware/auth.js";
@@ -16,32 +15,13 @@ import Message from "../models/Message.js";
 import Report from "../models/Report.js";
 import ModerationLog from "../models/ModerationLog.js";
 import { createReadStream } from "streamifier";
+import { createMailTransport } from "../utils/email.js";
 
 const router = Router();
 
 // Multer memory storage
 const storage = memoryStorage();
 const upload = multer({ storage });
-
-const createMailTransport = () => {
-    if (
-        !process.env.EMAIL_HOST ||
-        !process.env.EMAIL_PORT ||
-        !process.env.EMAIL_USER ||
-        !process.env.EMAIL_PASSWORD
-    ) {
-        return null;
-    }
-
-    return createTransport({
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT),
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-    });
-};
 
 const getBackendBaseUrl = () => {
     return (

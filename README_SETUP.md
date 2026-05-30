@@ -33,7 +33,7 @@ Optional (only needed for the corresponding features):
 
 - **Stripe CLI** (for local webhook testing): `stripe --version`
 - **Cloudinary account** (for image uploads)
-- **SMTP credentials** (Mailtrap recommended for dev email flows)
+- **SMTP credentials** (Mailtrap recommended for dev email flows; Gmail SMTP also works for real delivery)
 
 ## 1) Clone the Repository
 
@@ -75,10 +75,17 @@ MONGO_URI=mongodb://127.0.0.1:27017/skillnest
 JWT_SECRET=replace_me_with_a_long_random_string
 
 # SMTP (optional; required for password reset / email verification flows)
+# Dev (Mailtrap)
 EMAIL_HOST=sandbox.smtp.mailtrap.io
 EMAIL_PORT=2525
 EMAIL_USER=replace_me
 EMAIL_PASSWORD=replace_me
+# Production / real inbox delivery (Gmail SMTP with App Password)
+# EMAIL_HOST=smtp.gmail.com
+# EMAIL_PORT=465
+# EMAIL_SECURE=true
+# EMAIL_USER=youraddress@gmail.com
+# EMAIL_PASSWORD=your_google_app_password
 
 # Cloudinary (optional; required for image uploads)
 CLOUDINARY_CLOUD_NAME=replace_me
@@ -221,7 +228,7 @@ Then copy the printed webhook signing secret into `backend/.env` as `STRIPE_WEBH
   - “Stripe is not configured” → set `STRIPE_SECRET_KEY`.
   - Webhook signature verification fails → ensure `STRIPE_WEBHOOK_SECRET` matches your Stripe CLI listener secret and that the webhook route receives the **raw** request body (already implemented).
 - **Cloudinary upload fails:** Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
-- **Email flows fail (forgot password / verification):** Set `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` (Mailtrap recommended for dev).
+- **Email flows fail (forgot password / verification):** Set `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` (Mailtrap recommended for dev). For Gmail SMTP, also set `EMAIL_SECURE=true` when using port `465` (or use port `587` with `EMAIL_SECURE=false`).
 - **Port already in use:** Change `PORT` in `backend/.env` or stop the process using the port.
 
 ## 8) Automated Setup Script (`setup.sh`)
