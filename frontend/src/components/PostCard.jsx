@@ -104,7 +104,7 @@ const PostCard = ({
                     setReportOpen(true);
                   }}
                   disabled={isOwnPost}
-                  className={`w-full text-left px-3 py-2 text-sm ${
+                  className={`w-full text-left px-3 py-2 text-xs whitespace-nowrap ${
                     isOwnPost
                       ? "text-slate-400 cursor-not-allowed"
                       : "text-slate-700 hover:bg-slate-50"

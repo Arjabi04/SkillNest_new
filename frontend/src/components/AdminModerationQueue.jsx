@@ -50,8 +50,8 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
   const [items, setItems] = useState([]);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [details, setDetails] = useState(null);
-  const [actionNote, setActionNote] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
+  const [jumpPostId, setJumpPostId] = useState("");
 
   const headers = useMemo(
     () => ({ "x-admin-token": adminToken || "", "Content-Type": "application/json" }),
@@ -82,7 +82,6 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
   const openDetails = async (postId) => {
     setSelectedPostId(postId);
     setDetails(null);
-    setActionNote("");
     try {
       const data = await fetchJson(`/moderation/posts/${postId}`, { headers });
       setDetails(data);
@@ -94,25 +93,10 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
   const closeDetails = () => {
     setSelectedPostId(null);
     setDetails(null);
-    setActionNote("");
   };
 
   const runPostAction = async (path, payload = {}) => {
     if (!selectedPostId) return;
-    setActionBusy(true);
-    try {
-      const data = await fetchJson(path, { method: "POST", headers, body: JSON.stringify(payload) });
-      toast.success(data?.msg || "Action completed");
-      await refresh();
-      await openDetails(selectedPostId);
-    } catch (err) {
-      toast.error(err.message || "Action failed");
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  const runUserAction = async (path, payload = {}) => {
     setActionBusy(true);
     try {
       const data = await fetchJson(path, { method: "POST", headers, body: JSON.stringify(payload) });
@@ -140,6 +124,23 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
           disabled={loading}
         >
           {loading ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          value={jumpPostId}
+          onChange={(e) => setJumpPostId(e.target.value)}
+          placeholder="Open post by ID…"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          className="moderation-queue-refresh"
+          onClick={() => jumpPostId.trim() && openDetails(jumpPostId.trim())}
+          disabled={loading || !jumpPostId.trim()}
+        >
+          Open
         </button>
       </div>
 
@@ -264,24 +265,15 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
                   </div>
                 </div>
 
-                <div className="moderation-modal-section">
-                  <h4 className="moderation-modal-section-title">Admin Note</h4>
-                  <textarea
-                    value={actionNote}
-                    onChange={(e) => setActionNote(e.target.value)}
-                    rows={3}
-                    maxLength={1000}
-                    className="moderation-modal-note"
-                    placeholder="Add context for the moderation log…"
-                  />
-                </div>
-
                 <div className="moderation-modal-actions">
                   <button
                     type="button"
                     className="moderation-action dismiss"
                     disabled={actionBusy}
-                    onClick={() => runPostAction(`/moderation/posts/${selectedPostId}/dismiss`, { note: actionNote })}
+                    onClick={() => {
+                      if (!window.confirm("Dismiss all reports for this post?")) return;
+                      runPostAction(`/moderation/posts/${selectedPostId}/dismiss`, {});
+                    }}
                   >
                     Dismiss Reports
                   </button>
@@ -289,36 +281,12 @@ const AdminModerationQueue = ({ adminToken, onCountsChange }) => {
                     type="button"
                     className="moderation-action remove"
                     disabled={actionBusy}
-                    onClick={() => runPostAction(`/moderation/posts/${selectedPostId}/remove`, { note: actionNote })}
+                    onClick={() => {
+                      if (!window.confirm("Delete this post? This will remove it from the app.")) return;
+                      runPostAction(`/moderation/posts/${selectedPostId}/remove`, {});
+                    }}
                   >
-                    Remove Post
-                  </button>
-
-                  <div className="moderation-divider" />
-
-                  <button
-                    type="button"
-                    className="moderation-action warn"
-                    disabled={actionBusy}
-                    onClick={() => runUserAction(`/moderation/users/${details.post?.user?._id}/warn`, { postId: selectedPostId, note: actionNote })}
-                  >
-                    Warn User
-                  </button>
-                  <button
-                    type="button"
-                    className="moderation-action suspend"
-                    disabled={actionBusy}
-                    onClick={() => runUserAction(`/moderation/users/${details.post?.user?._id}/suspend`, { days: 7, note: actionNote })}
-                  >
-                    Suspend 7d
-                  </button>
-                  <button
-                    type="button"
-                    className="moderation-action ban"
-                    disabled={actionBusy}
-                    onClick={() => runUserAction(`/moderation/users/${details.post?.user?._id}/ban`, { reason: actionNote || "Policy violation", note: actionNote })}
-                  >
-                    Ban User
+                    Delete Post
                   </button>
                 </div>
               </div>

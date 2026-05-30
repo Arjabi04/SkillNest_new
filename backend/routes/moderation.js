@@ -15,32 +15,24 @@ const adjustTrustScores = async (userIds = [], delta = 0) => {
   const ids = Array.isArray(userIds) ? userIds.filter(Boolean) : [];
   if (!ids.length || !delta) return;
 
-  // Clamp trustScore to [0, 1] using a pipeline update.
-  await User.updateMany(
-    { _id: { $in: ids } },
-    [
-      {
-        $set: {
-          trustScore: {
-            $min: [
-              1,
-              {
-                $max: [
-                  0,
-                  {
-                    $add: [
-                      { $ifNull: ["$trustScore", 0.5] },
-                      delta,
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        },
+  // Clamp trustScore to [0, 1] without requiring MongoDB pipeline updates.
+  const users = await User.find({ _id: { $in: ids } })
+    .select("_id trustScore")
+    .lean();
+
+  const ops = users.map((user) => {
+    const current = typeof user.trustScore === "number" ? user.trustScore : 0.5;
+    const next = Math.max(0, Math.min(1, current + delta));
+    return {
+      updateOne: {
+        filter: { _id: user._id },
+        update: { $set: { trustScore: next } },
       },
-    ]
-  );
+    };
+  });
+
+  if (!ops.length) return;
+  await User.bulkWrite(ops, { ordered: false });
 };
 
 const toReasonSummary = (reasons = []) => {
@@ -214,10 +206,6 @@ router.post("/posts/:postId/remove", verifyAdmin, async (req, res) => {
     if (!post) return res.status(404).json({ msg: "Post not found" });
 
     const pendingReporterIds = await Report.distinct("reportedBy", { postId, status: "pending" });
-    await Report.updateMany({ postId, status: "pending" }, { $set: { status: "removed" } });
-
-    await adjustTrustScores(pendingReporterIds, 0.02);
-
     await Post.updateOne(
       { _id: postId },
       {
@@ -229,6 +217,9 @@ router.post("/posts/:postId/remove", verifyAdmin, async (req, res) => {
         },
       }
     );
+
+    await Report.updateMany({ postId, status: "pending" }, { $set: { status: "removed" } });
+    await adjustTrustScores(pendingReporterIds, 0.02);
 
     await User.updateOne(
       { _id: post.user },
