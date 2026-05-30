@@ -126,7 +126,9 @@ const CommunityDetailView = ({
 
         <div
             className={`flex-1 transition-all duration-300 flex justify-center px-4 py-8 ${
-                showCommunityAdminPanel ? "lg:ml-0 xl:ml-0" : "lg:ml-16 xl:ml-64"
+                showCommunityAdminPanel
+                    ? "lg:ml-0 xl:ml-0"
+                    : "lg:ml-16 xl:ml-64"
             }`}>
             <div className="w-full max-w-4xl space-y-6">
                 <button
@@ -139,7 +141,9 @@ const CommunityDetailView = ({
                     <img
                         src={selectedCommunity.coverImage || defaultHeader}
                         className="w-full h-48 object-cover"
-                        alt={selectedCommunity.coverImage ? "" : "Default header"}
+                        alt={
+                            selectedCommunity.coverImage ? "" : "Default header"
+                        }
                     />
                     <div className="p-8">
                         <div className="flex justify-between items-start">
@@ -184,12 +188,13 @@ const CommunityDetailView = ({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() =>
+                                            onClick={() => {
                                                 onJoinCommunity(
                                                     selectedCommunity._id,
                                                     selectedCommunity,
-                                                )
-                                            }
+                                                );
+                                                window.location.reload();
+                                            }}
                                             className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">
                                             Join Community
                                         </button>

@@ -22,8 +22,8 @@ const getActiveBanEntry = (community, targetUserId) => {
 
             return Boolean(
                 banEntry.banType === "temporary" &&
-                    banEntry.expiresAt &&
-                    new Date(banEntry.expiresAt) > new Date(),
+                banEntry.expiresAt &&
+                new Date(banEntry.expiresAt) > new Date(),
             );
         }) || null
     );
@@ -242,7 +242,9 @@ const useCommunitiesPageController = () => {
             } catch (err) {
                 console.error("Error loading reported posts:", err);
                 setReportedPosts([]);
-                setReportedPostsError("Unable to load reported posts right now.");
+                setReportedPostsError(
+                    "Unable to load reported posts right now.",
+                );
             } finally {
                 setLoadingReportedPosts(false);
             }
@@ -282,9 +284,11 @@ const useCommunitiesPageController = () => {
             setBanAppealDraft("");
             try {
                 const community = await fetchSingleCommunity(communityId);
-                const resolvedCommunity =
-                    community ||
-                    fallbackCommunity || { _id: communityId, name: "Community" };
+                const resolvedCommunity = community ||
+                    fallbackCommunity || {
+                        _id: communityId,
+                        name: "Community",
+                    };
                 const banEntry = community
                     ? getActiveBanEntry(community, userId)
                     : null;
@@ -491,7 +495,10 @@ const useCommunitiesPageController = () => {
             const formData = new FormData(e.target);
             formData.append("creatorId", userId);
             if (communityInterests.length > 0) {
-                formData.append("interests", JSON.stringify(communityInterests));
+                formData.append(
+                    "interests",
+                    JSON.stringify(communityInterests),
+                );
             }
 
             try {
@@ -520,22 +527,19 @@ const useCommunitiesPageController = () => {
                 setLoading(false);
             }
         },
-        [
-            API_BASE,
-            communityInterests,
-            isAdmin,
-            loadPendingRequests,
-            userId,
-        ],
+        [API_BASE, communityInterests, isAdmin, loadPendingRequests, userId],
     );
 
     const handleApproveCommunity = useCallback(
         async (id) => {
             try {
-                const res = await fetch(`${API_BASE}/communities/${id}/approve`, {
-                    method: "POST",
-                    headers: { "x-admin-token": adminToken || "" },
-                });
+                const res = await fetch(
+                    `${API_BASE}/communities/${id}/approve`,
+                    {
+                        method: "POST",
+                        headers: { "x-admin-token": adminToken || "" },
+                    },
+                );
                 if (res.ok) {
                     alert("Approved!");
                     loadPendingRequests();
@@ -553,10 +557,13 @@ const useCommunitiesPageController = () => {
         async (id) => {
             if (!window.confirm("Reject?")) return;
             try {
-                const res = await fetch(`${API_BASE}/communities/${id}/reject`, {
-                    method: "POST",
-                    headers: { "x-admin-token": adminToken || "" },
-                });
+                const res = await fetch(
+                    `${API_BASE}/communities/${id}/reject`,
+                    {
+                        method: "POST",
+                        headers: { "x-admin-token": adminToken || "" },
+                    },
+                );
                 if (res.ok) {
                     alert("Rejected");
                     loadPendingRequests();
@@ -618,7 +625,9 @@ const useCommunitiesPageController = () => {
     const handleLeaveCommunity = useCallback(
         async (communityId) => {
             if (
-                !window.confirm("Are you sure you want to leave this community?")
+                !window.confirm(
+                    "Are you sure you want to leave this community?",
+                )
             ) {
                 return;
             }
@@ -955,7 +964,10 @@ const useCommunitiesPageController = () => {
                 action === "delete" && Boolean(payload.banAuthor);
             const resolvedAction = shouldBanAuthor ? "ban" : action;
 
-            if (resolvedAction === "ban" && !String(payload.note || "").trim()) {
+            if (
+                resolvedAction === "ban" &&
+                !String(payload.note || "").trim()
+            ) {
                 alert("Please provide the ban reason");
                 return;
             }
@@ -1225,7 +1237,10 @@ const useCommunitiesPageController = () => {
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ userId, targetUserId: memberId }),
+                        body: JSON.stringify({
+                            userId,
+                            targetUserId: memberId,
+                        }),
                     },
                 );
                 if (res.ok) {
@@ -1250,7 +1265,10 @@ const useCommunitiesPageController = () => {
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ userId, targetUserId: memberId }),
+                        body: JSON.stringify({
+                            userId,
+                            targetUserId: memberId,
+                        }),
                     },
                 );
                 const data = await res.json().catch(() => ({}));
@@ -1316,7 +1334,10 @@ const useCommunitiesPageController = () => {
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ userId, targetUserId: memberId }),
+                        body: JSON.stringify({
+                            userId,
+                            targetUserId: memberId,
+                        }),
                     },
                 );
                 if (res.ok) {
@@ -1498,7 +1519,8 @@ const useCommunitiesPageController = () => {
 
     const handleToggleBanForm = useCallback((memberId, force) => {
         setShowBanForm((prev) => {
-            const nextValue = typeof force === "boolean" ? force : !prev[memberId];
+            const nextValue =
+                typeof force === "boolean" ? force : !prev[memberId];
             return { ...prev, [memberId]: nextValue };
         });
         setBanData((prev) =>
