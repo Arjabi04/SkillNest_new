@@ -20,6 +20,13 @@ function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("community-creations");
   const navigate = useNavigate();
 
+  const activeGroup =
+    activeTab === "moderation" ||
+    activeTab === "marketplace-reports" ||
+    activeTab === "event-reports"
+      ? "reports"
+      : "requests";
+
   useEffect(() => {
     checkAdminStatus();
   }, []);
@@ -352,56 +359,82 @@ function AdminDashboard() {
         {/* Tabs */}
         <div className="admin-dashboard-tabs-container">
           <div className="admin-dashboard-tabs-nav-wrapper">
-            <nav className="admin-dashboard-tabs-nav">
+            <div className="admin-dashboard-tab-toolbar">
               <button
+                type="button"
                 onClick={() => setActiveTab("community-creations")}
-                className={`admin-dashboard-tab ${
-                  activeTab === "community-creations" ? "active" : "inactive"
+                className={`admin-dashboard-tab-group-btn ${
+                  activeGroup === "requests" ? "active" : "inactive"
                 }`}
               >
-                Community Creations ({pendingRequests.pendingCreations.length})
+                Requests
               </button>
               <button
-                onClick={() => setActiveTab("event-creations")}
-                className={`admin-dashboard-tab ${
-                  activeTab === "event-creations" ? "active" : "inactive"
-                }`}
-              >
-                Event Creations ({pendingRequests.pendingEventCreations.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("deletions")}
-                className={`admin-dashboard-tab ${
-                  activeTab === "deletions" ? "active" : "inactive"
-                }`}
-              >
-                Pending Deletions ({pendingRequests.pendingDeletions.length})
-              </button>
-              <button
+                type="button"
                 onClick={() => setActiveTab("moderation")}
-                className={`admin-dashboard-tab ${
-                  activeTab === "moderation" ? "active" : "inactive"
+                className={`admin-dashboard-tab-group-btn ${
+                  activeGroup === "reports" ? "active" : "inactive"
                 }`}
               >
-                Moderation Queue ({moderationCounts.posts})
+                Reports
               </button>
-              <button
-                onClick={() => setActiveTab("marketplace-reports")}
-                className={`admin-dashboard-tab ${
-                  activeTab === "marketplace-reports" ? "active" : "inactive"
-                }`}
-              >
-                Marketplace Reports ({marketplaceCounts.products})
-              </button>
-              <button
-                onClick={() => setActiveTab("event-reports")}
-                className={`admin-dashboard-tab ${
-                  activeTab === "event-reports" ? "active" : "inactive"
-                }`}
-              >
-                Event Reports ({eventReportCounts.events})
-              </button>
-            </nav>
+            </div>
+
+            {activeGroup === "requests" ? (
+              <nav className="admin-dashboard-tabs-nav" aria-label="Requests tabs">
+                <button
+                  onClick={() => setActiveTab("community-creations")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "community-creations" ? "active" : "inactive"
+                  }`}
+                >
+                  Community Creations ({pendingRequests.pendingCreations.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("event-creations")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "event-creations" ? "active" : "inactive"
+                  }`}
+                >
+                  Event Creations ({pendingRequests.pendingEventCreations.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("deletions")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "deletions" ? "active" : "inactive"
+                  }`}
+                >
+                  Pending Deletions ({pendingRequests.pendingDeletions.length})
+                </button>
+              </nav>
+            ) : (
+              <nav className="admin-dashboard-tabs-nav" aria-label="Reports tabs">
+                <button
+                  onClick={() => setActiveTab("moderation")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "moderation" ? "active" : "inactive"
+                  }`}
+                >
+                  Post Reports ({moderationCounts.posts})
+                </button>
+                <button
+                  onClick={() => setActiveTab("marketplace-reports")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "marketplace-reports" ? "active" : "inactive"
+                  }`}
+                >
+                  Marketplace ({marketplaceCounts.products})
+                </button>
+                <button
+                  onClick={() => setActiveTab("event-reports")}
+                  className={`admin-dashboard-tab ${
+                    activeTab === "event-reports" ? "active" : "inactive"
+                  }`}
+                >
+                  Events ({eventReportCounts.events})
+                </button>
+              </nav>
+            )}
           </div>
 
           {/* Tab Content */}
