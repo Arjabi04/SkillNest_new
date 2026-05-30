@@ -172,7 +172,14 @@ app.post(
                 if (productId) {
                     const purchasedProduct = await Product.findOneAndUpdate(
                         { _id: productId, isActive: true },
-                        { $set: { isActive: false } },
+                        {
+                            $set: {
+                                isActive: false,
+                                buyer: buyerId || null,
+                                purchasedAt: new Date(),
+                                stripeCheckoutSessionId: session?.id || null,
+                            },
+                        },
                         { new: true },
                     );
 

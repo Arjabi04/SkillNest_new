@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import defaultAvatar from "../assets/default-avatar.jpg";
 import api, { API_URL } from "../api/auth";
 import { clearAuth, getAuthToken } from "../utils/tokenUtils";
+import { ShoppingCart } from "lucide-react";
 
 const API_BASE = `${API_URL}/marketplace`;
 
@@ -48,6 +49,10 @@ function MarketplacePage() {
   const [reviewLoading, setReviewLoading] = useState({});
   const [reportLoading, setReportLoading] = useState({});
   const [deleteLoading, setDeleteLoading] = useState({});
+  const [purchases, setPurchases] = useState([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(true);
+  const [purchasesError, setPurchasesError] = useState("");
+  const [showPurchases, setShowPurchases] = useState(false);
 
   const [draftFilters, setDraftFilters] = useState({
     search: "",
@@ -96,10 +101,14 @@ function MarketplacePage() {
     return Array.from(new Set(merged.filter(Boolean))).sort((a, b) => a.localeCompare(b));
   }, [categories]);
 
-  const selectedProduct = useMemo(
-    () => products.find((product) => product._id === selectedProductId) || null,
-    [products, selectedProductId]
-  );
+  const selectedProduct = useMemo(() => {
+    if (!selectedProductId) return null;
+    return (
+      products.find((product) => product._id === selectedProductId) ||
+      purchases.find((product) => product._id === selectedProductId) ||
+      null
+    );
+  }, [products, purchases, selectedProductId]);
 
   const handleLogout = () => {
     clearAuth();
@@ -129,6 +138,7 @@ function MarketplacePage() {
       if (filters.maxPrice !== "") params.set("maxPrice", filters.maxPrice);
       if (filters.sort) params.set("sort", filters.sort);
       if (filters.myOnly) params.set("sellerId", userId);
+      params.set("status", "all");
 
       const shouldUseRecommendations =
         !filters.search.trim() &&
@@ -138,53 +148,143 @@ function MarketplacePage() {
         filters.sort === "newest" &&
         !filters.myOnly;
 
-      const endpoint = shouldUseRecommendations
-        ? `${API_URL}/recommendations/marketplace?limit=24`
-        : `${API_BASE}?${params.toString()}`;
-
-      const res = await fetch(endpoint, shouldUseRecommendations ? {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      } : undefined);
-      const data = await res.json();
-
-      if (res.ok) {
-        if (shouldUseRecommendations) {
-          const recommendedProducts = Array.isArray(data.recommendations) ? data.recommendations : [];
-          if (recommendedProducts.length > 0) {
-            setUsingRecommendations(true);
-            setProducts(recommendedProducts);
-            return;
-          }
-        } else {
-          setUsingRecommendations(false);
-          setProducts(Array.isArray(data.products) ? data.products : []);
-          return;
-        }
-      }
-
       if (shouldUseRecommendations) {
-        const fallbackRes = await fetch(`${API_BASE}?${params.toString()}`);
-        const fallbackData = await fallbackRes.json();
+        const [recommendationsRes, marketplaceRes] = await Promise.all([
+          fetch(`${API_URL}/recommendations/marketplace?limit=24`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }).catch(() => null),
+          fetch(`${API_BASE}?${params.toString()}`).catch(() => null),
+        ]);
 
-        if (fallbackRes.ok) {
-          setUsingRecommendations(false);
-          setProducts(Array.isArray(fallbackData.products) ? fallbackData.products : []);
+        let recommendedProducts = [];
+        if (recommendationsRes?.ok) {
+          const data = await recommendationsRes.json().catch(() => ({}));
+          recommendedProducts = Array.isArray(data.recommendations) ? data.recommendations : [];
+        }
+
+        if (marketplaceRes?.ok) {
+          const data = await marketplaceRes.json().catch(() => ({}));
+          const marketplaceProducts = Array.isArray(data.products) ? data.products : [];
+
+          // Keep recommended ordering first, but don't hide sold items.
+          const byId = new Map();
+          for (const product of recommendedProducts) byId.set(product._id, product);
+          for (const product of marketplaceProducts) {
+            if (!byId.has(product._id)) byId.set(product._id, product);
+          }
+
+          setUsingRecommendations(recommendedProducts.length > 0);
+          setProducts(Array.from(byId.values()));
           return;
         }
 
-        alert(fallbackData.msg || data.msg || "Failed to load marketplace listings");
+        // If marketplace listing fails, fall back to recommendations-only.
+        if (recommendedProducts.length > 0) {
+          setUsingRecommendations(true);
+          setProducts(recommendedProducts);
+          return;
+        }
+
+        alert("Failed to load marketplace listings");
         return;
       }
 
-      alert(data.msg || "Failed to load marketplace listings");
+      const res = await fetch(`${API_BASE}?${params.toString()}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.msg || "Failed to load marketplace listings");
+        return;
+      }
+
+      setUsingRecommendations(false);
+      setProducts(Array.isArray(data.products) ? data.products : []);
     } catch (err) {
       console.error("Failed to load products:", err);
       alert("Failed to load marketplace listings");
     } finally {
       setLoadingProducts(false);
+    }
+  };
+
+  const loadPurchases = async () => {
+    setLoadingPurchases(true);
+    setPurchasesError("");
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        setPurchases([]);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/purchases`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAuth();
+          navigate("/login");
+          return;
+        }
+
+        setPurchases([]);
+        setPurchasesError(data?.msg || "Failed to load purchases");
+        return;
+      }
+
+      setPurchases(Array.isArray(data.purchases) ? data.purchases : []);
+    } catch (err) {
+      console.error("Failed to load purchases:", err);
+      setPurchases([]);
+      setPurchasesError("Failed to load purchases");
+    } finally {
+      setLoadingPurchases(false);
+    }
+  };
+
+  const confirmCheckoutSession = async (sessionId) => {
+    const token = getAuthToken();
+    if (!token) return false;
+
+    const trimmed = String(sessionId || "").trim();
+    if (!trimmed) return false;
+    try {
+      const res = await fetch(`${API_BASE}/checkout/confirm`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sessionId: trimmed }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAuth();
+          navigate("/login");
+          return false;
+        }
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Failed to confirm checkout:", err);
+      return false;
     }
   };
 
@@ -197,14 +297,21 @@ function MarketplacePage() {
   }, [filters, userId]);
 
   useEffect(() => {
+    loadPurchases();
+  }, [userId]);
+
+  useEffect(() => {
     if (!selectedProductId) return;
-    const stillExists = products.some((product) => product._id === selectedProductId);
+    const stillExists =
+      products.some((product) => product._id === selectedProductId) ||
+      purchases.some((product) => product._id === selectedProductId);
     if (!stillExists) setSelectedProductId(null);
-  }, [products, selectedProductId]);
+  }, [products, purchases, selectedProductId]);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const paymentStatus = query.get("payment");
+    const sessionId = query.get("sessionId") || "";
     const arrivalTime = query.get("arrivalTime") || "To be confirmed";
     const formattedArrivalDate = formatArrivalDate(arrivalTime);
 
@@ -215,6 +322,10 @@ function MarketplacePage() {
         message: "Payment was successful.",
         arrivalDate: formattedArrivalDate,
       });
+      (sessionId ? confirmCheckoutSession(sessionId) : Promise.resolve()).finally(() => {
+          loadPurchases();
+          loadProducts();
+        });
     } else if (paymentStatus === "cancel") {
       setPaymentPopup({
         type: "cancel",
@@ -226,6 +337,7 @@ function MarketplacePage() {
     }
 
     query.delete("payment");
+    query.delete("sessionId");
     query.delete("arrivalTime");
     const nextQuery = query.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
@@ -508,6 +620,20 @@ function MarketplacePage() {
           eyebrow="Marketplace"
           title="Browse Listings"
           description="Post products, browse listings, review sellers, and report suspicious listings."
+          rightContent={
+            <button
+              type="button"
+              onClick={() => {
+                setShowPurchases(true);
+                loadPurchases();
+              }}
+              className="relative inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 shadow-sm hover:bg-slate-50"
+              aria-label="View purchases"
+              title="Purchases"
+            >
+              <ShoppingCart className="h-5 w-5" />
+            </button>
+          }
         />
 
         {usingRecommendations && (
@@ -705,19 +831,27 @@ function MarketplacePage() {
                     key={product._id}
                     type="button"
                     onClick={() => setSelectedProductId(product._id)}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${product.isActive === false ? "opacity-80" : ""}`}
                   >
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.title}
-                        className="h-52 w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-52 w-full bg-slate-100 flex items-center justify-center text-sm text-slate-500">
-                        No image
-                      </div>
-                    )}
+                    <div className="relative">
+                      {product.images?.[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.title}
+                          className="h-52 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-52 w-full bg-slate-100 flex items-center justify-center text-sm text-slate-500">
+                          No image
+                        </div>
+                      )}
+
+                      {product.isActive === false && (
+                        <span className="absolute left-3 top-3 rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold text-white">
+                          Sold
+                        </span>
+                      )}
+                    </div>
                     <div className="border-t border-slate-100 px-3 py-3 text-left">
                       <h3 className="truncate text-sm font-semibold text-slate-900">{product.title}</h3>
                     </div>
@@ -728,6 +862,84 @@ function MarketplacePage() {
           </section>
         </div>
       </div>
+
+      {showPurchases && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-xl font-semibold text-slate-900">Purchased Items</h3>
+              <button
+                type="button"
+                onClick={() => setShowPurchases(false)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {loadingPurchases ? (
+                <div className="text-sm text-slate-500">Loading...</div>
+              ) : purchasesError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                  {purchasesError}
+                </div>
+              ) : purchases.length === 0 ? (
+                <div className="text-sm text-slate-500">No purchases yet.</div>
+              ) : (
+                purchases.map((item) => (
+                  <div
+                    key={item._id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                  >
+                    {item.images?.[0] ? (
+                      <img
+                        src={item.images[0]}
+                        alt={item.title}
+                        className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-xs text-slate-500">
+                        No image
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{item.title}</p>
+                      <p className="text-xs text-slate-600">
+                        ${Number(item.price || 0).toFixed(2)} · Seller: {item.seller?.username || "Unknown"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProductId(item._id);
+                          setShowPurchases(false);
+                        }}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white"
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPurchases(false);
+                          handleMessageSeller(item._id);
+                        }}
+                        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                      >
+                        Message
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {paymentPopup && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
@@ -766,6 +978,8 @@ function MarketplacePage() {
 
       {selectedProduct && (() => {
         const isOwnProduct = String(selectedProduct.seller?._id || "") === String(userId);
+        const isAvailable = selectedProduct.isActive !== false;
+        const canBuy = !isOwnProduct && isAvailable;
         const reviewDraft = reviewDrafts[selectedProduct._id] || { rating: 5, comment: "" };
         const reportDraft = reportDrafts[selectedProduct._id] || { reason: "", details: "" };
         const reportOpen = Boolean(reportOpenByProduct[selectedProduct._id]);
@@ -814,13 +1028,25 @@ function MarketplacePage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleBuyNow(selectedProduct._id)}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                    >
-                      Buy Now
-                    </button>
+                    {canBuy ? (
+                      <button
+                        type="button"
+                        onClick={() => handleBuyNow(selectedProduct._id)}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                      >
+                        Buy Now
+                      </button>
+                    ) : (
+                      !isOwnProduct && (
+                        <button
+                          type="button"
+                          disabled
+                          className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed"
+                        >
+                          Sold
+                        </button>
+                      )
+                    )}
 
                     {!isOwnProduct && (
                       <button

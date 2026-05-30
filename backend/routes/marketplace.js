@@ -5,7 +5,9 @@ import { createReadStream } from "streamifier";
 import cloudinary from "../config/cloudinary.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
 import Stripe from "stripe";
+import auth from "../middleware/auth.js";
 
 const getStripeClient = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -42,7 +44,7 @@ const recalculateRatings = (product) => {
 // Get available categories from existing products.
 router.get("/categories", async (req, res) => {
   try {
-    const categories = await Product.distinct("category", { isActive: true });
+    const categories = await Product.distinct("category");
     const sorted = categories.filter(Boolean).sort((a, b) => a.localeCompare(b));
     res.json({ categories: sorted });
   } catch (err) {
@@ -54,9 +56,19 @@ router.get("/categories", async (req, res) => {
 // Search and list marketplace products.
 router.get("/", async (req, res) => {
   try {
-    const { search = "", category = "", minPrice = "", maxPrice = "", sort = "newest", sellerId = "" } = req.query;
+    const {
+      search = "",
+      category = "",
+      minPrice = "",
+      maxPrice = "",
+      sort = "newest",
+      sellerId = "",
+      status = "all",
+    } = req.query;
 
-    const query = { isActive: true };
+    const query = {};
+    if (status === "active") query.isActive = true;
+    if (status === "sold") query.isActive = false;
 
     if (search && String(search).trim()) {
       const regex = new RegExp(String(search).trim(), "i");
@@ -96,6 +108,88 @@ router.get("/", async (req, res) => {
     res.json({ products });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// List purchases for the currently authenticated user.
+router.get("/purchases", auth, async (req, res) => {
+  try {
+    const purchases = await Product.find({ buyer: req.user.id })
+      .populate("seller", "username profileImage")
+      .sort({ purchasedAt: -1, createdAt: -1 })
+      .limit(200);
+
+    res.json({ purchases });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Confirm a successful Stripe Checkout without relying on webhooks (useful for local dev).
+router.post("/checkout/confirm", auth, async (req, res) => {
+  try {
+    const sessionId = String(req.body?.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ msg: "sessionId is required" });
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ msg: "Stripe is not configured" });
+    }
+
+    const stripe = getStripeClient();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (!session) return res.status(404).json({ msg: "Checkout session not found" });
+    if (session.mode !== "payment") return res.status(400).json({ msg: "Invalid checkout session mode" });
+    if (session.payment_status !== "paid") {
+      return res.status(400).json({ msg: `Payment not completed (status: ${session.payment_status})` });
+    }
+
+    const productId = session?.metadata?.productId;
+    const buyerId = session?.metadata?.buyerId;
+    const sellerId = session?.metadata?.sellerId;
+
+    if (!productId) return res.status(400).json({ msg: "Missing productId in checkout session metadata" });
+    if (buyerId && String(buyerId) !== String(req.user.id)) {
+      return res.status(403).json({ msg: "This checkout session does not belong to the current user" });
+    }
+
+    const updated = await Product.findOneAndUpdate(
+      {
+        _id: productId,
+        $or: [{ buyer: null }, { buyer: req.user.id }],
+      },
+      {
+        $set: {
+          isActive: false,
+          buyer: req.user.id,
+          purchasedAt: new Date(),
+          stripeCheckoutSessionId: session.id,
+        },
+      },
+      { new: true },
+    ).populate("seller", "username profileImage");
+
+    if (!updated) {
+      return res.status(409).json({ msg: "Product is already purchased by another user" });
+    }
+
+    if (sellerId) {
+      await Notification.createNotification({
+        recipient: sellerId,
+        sender: req.user.id,
+        type: "system",
+        title: "Item Sold",
+        message: `${updated.title} has been purchased.`,
+        actionUrl: "/marketplace",
+        metadata: { productId: String(updated._id), buyerId: String(req.user.id) },
+      });
+    }
+
+    res.json({ ok: true, product: updated });
+  } catch (err) {
+    console.error("Confirm checkout error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -147,7 +241,7 @@ router.post("/checkout/session", async (req, res) => {
           },
         },
       ],
-      success_url: `${frontendUrl}/marketplace?payment=success&arrivalTime=${encodeURIComponent(product.arrivalTime || "To be confirmed")}`,
+      success_url: `${frontendUrl}/marketplace?payment=success&sessionId={CHECKOUT_SESSION_ID}&arrivalTime=${encodeURIComponent(product.arrivalTime || "To be confirmed")}`,
       cancel_url: `${frontendUrl}/marketplace?payment=cancel`,
       metadata: {
         productId: String(product._id),

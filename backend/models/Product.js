@@ -31,6 +31,9 @@ const reportSchema = new Schema(
 const productSchema = new Schema(
   {
     seller: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    buyer: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
+    purchasedAt: { type: Date, default: null, index: true },
+    stripeCheckoutSessionId: { type: String, default: null, index: true },
     title: { type: String, required: true, trim: true, maxlength: 140 },
     description: { type: String, required: true, trim: true, maxlength: 2000 },
     category: { type: String, required: true, trim: true, index: true },
