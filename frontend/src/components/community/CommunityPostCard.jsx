@@ -52,6 +52,12 @@ const CommunityPostCard = ({
         isCommunityAdmin(selectedCommunity, userId) ||
         isCommunityModerator(selectedCommunity, userId);
     const canReport = isCommunityMember(selectedCommunity, userId) && !isPostOwner;
+    const postImages =
+        Array.isArray(post.images) && post.images.length > 0
+            ? post.images
+            : post.image
+              ? [post.image]
+              : [];
 
     return (
         <div className="bg-white p-6 rounded-3xl border border-gray-200 relative">
@@ -73,13 +79,28 @@ const CommunityPostCard = ({
 
             {post.text && <p className="text-gray-800 mb-3">{post.text}</p>}
 
-            {post.image && (
-                <div className="rounded-xl overflow-hidden mb-3 border border-gray-200 bg-gray-50 flex items-center justify-center max-h-96">
-                    <img
-                        src={post.image}
-                        className="w-full h-auto object-contain"
-                        alt=""
-                    />
+            {postImages.length > 0 && (
+                <div
+                    className={`mb-3 grid gap-2 ${
+                        postImages.length === 1
+                            ? "grid-cols-1"
+                            : "grid-cols-2"
+                    }`}>
+                    {postImages.map((imageUrl, index) => (
+                        <div
+                            key={imageUrl}
+                            className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                            <img
+                                src={imageUrl}
+                                className={`w-full object-cover ${
+                                    postImages.length === 1
+                                        ? "max-h-96 object-contain"
+                                        : "h-48"
+                                }`}
+                                alt={`Post image ${index + 1}`}
+                            />
+                        </div>
+                    ))}
                 </div>
             )}
 
