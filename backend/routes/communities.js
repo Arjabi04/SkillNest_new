@@ -14,6 +14,18 @@ import { getPublicPostQuery } from "../utils/moderation.js";
 const storage = memoryStorage();
 const upload = multer({ storage });
 
+const uploadBufferToCloudinary = (buffer, folder) =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder },
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result.secure_url);
+      }
+    );
+    createReadStream(buffer).pipe(uploadStream);
+  });
+
 const getActiveBanEntry = (community, userId) => {
   return community.bannedUsers.find((banEntry) => {
     if (banEntry.user.toString() !== userId.toString()) return false;
@@ -1022,13 +1034,24 @@ router.get("/:communityId/posts", async (req, res) => {
 });
 
 // CREATE POST IN COMMUNITY (Must be a member)
-router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
+router.post(
+  "/:communityId/posts",
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "images", maxCount: 6 },
+  ]),
+  async (req, res) => {
   try {
     const { userId, text, tags } = req.body || {};
+    const uploadedFiles = [
+      ...(req.files?.image || []),
+      ...(req.files?.images || []),
+    ].slice(0, 6);
+    const postText = String(text || "").trim();
     const community = await Community.findById(req.params.communityId);
 
-    if (!userId || !String(text || "").trim()) {
-      return res.status(400).json({ msg: "Missing user or text" });
+    if (!userId || (!postText && uploadedFiles.length === 0)) {
+      return res.status(400).json({ msg: "Add text or at least one image" });
     }
 
     if (!community) {
@@ -1057,20 +1080,14 @@ router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
     }
 
     // Handle image upload
-    let imageUrl = "";
-    if (req.file) {
+    let imageUrls = [];
+    if (uploadedFiles.length > 0) {
       try {
-        const uploadPromise = new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: "skillnest_posts" },
-            (err, result) => {
-              if (err) reject(err);
-              else resolve(result.secure_url);
-            }
-          );
-          createReadStream(req.file.buffer).pipe(uploadStream);
-        });
-        imageUrl = await uploadPromise;
+        imageUrls = await Promise.all(
+          uploadedFiles.map((file) =>
+            uploadBufferToCloudinary(file.buffer, "skillnest_posts")
+          )
+        );
       } catch (uploadErr) {
         console.error("Cloudinary upload error:", uploadErr);
         return res.status(500).json({ msg: "Image upload failed" });
@@ -1090,8 +1107,9 @@ router.post("/:communityId/posts", upload.single("image"), async (req, res) => {
     // Create post
     const post = new Post({
       user: userId,
-      text: String(text).trim(),
-      image: imageUrl,
+      text: postText,
+      image: imageUrls[0] || "",
+      images: imageUrls,
       tags: tagArray,
       community: req.params.communityId,
     });

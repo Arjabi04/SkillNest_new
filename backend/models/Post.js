@@ -21,7 +21,7 @@ const reportSchema = new Schema(
 const postSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true },
+    text: { type: String, default: "" },
     image: { type: String, default: "" },
     images: { type: [String], default: [] },
     tags: { type: [String], default: [] },
